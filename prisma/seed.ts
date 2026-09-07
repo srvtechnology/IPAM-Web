@@ -105,6 +105,22 @@ async function main() {
     },
   });
 
+  await db.adminUser.upsert({
+    where: { email: "demo.registrar@ipam.edu" },
+    update: {},
+    create: {
+      name: "Mariatu Sesay",
+      email: "demo.registrar@ipam.edu",
+      passwordHash,
+      department: "Office of the Registrar",
+      title: "Alumni Registrar",
+      roleId: registrarRole.id,
+      status: "ACTIVE",
+      twoFactorEnforced: false,
+      assignedBy: "System Seed",
+    },
+  });
+
   // ---------------- Leadership ----------------
   await db.leadershipMember.upsert({
     where: { id: "seed-leader-1" },
@@ -371,7 +387,8 @@ async function main() {
   console.log("Demo credentials (password for all seeded accounts below):", DEMO_PASSWORD);
   console.log("  Alumni login  → demo.alumni@ipam.edu");
   console.log("  Admin login   → demo.admin@ipam.edu (Super Administrator)");
-  console.log(`\nSeeded ${alumniSeedData.length} alumni, 3 admin roles, 1 admin user, 2 jobs, 2 events, 1 business.\n`);
+  console.log("  Admin login   → demo.registrar@ipam.edu (Registrar — directory + id_cards only)");
+  console.log(`\nSeeded ${alumniSeedData.length} alumni, 3 admin roles, 2 admin users, 2 jobs, 2 events, 1 business.\n`);
 }
 
 main()
