@@ -1,0 +1,869 @@
+// IPAM Alumni Unified — Prisma schema (MySQL)
+// Covers both the public alumni portal domain and the admin back-office domain.
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum MembershipTier {
+  STANDARD
+  SILVER_LIFETIME
+  GOLD_PATRON
+}
+
+enum JobType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  REMOTE
+}
+
+enum WorkplaceType {
+  REMOTE
+  HYBRID
+  ON_SITE
+}
+
+enum JobCategory {
+  ENGINEERING
+  DATA_AI
+  FINANCE_BANKING
+  OPERATIONS
+  PRODUCT_DESIGN
+  LEGAL_PUBLIC_POLICY
+}
+
+enum EventCategory {
+  GALA
+  WEBINAR
+  REGIONAL_MEETUP
+  NETWORKING
+  CAREER_WORKSHOP
+}
+
+enum DonationStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
+
+enum AuthStatus {
+  OTP_VERIFIED
+  BIOMETRIC_SYNCED
+  PENDING_2FA
+  UNVERIFIED
+}
+
+enum AdminAlumniRole {
+  ALUMNI_MEMBER
+  CORPORATE_RECRUITER
+  DEPT_MODERATOR
+  EXECUTIVE_COUNCIL
+}
+
+enum VerificationStatus {
+  APPROVED
+  PENDING
+  FLAGGED
+}
+
+enum CourierType {
+  DHL_EXPRESS_RUSH
+  INTL_AIR_CARGO
+  CAMPUS_DESK
+  PROVINCIAL_POST
+}
+
+enum IdCardStatus {
+  IN_PRINT_PRESS
+  QUALITY_CHECK
+  READY_COURIER
+  DISPATCHED
+  DELIVERED
+  COLLECTED
+}
+
+enum CardTier {
+  STANDARD_PVC
+  GOLD_RFID_SMART
+  EXECUTIVE_TITANIUM
+}
+
+enum BroadcastType {
+  MESSAGE
+  INVITATION
+  NOTIFICATION
+}
+
+enum DeliveryChannel {
+  SMS
+  WHATSAPP
+  EMAIL
+  PUSH
+}
+
+enum BroadcastStatus {
+  DELIVERED
+  DELIVERING
+  SCHEDULED
+}
+
+enum BroadcastPriority {
+  NORMAL
+  URGENT
+  CRITICAL
+}
+
+enum BadgeColor {
+  PRIMARY
+  SECONDARY
+  TERTIARY
+  ERROR
+  OUTLINE
+}
+
+enum BannerCadence {
+  MONTHLY
+  HALF_YEARLY
+  YEARLY
+}
+
+enum BannerScheduleStatus {
+  ACTIVE
+  SCHEDULED
+  EXPIRED
+  PAUSED
+}
+
+enum InvoiceStatus {
+  PAID
+  PENDING
+  OVERDUE
+}
+
+enum TxnStatus {
+  SETTLED
+  PENDING
+  RECONCILED
+}
+
+enum TxnMethodColor {
+  PRIMARY
+  SECONDARY
+  TERTIARY
+}
+
+enum Currency {
+  SLE
+  USD
+}
+
+enum AdminJobStatus {
+  ACTIVE
+  REVIEWING
+  SHORTLISTING
+  INTERVIEWING
+  OFFER_EXTENDED
+  CLOSED
+}
+
+enum WorkMode {
+  ON_SITE
+  HYBRID
+  REMOTE
+}
+
+enum AdminJobType {
+  FULL_TIME
+  CONTRACT
+  EXECUTIVE
+  INTERNSHIP
+}
+
+enum CandidateStatus {
+  APPLIED
+  REVIEWING
+  SHORTLISTED
+  INTERVIEW_SCHEDULED
+  SELECTED
+  REJECTED
+}
+
+enum DecisionStatus {
+  OFFER_EXTENDED
+  OFFER_ACCEPTED
+  PLACEMENT_CONFIRMED
+}
+
+enum PartnershipTier {
+  PLATINUM_CORPORATE
+  GOLD_CAREER_AFFILIATE
+  UNIVERSITY_CORE_PARTNER
+  SILVER_INDUSTRY_ASSOCIATE
+}
+
+enum SyncStatus {
+  SUCCESS
+  WARNING
+  ERROR
+}
+
+enum AuditCategory {
+  SECURITY_RBAC
+  ALUMNI_VERIFICATION
+  SMART_ID_BUREAU
+  OMNICHANNEL_BROADCAST
+  COMMERCIAL_FINANCE
+  SYSTEM_CORE
+}
+
+enum AuditSeverity {
+  INFO
+  NOTICE
+  WARNING
+  CRITICAL
+}
+
+enum AuditStatus {
+  SUCCESS
+  FLAGGED
+  WARNING
+  BLOCKED_RBAC_VIOLATION
+}
+
+enum AdminUserStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING_ACTIVATION
+}
+
+enum TwoFactorMethod {
+  SMS_OTP
+  HARDWARE_FIDO2
+  AUTHENTICATOR_APP
+}
+
+enum PermissionModule {
+  DIRECTORY
+  ID_CARDS
+  BROADCAST
+  JOBS
+  COMMERCIAL
+  FINANCE
+  SIS_SYNC
+  AUDIT_TRAILS
+  RBAC_GOVERNANCE
+  SYSTEM_SETTINGS
+}
+
+// ============================================================
+// PUBLIC / ALUMNI DOMAIN
+// ============================================================
+
+model AlumniUser {
+  id                   String    @id @default(cuid())
+  email                String    @unique
+  passwordHash         String
+  studentId            String    @unique
+  isVerifiedAlumni     Boolean   @default(false)
+  membershipTier       MembershipTier @default(STANDARD)
+  membershipValidUntil DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  profile              AlumniMember?
+  savedJobs            SavedJob[]
+  eventRegistrations   EventRegistration[]
+  donations            Donation[]
+  jobApplications      JobApplication[]
+  alumniRecord         AlumniRecord?
+
+  bookmarksMade        AlumniBookmark[] @relation("BookmarkOwner")
+  bookmarkedBy         AlumniBookmark[] @relation("BookmarkTarget")
+
+  @@map("alumni_users")
+}
+
+model AlumniMember {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        AlumniUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name        String
+  avatar      String?  @db.Text
+  classYear   Int
+  degree      String
+  major       String
+  currentRole String
+  company     String
+  location    String
+  country     String
+  industry    String
+  isMentor    Boolean  @default(false)
+  bio         String   @db.Text
+  linkedin    String?
+
+  skills      AlumniMemberSkill[]
+  postedJobs  JobOpening[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("alumni_members")
+}
+
+model AlumniMemberSkill {
+  id        Int    @id @default(autoincrement())
+  alumniId  String
+  alumni    AlumniMember @relation(fields: [alumniId], references: [id], onDelete: Cascade)
+  skill     String
+
+  @@index([alumniId])
+  @@map("alumni_member_skills")
+}
+
+model LeadershipMember {
+  id          String   @id @default(cuid())
+  name        String
+  role        String
+  classYear   String
+  image       String?  @db.Text
+  bio         String   @db.Text
+  quote       String   @db.Text
+  email       String
+
+  initiatives LeadershipInitiative[]
+
+  @@map("leadership_members")
+}
+
+model LeadershipInitiative {
+  id       Int    @id @default(autoincrement())
+  leaderId String
+  leader   LeadershipMember @relation(fields: [leaderId], references: [id], onDelete: Cascade)
+  title    String
+
+  @@index([leaderId])
+  @@map("leadership_initiatives")
+}
+
+model JobOpening {
+  id               String   @id @default(cuid())
+  title            String
+  company          String
+  companyLogo      String?  @db.Text
+  location         String
+  type             JobType
+  workplaceType    WorkplaceType?
+  salary           String
+  category         JobCategory
+  description      String   @db.Text
+  responsibilities Json?
+  requirements     Json
+  benefits         Json?
+  aboutCompany     String?  @db.Text
+
+  postedByAlumniId String?
+  postedByAlumni   AlumniMember? @relation(fields: [postedByAlumniId], references: [id], onDelete: SetNull)
+
+  postedDate       DateTime @default(now())
+  deadline         DateTime
+  applyUrl         String?  @db.Text
+
+  savedBy          SavedJob[]
+
+  @@map("job_openings")
+}
+
+model SavedJob {
+  id        Int      @id @default(autoincrement())
+  userId    String
+  jobId     String
+  user      AlumniUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job       JobOpening @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, jobId])
+  @@map("saved_jobs")
+}
+
+model AlumniEvent {
+  id              String   @id @default(cuid())
+  title           String
+  date            DateTime
+  displayDate     String
+  time            String
+  location        String
+  venueDetails    String?
+  isVirtual       Boolean  @default(false)
+  virtualLink     String?
+  category        EventCategory
+  icon            String?
+  bannerColor     String?
+  description     String   @db.Text
+  agenda          Json?
+  speakers        Json?
+  ticketPrice     Decimal  @db.Decimal(10, 2) @default(0)
+  currency        String   @default("USD")
+  capacity        Int
+  registeredCount Int      @default(0)
+  dressCode       String?
+  highlights      Json?
+  faqs            Json?
+
+  registrations   EventRegistration[]
+
+  @@map("alumni_events")
+}
+
+model EventRegistration {
+  id           String   @id @default(cuid())
+  eventId      String
+  event        AlumniEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId       String
+  user         AlumniUser  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  registeredAt DateTime @default(now())
+
+  @@unique([eventId, userId])
+  @@map("event_registrations")
+}
+
+model AlumniBusiness {
+  id             String   @id @default(cuid())
+  name           String
+  founders       String
+  classYear      String
+  category       String
+  industry       String
+  tagline        String?
+  description    String   @db.Text
+  about          String?  @db.Text
+  services       Json?
+  keyProducts    Json?
+  yearFounded    Int?
+  companySize    String?
+  website        String
+  image          String?  @db.Text
+  logo           String?  @db.Text
+  featured       Boolean  @default(false)
+  location       String
+  contactEmail   String
+  contactPhone   String?
+  linkedin       String?
+  certifications Json?
+
+  createdAt      DateTime @default(now())
+
+  @@map("alumni_businesses")
+}
+
+model Donation {
+  id         String   @id @default(cuid())
+  userId     String?
+  user       AlumniUser? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  donorName  String
+  donorEmail String
+  amount     Decimal  @db.Decimal(10, 2)
+  currency   String   @default("USD")
+  fund       String
+  paymentRef String   @unique
+  status     DonationStatus @default(PENDING)
+  createdAt  DateTime @default(now())
+
+  transaction Transaction?
+
+  @@map("donations")
+}
+
+model AlumniBookmark {
+  id       Int    @id @default(autoincrement())
+  ownerId  String
+  owner    AlumniUser @relation("BookmarkOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  targetId String
+  target   AlumniUser @relation("BookmarkTarget", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@unique([ownerId, targetId])
+  @@map("alumni_bookmarks")
+}
+
+// ============================================================
+// ADMIN DOMAIN
+// ============================================================
+
+model AdminUser {
+  id                        String   @id @default(cuid())
+  name                      String
+  email                     String   @unique
+  passwordHash              String
+  phone                     String?
+  department                String
+  title                     String
+  avatarUrl                 String?  @db.Text
+  roleId                    String
+  role                      AdminRoleDefinition @relation(fields: [roleId], references: [id])
+  status                    AdminUserStatus @default(PENDING_ACTIVATION)
+  twoFactorEnforced         Boolean  @default(false)
+  twoFactorMethod           TwoFactorMethod?
+  lastLoginAt               DateTime?
+  lastLoginIp               String?
+  location                  String?
+  assignedBy                String?
+  assignedDate              DateTime @default(now())
+  customPermissionOverrides Json?
+
+  auditLogs                 AuditLogEntry[]
+
+  @@map("admin_users")
+}
+
+model AdminRoleDefinition {
+  id              String   @id @default(cuid())
+  name            String
+  slug            String   @unique
+  description     String   @db.Text
+  isSystemDefault Boolean  @default(false)
+  badgeColor      BadgeColor @default(PRIMARY)
+  priorityLevel   Int
+
+  users           AdminUser[]
+  permissions     RoleModulePermission[]
+
+  @@map("admin_role_definitions")
+}
+
+model RoleModulePermission {
+  id         Int    @id @default(autoincrement())
+  roleId     String
+  role       AdminRoleDefinition @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  module     PermissionModule
+  canRead    Boolean @default(false)
+  canWrite   Boolean @default(false)
+  canApprove Boolean @default(false)
+  canExport  Boolean @default(false)
+  canDelete  Boolean @default(false)
+
+  @@unique([roleId, module])
+  @@map("role_module_permissions")
+}
+
+model AlumniRecord {
+  id                String   @id @default(cuid())
+  alumniUserId      String?  @unique
+  alumniUser        AlumniUser? @relation(fields: [alumniUserId], references: [id], onDelete: SetNull)
+
+  name              String
+  email             String
+  avatarUrl         String?  @db.Text
+  initials          String?
+  regNo             String   @unique
+  degree            String
+  faculty           String
+  gradYear          Int
+  authStatus        AuthStatus @default(UNVERIFIED)
+  role              AdminAlumniRole @default(ALUMNI_MEMBER)
+  status            VerificationStatus @default(PENDING)
+  phone             String?
+  nationalId        String?
+  biometricScore    Int?
+  dateRegistered    DateTime @default(now())
+  digitalPassIssued Boolean  @default(false)
+
+  idCardOrders      IdCardOrder[]
+
+  @@map("alumni_records")
+}
+
+model IdCardOrder {
+  id              String   @id @default(cuid())
+  orderNumber     String   @unique
+  alumniRecordId  String?
+  alumniRecord    AlumniRecord? @relation(fields: [alumniRecordId], references: [id], onDelete: SetNull)
+
+  studentName     String
+  regNo           String
+  deliveryAddress String
+  courierType     CourierType
+  status          IdCardStatus @default(IN_PRINT_PRESS)
+  submittedDate   DateTime @default(now())
+  trackingCode    String?
+  cardTier        CardTier
+
+  faculty         String?
+  degree          String?
+  gradYear        Int?
+  nationalId      String?
+  chipUid         String?
+  avatarUrl       String?  @db.Text
+
+  printedDate     DateTime?
+  dispatchedDate  DateTime?
+  issueDate       DateTime?
+  expiryDate      DateTime?
+  notes           String?  @db.Text
+
+  @@map("id_card_orders")
+}
+
+model BroadcastMessageTemplate {
+  id           String   @id @default(cuid())
+  type         BroadcastType
+  name         String
+  title        String
+  message      String   @db.Text
+  channels     Json
+  category     String?
+  isCustom     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  eventDate    DateTime?
+  eventVenue   String?
+  rsvpDeadline DateTime?
+  allowGuests  Boolean?
+
+  priority     BroadcastPriority?
+  actionUrl    String?
+
+  @@map("broadcast_message_templates")
+}
+
+model TargetAudienceGroup {
+  id             String   @id @default(cuid())
+  name           String
+  description    String   @db.Text
+  color          BadgeColor?
+  isCustom       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  criteria       Json
+  estimatedCount Int?
+
+  @@map("target_audience_groups")
+}
+
+model BroadcastRecord {
+  id               String   @id @default(cuid())
+  type             BroadcastType
+  title            String
+  message          String   @db.Text
+  recipientsCount  Int
+  audienceLabel    String
+  channels         Json
+  date             DateTime @default(now())
+  deliveryRate     String?
+  cost             String?
+  status           BroadcastStatus @default(SCHEDULED)
+
+  eventDate        DateTime?
+  eventVenue       String?
+  rsvpDeadline     DateTime?
+  priority         BroadcastPriority?
+  actionUrl        String?
+
+  createdByAdminId String?
+
+  @@map("broadcast_records")
+}
+
+model SponsorBanner {
+  id                  String   @id @default(cuid())
+  code                String   @unique
+  name                String
+  slot                String
+  contract            String
+  monthlyFee          Decimal  @db.Decimal(10, 2)
+  impressions         String   @default("0")
+  clicks              String   @default("0")
+  ctr                 String   @default("0%")
+  active              Boolean  @default(true)
+
+  subscriptionCadence BannerCadence?
+  scheduleStatus      BannerScheduleStatus?
+  startDate           DateTime?
+  endDate             DateTime?
+  bannerImageUrl      String?  @db.Text
+  targetUrl           String?  @db.Text
+  industry            String?
+  dimensions          String?
+
+  contactName         String?
+  contactEmail        String?
+  contactPhone        String?
+  contactTitle        String?
+  contactAddress      String?
+  contactTaxId        String?
+
+  invoiceNumber       String?
+  invoiceDate         DateTime?
+  invoiceDueDate      DateTime?
+  invoiceStatus       InvoiceStatus?
+  autoRenew           Boolean  @default(false)
+  notes               String?  @db.Text
+
+  @@map("sponsor_banners")
+}
+
+model Transaction {
+  id          String   @id @default(cuid())
+  refId       String   @unique
+  method      String
+  methodColor TxnMethodColor @default(PRIMARY)
+  amount      Decimal  @db.Decimal(10, 2)
+  currency    Currency @default(USD)
+  tier        String
+  status      TxnStatus @default(PENDING)
+  date        DateTime @default(now())
+  alumniName  String
+
+  donationId  String?  @unique
+  donation    Donation? @relation(fields: [donationId], references: [id], onDelete: SetNull)
+
+  @@map("transactions")
+}
+
+model EmployerDetail {
+  id              String   @id @default(cuid())
+  name            String
+  logoUrl         String?  @db.Text
+  industry        String
+  headquarters    String
+  website         String
+  companySize     String
+  description     String   @db.Text
+  verifiedPartner Boolean  @default(false)
+  partnershipTier PartnershipTier
+  establishedYear Int?
+
+  contactName     String
+  contactTitle    String
+  contactEmail    String
+  contactPhone    String
+  contactLinkedIn String?
+
+  jobs            AdminJobListing[]
+
+  @@map("employer_details")
+}
+
+model AdminJobListing {
+  id               String   @id @default(cuid())
+  title            String
+  company          String
+  employerId       String?
+  employer         EmployerDetail? @relation(fields: [employerId], references: [id], onDelete: SetNull)
+
+  location         String
+  workMode         WorkMode?
+  type             AdminJobType
+  department       String?
+  experienceLevel  String?
+  salaryRange      String
+  status           AdminJobStatus @default(ACTIVE)
+  postedDate       DateTime @default(now())
+  closingDate      DateTime
+  applicantsCount  Int      @default(0)
+  verifiedOnly     Boolean  @default(false)
+
+  description      String?  @db.Text
+  responsibilities Json?
+  requirements     Json?
+  skillsRequired   Json?
+  benefits         Json?
+
+  applications     JobApplication[]
+
+  @@map("admin_job_listings")
+}
+
+model JobApplication {
+  id               String   @id @default(cuid())
+  jobId            String
+  job              AdminJobListing @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  alumniUserId     String?
+  alumniUser       AlumniUser? @relation(fields: [alumniUserId], references: [id], onDelete: SetNull)
+
+  candidateName    String
+  regNo            String?
+  degree           String
+  faculty          String
+  gradYear         Int
+  avatarUrl        String?  @db.Text
+  email            String
+  phone            String
+  gpa              String?
+  status           CandidateStatus @default(APPLIED)
+  matchScore       Int      @default(0)
+  appliedDate      DateTime @default(now())
+  coverNote        String?  @db.Text
+  experienceYears  Int      @default(0)
+  skills           Json?
+  verifiedAlumnus  Boolean  @default(false)
+  interviewDate    DateTime?
+  notes            String?  @db.Text
+
+  selectedDate     DateTime?
+  offerSalary      String?
+  startDate        DateTime?
+  decisionStatus   DecisionStatus?
+  recruiterRemarks String?  @db.Text
+
+  @@map("job_applications")
+}
+
+model SisSyncLog {
+  id            String   @id @default(cuid())
+  timestamp     DateTime @default(now())
+  node          String
+  operation     String
+  recordsSynced Int
+  status        SyncStatus
+  latencyMs     Int
+
+  @@map("sis_sync_logs")
+}
+
+model AuditLogEntry {
+  id            String   @id @default(cuid())
+  displayId     String   @unique // human-facing formatted id, e.g. "AUD-2026-0941"
+  timestamp     DateTime @default(now())
+
+  actorAdminId  String?
+  actor         AdminUser? @relation(fields: [actorAdminId], references: [id], onDelete: SetNull)
+  actorName     String
+  actorEmail    String
+  actorRole     String
+  actorAvatar   String?  @db.Text
+
+  action        String
+  actionLabel   String
+  category      AuditCategory
+  target        String
+  targetType    String?
+  status        AuditStatus
+  severity      AuditSeverity
+  ipAddress     String
+  location      String
+  deviceInfo    String
+  details       String   @db.Text
+  beforeState   Json?
+  afterState    Json?
+  tamperHash    String   @db.VarChar(64)
+
+  @@map("audit_log_entries")
+}
+
+model SystemSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+
+  @@map("system_settings")
+}
