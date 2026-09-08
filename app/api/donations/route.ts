@@ -45,5 +45,22 @@ export async function POST(req: NextRequest) {
     },
   });
 
+  // Finance treats every settled donation as a transaction so it stays the
+  // single source of truth for money movement (see Milestone 4b notes).
+  const currency = donation.currency === "SLE" ? "SLE" : "USD";
+  await db.transaction.create({
+    data: {
+      refId: `TXN-${donation.paymentRef}`,
+      method: "Online Giving",
+      methodColor: "TERTIARY",
+      amount: donation.amount,
+      currency,
+      tier: donation.fund,
+      status: "SETTLED",
+      alumniName: donation.donorName,
+      donationId: donation.id,
+    },
+  });
+
   return ok(donation, 201);
 }
