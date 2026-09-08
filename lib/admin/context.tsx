@@ -43,15 +43,19 @@ export const AdminSessionProvider: React.FC<{
   children: React.ReactNode;
   admin: AdminSessionUser;
   permissions: Partial<Record<PermissionModuleKey, CapabilitySet>>;
-}> = ({ children, admin, permissions }) => {
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
+  /** Org-wide default theme from the SystemSetting table (System Settings
+   * module), used only when this browser has no personal localStorage
+   * preference saved yet. */
+  defaultTheme?: "dark" | "light";
+}> = ({ children, admin, permissions, defaultTheme = "dark" }) => {
+  const [theme, setTheme] = useState<"dark" | "light">(defaultTheme);
 
   useEffect(() => {
     try {
       const stored = localStorage.getItem("ipam-admin-theme");
       if (stored === "light" || stored === "dark") setTheme(stored);
     } catch {
-      // localStorage unavailable — keep default dark theme
+      // localStorage unavailable — keep the org-wide default theme
     }
   }, []);
 

@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { getAdminSession } from "@/lib/auth/session";
 import type { AdminUser, PermissionModule } from "@prisma/client";
 
 export type Capability = "canRead" | "canWrite" | "canApprove" | "canExport" | "canDelete";
@@ -75,4 +76,28 @@ export async function requirePermission(
   }
 
   return { admin };
+}
+
+/**
+ * Server Component helper for gating a whole admin page (not just its
+ * mutating API routes) behind a module capability — used for the most
+ * sensitive screens (RBAC, Audit Trails) where even read access to the page
+ * shell/data via a guessed URL should be blocked, not just hidden from nav.
+ */
+export async function checkPagePermission(
+  module: PermissionModule,
+  capability: Capability
+): Promise<{ allowed: true } | { allowed: false }> {
+  const session = await getAdminSession();
+  if (!session) return { allowed: false };
+
+  const admin = await db.adminUser.findUnique({
+    where: { id: session.sub },
+    include: { role: { include: { permissions: true } } },
+  });
+  if (!admin || admin.status !== "ACTIVE") return { allowed: false };
+
+  const effective = getEffectivePermissions(admin);
+  const moduleCaps = effective[module] ?? EMPTY_CAPABILITIES;
+  return moduleCaps[capability] ? { allowed: true } : { allowed: false };
 }

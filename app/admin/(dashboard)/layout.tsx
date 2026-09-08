@@ -22,6 +22,8 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
   if (!admin || admin.status !== "ACTIVE") redirect("/admin/login");
 
   const permissions = getEffectivePermissions(admin);
+  const themeSetting = await db.systemSetting.findUnique({ where: { key: "default_theme" } });
+  const defaultTheme = themeSetting?.value === "light" ? "light" : "dark";
   const sessionUser: AdminSessionUser = {
     id: admin.id,
     name: admin.name,
@@ -40,7 +42,7 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
         rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
       />
-      <AdminSessionProvider admin={sessionUser} permissions={permissions}>
+      <AdminSessionProvider admin={sessionUser} permissions={permissions} defaultTheme={defaultTheme}>
         <div className="flex min-h-screen">
           <Sidebar />
           <div className="flex-1 flex flex-col min-w-0">

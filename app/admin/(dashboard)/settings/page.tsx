@@ -1,5 +1,9 @@
-import ComingSoon from "@/components/admin/ComingSoon";
+import { db } from "@/lib/db";
+import SystemSettingsView from "@/components/admin/settings/SystemSettingsView";
 
-export default function Page() {
-  return <ComingSoon title="System Settings" icon="settings" />;
+export default async function SettingsPage() {
+  const setting = await db.systemSetting.findUnique({ where: { key: "default_theme" } });
+  const orgDefaultTheme = setting?.value === "light" ? "light" : "dark";
+
+  return <SystemSettingsView orgDefaultTheme={orgDefaultTheme} />;
 }
