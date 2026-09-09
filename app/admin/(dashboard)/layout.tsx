@@ -38,10 +38,7 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
 
   return (
     <div className={`${inter.variable} ${jetbrainsMono.variable}`}>
-      <link
-        rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
-      />
+      {/* Material Symbols font link moved to the persistent root layout (app/layout.tsx) — see comment there. */}
       <AdminSessionProvider admin={sessionUser} permissions={permissions} defaultTheme={defaultTheme}>
         <div className="flex min-h-screen">
           <Sidebar />
