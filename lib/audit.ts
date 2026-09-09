@@ -2,13 +2,39 @@ import { createHmac } from "crypto";
 import { db } from "@/lib/db";
 import type { AuditCategory, AuditSeverity, AuditStatus, Prisma } from "@prisma/client";
 
+export interface TamperHashFields {
+  timestamp: Date;
+  actorEmail: string;
+  action: string;
+  target: string;
+  status: string;
+  severity: string;
+  details: string;
+  beforeState?: Prisma.InputJsonValue | null;
+  afterState?: Prisma.InputJsonValue | null;
+}
+
 /**
- * Real HMAC-SHA256 over `${timestamp}|${actorEmail}|${action}|${target}`,
- * keyed by AUDIT_HMAC_SECRET. This exact payload-string convention must stay
- * stable so a stored hash can be recomputed/verified later.
+ * Real HMAC-SHA256 over the substantive, compliance-relevant fields of an
+ * audit entry — not just its identity/routing fields. `details` and the
+ * before/after state are exactly what an auditor reviews to see "what
+ * actually happened," so they must be covered or tampering them would go
+ * undetected. Field order and JSON.stringify(null-safe) serialization of
+ * beforeState/afterState must stay stable so a stored hash can be
+ * recomputed/verified later.
  */
-export function tamperHash(timestamp: Date, actorEmail: string, action: string, target: string): string {
-  const payload = `${timestamp.toISOString()}|${actorEmail}|${action}|${target}`;
+export function tamperHash(fields: TamperHashFields): string {
+  const payload = [
+    fields.timestamp.toISOString(),
+    fields.actorEmail,
+    fields.action,
+    fields.target,
+    fields.status,
+    fields.severity,
+    fields.details,
+    JSON.stringify(fields.beforeState ?? null),
+    JSON.stringify(fields.afterState ?? null),
+  ].join("|");
   return createHmac("sha256", process.env.AUDIT_HMAC_SECRET ?? "dev-audit-hmac-secret-change-me")
     .update(payload)
     .digest("hex");
@@ -43,7 +69,17 @@ function formatDisplayId(timestamp: Date): string {
 
 export async function writeAuditLog(input: WriteAuditLogInput) {
   const timestamp = new Date();
-  const hash = tamperHash(timestamp, input.actorEmail, input.action, input.target);
+  const hash = tamperHash({
+    timestamp,
+    actorEmail: input.actorEmail,
+    action: input.action,
+    target: input.target,
+    status: input.status,
+    severity: input.severity,
+    details: input.details,
+    beforeState: input.beforeState,
+    afterState: input.afterState,
+  });
 
   return db.auditLogEntry.create({
     data: {

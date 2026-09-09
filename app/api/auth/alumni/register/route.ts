@@ -24,27 +24,48 @@ export async function POST(req: NextRequest) {
 
   const passwordHash = await hashPassword(input.password);
 
-  const user = await db.alumniUser.create({
-    data: {
-      email: input.email,
-      passwordHash,
-      studentId: input.studentId,
-      profile: {
-        create: {
-          name: input.name,
-          classYear: input.classYear,
-          degree: input.degree,
-          major: input.major,
-          currentRole: input.currentRole,
-          company: input.company,
-          location: input.location,
-          country: input.country,
-          industry: input.industry,
-          bio: input.bio,
+  const user = await db.$transaction(async (tx) => {
+    const created = await tx.alumniUser.create({
+      data: {
+        email: input.email,
+        passwordHash,
+        studentId: input.studentId,
+        profile: {
+          create: {
+            name: input.name,
+            classYear: input.classYear,
+            degree: input.degree,
+            major: input.major,
+            currentRole: input.currentRole,
+            company: input.company,
+            location: input.location,
+            country: input.country,
+            industry: input.industry,
+            bio: input.bio,
+          },
         },
       },
-    },
-    include: { profile: true },
+      include: { profile: true },
+    });
+
+    // Every public self-registration must be visible to the admin Alumni
+    // Directory & Verification module — without this, real signups never
+    // appear anywhere an admin can review/approve them.
+    await tx.alumniRecord.create({
+      data: {
+        alumniUserId: created.id,
+        name: input.name,
+        email: input.email,
+        regNo: input.studentId,
+        degree: input.degree,
+        faculty: input.major,
+        gradYear: input.classYear,
+        authStatus: "UNVERIFIED",
+        status: "PENDING",
+      },
+    });
+
+    return created;
   });
 
   await setAlumniSessionCookie({ sub: user.id, email: user.email });
