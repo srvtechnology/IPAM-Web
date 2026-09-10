@@ -57,10 +57,15 @@ export default function AlumniDirectoryView({ records }: { records: AlumniRecord
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-headline-lg text-on-surface">Alumni Directory & 2-Way Verification</h1>
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-primary text-[20px]">verified_user</span>
+            <h1 className="font-headline-lg text-on-surface">Alumni Directory & 2-Way Verification</h1>
+          </div>
           <p className="font-body-default text-on-surface-variant mt-1">
-            {records.length} records &middot; {records.filter((r) => r.status === "PENDING").length}{" "}
-            pending registrar sign-off
+            {records.length} records &middot;{" "}
+            <span className="text-tertiary font-medium">
+              {records.filter((r) => r.status === "PENDING").length} pending registrar sign-off
+            </span>
           </p>
         </div>
         {canWrite && (
@@ -120,13 +125,21 @@ export default function AlumniDirectoryView({ records }: { records: AlumniRecord
                     </div>
                   </div>
                 </td>
-                <td className="px-4 py-3 font-code-compact text-on-surface-variant">{r.regNo}</td>
+                <td className="px-4 py-3 font-code-compact text-tertiary">{r.regNo}</td>
                 <td className="px-4 py-3 font-body-default text-on-surface">
                   {r.degree}
                   <span className="text-on-surface-variant"> &middot; {r.faculty}</span>
                 </td>
-                <td className="px-4 py-3 font-body-compact text-on-surface-variant">
-                  {r.authStatus.replaceAll("_", " ")}
+                <td className="px-4 py-3 font-body-compact">
+                  <span
+                    className={
+                      r.authStatus.includes("VERIFIED") || r.authStatus.includes("SYNCED")
+                        ? "text-secondary"
+                        : "text-tertiary"
+                    }
+                  >
+                    {r.authStatus.replaceAll("_", " ")}
+                  </span>
                 </td>
                 <td className="px-4 py-3">
                   <span

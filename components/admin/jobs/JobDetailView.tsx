@@ -33,13 +33,19 @@ export interface JobDetailRow {
 }
 
 const STATUS_STYLES: Record<string, string> = {
-  APPLIED: "bg-surface-container-high text-on-surface-variant",
-  REVIEWING: "bg-tertiary-container text-on-tertiary-container",
-  SHORTLISTED: "bg-tertiary-container text-on-tertiary-container",
-  INTERVIEW_SCHEDULED: "bg-primary-container text-on-primary-container",
-  SELECTED: "bg-secondary-container text-on-secondary-container",
+  APPLIED: "bg-slate-500/15 text-slate-600 dark:text-slate-400 border border-slate-500/30",
+  REVIEWING: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30",
+  SHORTLISTED: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30",
+  INTERVIEW_SCHEDULED: "bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30",
+  SELECTED: "bg-secondary text-on-secondary",
   REJECTED: "bg-error-container text-on-error-container",
 };
+
+function matchScoreColor(score: number) {
+  if (score >= 80) return "bg-secondary/15 text-secondary";
+  if (score >= 60) return "bg-blue-500/15 text-blue-600 dark:text-blue-400";
+  return "bg-surface-container-high text-on-surface-variant";
+}
 
 export default function JobDetailView({ job }: { job: JobDetailRow }) {
   const { can } = useAdminSession();
@@ -89,9 +95,24 @@ export default function JobDetailView({ job }: { job: JobDetailRow }) {
                 onClick={() => setInspecting(app)}
                 className="border-b border-outline-variant/10 last:border-0 hover:bg-surface-container-high/50 cursor-pointer"
               >
-                <td className="px-4 py-3 font-body-medium text-on-surface">{app.candidateName}</td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-primary/15 border border-primary/30 flex items-center justify-center text-primary font-bold text-[11px] shrink-0">
+                      {app.candidateName
+                        .split(" ")
+                        .map((n) => n[0])
+                        .slice(0, 2)
+                        .join("")}
+                    </div>
+                    <span className="font-body-medium text-on-surface">{app.candidateName}</span>
+                  </div>
+                </td>
                 <td className="px-4 py-3 font-body-default text-on-surface-variant">{app.degree}</td>
-                <td className="px-4 py-3 font-body-default text-on-surface">{app.matchScore}%</td>
+                <td className="px-4 py-3">
+                  <span className={`px-2 py-0.5 rounded-full font-code-compact font-bold ${matchScoreColor(app.matchScore)}`}>
+                    {app.matchScore}%
+                  </span>
+                </td>
                 <td className="px-4 py-3">
                   <span className={`px-2 py-0.5 rounded-full font-body-compact ${STATUS_STYLES[app.status] ?? ""}`}>
                     {app.status.replaceAll("_", " ")}

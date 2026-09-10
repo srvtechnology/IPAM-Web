@@ -23,13 +23,16 @@ export interface EmployerOption {
   name: string;
 }
 
+// Mirrors the original admin portal's job-pipeline palette (each stage gets
+// its own hue rather than reusing the theme's primary/secondary/tertiary
+// trio) so the recruiting funnel reads at a glance.
 const STATUS_STYLES: Record<string, string> = {
-  ACTIVE: "bg-secondary-container text-on-secondary-container",
-  REVIEWING: "bg-tertiary-container text-on-tertiary-container",
-  SHORTLISTING: "bg-tertiary-container text-on-tertiary-container",
-  INTERVIEWING: "bg-primary-container text-on-primary-container",
-  OFFER_EXTENDED: "bg-primary-container text-on-primary-container",
-  CLOSED: "bg-surface-container-high text-on-surface-variant",
+  ACTIVE: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30",
+  REVIEWING: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30",
+  SHORTLISTING: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30",
+  INTERVIEWING: "bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30",
+  OFFER_EXTENDED: "bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30",
+  CLOSED: "bg-slate-500/15 text-slate-600 dark:text-slate-400 border border-slate-500/30",
 };
 
 export default function AdminJobsView({
@@ -91,10 +94,21 @@ export default function AdminJobsView({
             {jobs.map((job) => (
               <tr key={job.id} className="border-b border-outline-variant/10 last:border-0 hover:bg-surface-container-high/50">
                 <td className="px-4 py-3">
-                  <Link href={`/admin/jobs/${job.id}`} className="font-body-medium text-on-surface hover:text-primary">
-                    {job.title}
-                  </Link>
-                  <div className="font-body-compact text-on-surface-variant">{job.company}</div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-secondary/15 border border-secondary/30 flex items-center justify-center text-secondary font-bold text-[12px] shrink-0">
+                      {job.company
+                        .split(" ")
+                        .map((n) => n[0])
+                        .slice(0, 2)
+                        .join("")}
+                    </div>
+                    <div>
+                      <Link href={`/admin/jobs/${job.id}`} className="font-body-medium text-on-surface hover:text-primary">
+                        {job.title}
+                      </Link>
+                      <div className="font-body-compact text-on-surface-variant">{job.company}</div>
+                    </div>
+                  </div>
                 </td>
                 <td className="px-4 py-3 font-body-default text-on-surface-variant">
                   {job.employer?.name ?? "—"}

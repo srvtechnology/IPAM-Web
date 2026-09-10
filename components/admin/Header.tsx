@@ -29,23 +29,38 @@ export default function Header() {
       </div>
 
       <div className="flex items-center gap-3">
+        <div className="hidden lg:flex items-center gap-2 px-2.5 py-1 rounded-full bg-secondary-container/20 border border-secondary/30">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
+          </span>
+          <span className="font-label-badge text-secondary font-medium tracking-wide">IPAM API Sync: Connected</span>
+        </div>
+
         <button
           type="button"
           onClick={toggleTheme}
           title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-          className="p-2 rounded-lg hover:bg-surface-container-high text-on-surface-variant transition-colors"
+          className="p-2 rounded-lg hover:bg-surface-container-high text-on-surface-variant transition-colors group"
         >
-          <span className="material-symbols-outlined text-[18px]">
-            {theme === "dark" ? "dark_mode" : "light_mode"}
+          <span
+            className={`material-symbols-outlined text-[18px] transition-transform group-hover:scale-110 ${
+              theme === "dark" ? "text-tertiary" : "text-primary"
+            }`}
+          >
+            {theme === "dark" ? "light_mode" : "dark_mode"}
           </span>
         </button>
 
         <button
           type="button"
-          className="p-2 rounded-lg hover:bg-surface-container-high text-on-surface-variant transition-colors"
+          className="relative p-2 rounded-lg hover:bg-surface-container-high text-on-surface-variant transition-colors"
           title="Notifications"
         >
           <span className="material-symbols-outlined text-[18px]">notifications</span>
+          <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-error text-on-error font-code-compact text-[9px] font-bold flex items-center justify-center border-2 border-surface-container-lowest">
+            3
+          </span>
         </button>
 
         <div className="relative">
@@ -54,7 +69,7 @@ export default function Header() {
             onClick={() => setMenuOpen((v) => !v)}
             className="flex items-center gap-2 pl-1 pr-3 py-1 rounded-full hover:bg-surface-container-high transition-colors"
           >
-            <div className="h-8 w-8 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container font-headline-sm">
+            <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-on-primary font-headline-sm">
               {admin.name.charAt(0)}
             </div>
             <span className="font-body-medium text-on-surface hidden sm:inline">{admin.name}</span>
@@ -65,12 +80,15 @@ export default function Header() {
             <div className="absolute right-0 mt-2 w-56 rounded-lg bg-surface-container shadow-lg ring-1 ring-outline-variant/30 py-1 z-50">
               <div className="px-3 py-2 border-b border-outline-variant/20">
                 <p className="font-body-medium text-on-surface truncate">{admin.email}</p>
-                <p className="font-body-compact text-on-surface-variant">{admin.roleName}</p>
+                <p className="mt-1 font-code-compact text-[10px] text-secondary flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                  <span>{admin.roleName}</span>
+                </p>
               </div>
               <button
                 type="button"
                 onClick={handleLogout}
-                className="w-full text-left px-3 py-2 font-body-default text-on-surface hover:bg-surface-container-high transition-colors flex items-center gap-2"
+                className="w-full text-left px-3 py-2 font-body-default text-error hover:bg-error-container/20 transition-colors flex items-center gap-2"
               >
                 <span className="material-symbols-outlined text-[16px]">logout</span>
                 Sign out

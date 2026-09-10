@@ -13,6 +13,7 @@ export interface RoleRow {
   description: string;
   isSystemDefault: boolean;
   priorityLevel: number;
+  badgeColor: string;
   permissions: { module: string; canRead: boolean; canWrite: boolean; canApprove: boolean; canExport: boolean; canDelete: boolean }[];
   _count: { users: number };
 }
@@ -32,9 +33,25 @@ export interface AdminUserRow {
 }
 
 const STATUS_COLOR: Record<string, string> = {
-  ACTIVE: "bg-tertiary/15 text-tertiary",
+  ACTIVE: "bg-secondary/15 text-secondary",
   SUSPENDED: "bg-error/15 text-error",
-  PENDING_ACTIVATION: "bg-secondary/15 text-secondary",
+  PENDING_ACTIVATION: "bg-tertiary/15 text-tertiary",
+};
+
+const ROLE_BADGE_COLOR: Record<string, string> = {
+  PRIMARY: "bg-primary/15 text-primary border-primary/30",
+  SECONDARY: "bg-secondary/15 text-secondary border-secondary/30",
+  TERTIARY: "bg-tertiary/20 text-tertiary border-tertiary/40",
+  ERROR: "bg-error/20 text-error border-error/40",
+  OUTLINE: "bg-surface-container-high text-on-surface-variant border-outline-variant/30",
+};
+
+const ROLE_ICON_CHIP_COLOR: Record<string, string> = {
+  PRIMARY: "bg-primary/15 text-primary",
+  SECONDARY: "bg-secondary/15 text-secondary",
+  TERTIARY: "bg-tertiary/15 text-tertiary",
+  ERROR: "bg-error/15 text-error",
+  OUTLINE: "bg-surface-container-high text-on-surface-variant",
 };
 
 export default function RbacManagementView({ roles, users }: { roles: RoleRow[]; users: AdminUserRow[] }) {
@@ -100,16 +117,25 @@ export default function RbacManagementView({ roles, users }: { roles: RoleRow[];
           {roles.map((role) => (
             <div key={role.id} className="bg-surface-container-low rounded-xl shadow-md p-4 space-y-2">
               <div className="flex items-start justify-between">
-                <div>
-                  <p className="font-headline-sm text-on-surface flex items-center gap-2">
-                    {role.name}
-                    {role.isSystemDefault && (
-                      <span className="text-[10px] px-2 py-0.5 rounded bg-primary-container text-on-primary-container">
-                        System Default
-                      </span>
-                    )}
-                  </p>
-                  <p className="font-code-compact text-[10px] text-on-surface-variant">{role.slug}</p>
+                <div className="flex items-start gap-3">
+                  <div
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                      ROLE_ICON_CHIP_COLOR[role.badgeColor] ?? ROLE_ICON_CHIP_COLOR.OUTLINE
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-[20px]">shield_person</span>
+                  </div>
+                  <div>
+                    <p className="font-headline-sm text-on-surface flex items-center gap-2">
+                      {role.name}
+                      {role.isSystemDefault && (
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-primary-container text-on-primary-container">
+                          System Default
+                        </span>
+                      )}
+                    </p>
+                    <p className="font-code-compact text-[10px] text-on-surface-variant">{role.slug}</p>
+                  </div>
                 </div>
                 <span className="text-[11px] text-on-surface-variant">{role._count.users} users</span>
               </div>
@@ -127,6 +153,7 @@ export default function RbacManagementView({ roles, users }: { roles: RoleRow[];
                         slug: role.slug,
                         description: role.description,
                         priorityLevel: role.priorityLevel,
+                        badgeColor: role.badgeColor,
                         permissions: role.permissions,
                       })
                     }
@@ -166,13 +193,30 @@ export default function RbacManagementView({ roles, users }: { roles: RoleRow[];
                 </tr>
               </thead>
               <tbody>
-                {users.map((u) => (
+                {users.map((u) => {
+                  const role = roles.find((r) => r.id === u.roleId);
+                  return (
                   <tr key={u.id} className="border-t border-outline-variant/20">
                     <td className="px-4 py-2.5">
-                      <p className="font-body-medium text-on-surface">{u.name}</p>
-                      <p className="text-[10px] text-on-surface-variant">{u.email}</p>
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-[12px] flex-shrink-0">
+                          {u.name.charAt(0)}
+                        </div>
+                        <div>
+                          <p className="font-body-medium text-on-surface">{u.name}</p>
+                          <p className="text-[10px] text-on-surface-variant font-code-compact">{u.email}</p>
+                        </div>
+                      </div>
                     </td>
-                    <td className="px-4 py-2.5 text-on-surface-variant">{u.role.name}</td>
+                    <td className="px-4 py-2.5">
+                      <span
+                        className={`px-2 py-0.5 rounded text-[10px] font-code-compact border ${
+                          ROLE_BADGE_COLOR[role?.badgeColor ?? "OUTLINE"] ?? ROLE_BADGE_COLOR.OUTLINE
+                        }`}
+                      >
+                        {u.role.name}
+                      </span>
+                    </td>
                     <td className="px-4 py-2.5 text-on-surface-variant">{u.department}</td>
                     <td className="px-4 py-2.5">
                       <span className={`px-2 py-0.5 rounded font-table-header ${STATUS_COLOR[u.status] ?? ""}`}>
@@ -204,7 +248,8 @@ export default function RbacManagementView({ roles, users }: { roles: RoleRow[];
                       </td>
                     )}
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

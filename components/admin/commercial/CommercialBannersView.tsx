@@ -19,6 +19,12 @@ export interface BannerRow {
   invoiceStatus: string | null;
 }
 
+const INVOICE_STYLES: Record<string, string> = {
+  PAID: "bg-secondary/15 text-secondary",
+  PENDING: "bg-tertiary/15 text-tertiary",
+  OVERDUE: "bg-error/15 text-error",
+};
+
 export default function CommercialBannersView({ banners }: { banners: BannerRow[] }) {
   const { can } = useAdminSession();
   const { toggleBanner, loading } = useBanners();
@@ -63,23 +69,38 @@ export default function CommercialBannersView({ banners }: { banners: BannerRow[
             {banners.map((b) => (
               <tr key={b.id} className="border-b border-outline-variant/10 last:border-0 hover:bg-surface-container-high/50">
                 <td className="px-4 py-3">
-                  <div className="font-body-medium text-on-surface">{b.name}</div>
-                  <div className="font-body-compact text-on-surface-variant">{b.code}</div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-tertiary/15 border border-tertiary/30 flex items-center justify-center text-tertiary font-bold text-[12px] shrink-0">
+                      {b.name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .slice(0, 2)
+                        .join("")}
+                    </div>
+                    <div>
+                      <div className="font-body-medium text-on-surface">{b.name}</div>
+                      <div className="font-body-compact text-on-surface-variant">{b.code}</div>
+                    </div>
+                  </div>
                 </td>
                 <td className="px-4 py-3 font-body-default text-on-surface-variant">{b.slot}</td>
-                <td className="px-4 py-3 font-body-default text-on-surface">
+                <td className="px-4 py-3 font-body-default text-secondary font-code-compact font-bold">
                   ${b.monthlyFee}/{b.subscriptionCadence?.toLowerCase() ?? "mo"}
                 </td>
                 <td className="px-4 py-3">
                   <span
                     className={`px-2 py-0.5 rounded-full font-body-compact ${
-                      b.active ? "bg-secondary-container text-on-secondary-container" : "bg-surface-container-high text-on-surface-variant"
+                      b.active ? "bg-secondary/15 text-secondary border border-secondary/30" : "bg-surface-container-high text-on-surface-variant"
                     }`}
                   >
                     {b.active ? "Active" : "Paused"}
                   </span>
                 </td>
-                <td className="px-4 py-3 font-body-default text-on-surface-variant">{b.invoiceStatus ?? "—"}</td>
+                <td className="px-4 py-3">
+                  <span className={`px-2 py-0.5 rounded-full font-body-compact font-bold ${INVOICE_STYLES[b.invoiceStatus ?? ""] ?? "text-on-surface-variant"}`}>
+                    {b.invoiceStatus ?? "—"}
+                  </span>
+                </td>
                 <td className="px-4 py-3 text-right space-x-2 whitespace-nowrap">
                   <button
                     type="button"

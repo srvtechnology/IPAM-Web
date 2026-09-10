@@ -71,11 +71,23 @@ export default function Sidebar() {
         </nav>
       </div>
 
-      <div className="p-3 border-t border-outline-variant/30 bg-surface-container-lowest/80">
+      <div className="p-3 border-t border-outline-variant/30 bg-surface-container-lowest/80 space-y-2">
         <div className="bg-surface-container-low p-2.5 rounded-lg border border-outline-variant/20">
           <p className="font-table-header uppercase text-on-surface-variant">Signed in as</p>
           <p className="font-body-medium text-on-surface truncate mt-0.5">{admin.name}</p>
-          <p className="font-body-compact text-on-surface-variant truncate">{admin.roleName}</p>
+          <p className="mt-1 font-code-compact text-[10px] text-secondary flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+            <span className="truncate">{admin.roleName}</span>
+          </p>
+        </div>
+        <div className="flex items-center justify-between px-1 font-code-compact text-[11px] text-on-surface-variant">
+          <span className="flex items-center gap-1.5">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-secondary"></span>
+            </span>
+            System Operational
+          </span>
         </div>
       </div>
     </aside>

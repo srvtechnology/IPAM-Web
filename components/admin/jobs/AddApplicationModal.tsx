@@ -84,7 +84,7 @@ export default function AddApplicationModal({ jobId, onClose }: { jobId: string;
           <button
             type="submit"
             disabled={loading}
-            className="px-4 py-2 rounded-lg bg-primary-container text-on-primary-container font-body-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+            className="px-4 py-2 rounded-lg bg-secondary hover:bg-secondary-fixed-dim text-on-secondary font-bold shadow-md transition-all disabled:opacity-50"
           >
             {loading ? "Saving…" : "Register"}
           </button>

@@ -32,6 +32,25 @@ export interface BroadcastRecordRow {
   date: string;
 }
 
+const CHANNEL_STYLE: Record<string, string> = {
+  SMS: "bg-primary/15 text-primary",
+  WHATSAPP: "bg-secondary/15 text-secondary",
+  EMAIL: "bg-tertiary/15 text-tertiary",
+  PUSH: "bg-error/15 text-error",
+};
+
+function ChannelBadge({ channel }: { channel: string }) {
+  return (
+    <span
+      className={`px-1.5 py-0.5 rounded font-code-compact text-[10px] font-semibold ${
+        CHANNEL_STYLE[channel] ?? "bg-surface-container-highest text-on-surface-variant"
+      }`}
+    >
+      {channel}
+    </span>
+  );
+}
+
 export default function OmnichannelBroadcastView({
   templates,
   audienceGroups,
@@ -69,7 +88,10 @@ export default function OmnichannelBroadcastView({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-headline-lg text-on-surface">Omnichannel Broadcast</h1>
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-secondary text-[24px]">campaign</span>
+            <h1 className="font-headline-lg text-on-surface">Omnichannel Broadcast</h1>
+          </div>
           <p className="font-body-default text-on-surface-variant mt-1">
             Compose and dispatch messages across SMS, WhatsApp, Email and Push.
           </p>
@@ -122,7 +144,7 @@ export default function OmnichannelBroadcastView({
                 type="button"
                 onClick={handleSend}
                 disabled={loading || !selectedTemplate || !selectedAudience}
-                className="w-full flex items-center justify-center gap-1.5 rounded-lg bg-primary-container text-on-primary-container px-4 py-2 font-body-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-1.5 rounded-lg bg-secondary text-on-secondary px-4 py-2 font-body-medium font-semibold shadow-xs hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 <span className="material-symbols-outlined text-[18px]">send</span>
                 {loading ? "Sending…" : "Send Broadcast"}
@@ -155,9 +177,11 @@ export default function OmnichannelBroadcastView({
               <div key={t.id} className="px-4 py-3 flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <p className="font-body-medium text-on-surface truncate">{t.name}</p>
-                  <p className="font-body-compact text-on-surface-variant truncate">
-                    {t.channels.join(", ")}
-                  </p>
+                  <div className="flex items-center gap-1 mt-1 flex-wrap">
+                    {t.channels.map((ch) => (
+                      <ChannelBadge key={ch} channel={ch} />
+                    ))}
+                  </div>
                 </div>
                 {canDelete && (
                   <button
@@ -197,7 +221,7 @@ export default function OmnichannelBroadcastView({
                   <p className="font-body-compact text-on-surface-variant truncate">{a.description}</p>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  <span className="font-code-compact text-on-surface-variant">{a.estimatedCount ?? "—"}</span>
+                  <span className="font-code-compact text-secondary font-semibold">{a.estimatedCount ?? "—"}</span>
                   {canDelete && (
                     <button
                       type="button"
@@ -228,14 +252,19 @@ export default function OmnichannelBroadcastView({
               <div className="min-w-0">
                 <p className="font-body-medium text-on-surface truncate">{r.title}</p>
                 <p className="font-body-compact text-on-surface-variant truncate">
-                  {r.audienceLabel} &middot; {r.recipientsCount} recipients &middot; {r.channels.join(", ")}
+                  {r.audienceLabel} &middot; {r.recipientsCount} recipients
                 </p>
+                <div className="flex items-center gap-1 mt-1 flex-wrap">
+                  {r.channels.map((ch) => (
+                    <ChannelBadge key={ch} channel={ch} />
+                  ))}
+                </div>
               </div>
               <div className="text-right flex-shrink-0">
                 <span className="font-label-badge px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container">
                   {r.status}
                 </span>
-                <p className="font-code-compact text-on-surface-variant mt-1">
+                <p className="font-code-compact text-secondary mt-1">
                   {r.deliveryRate} &middot; {r.cost}
                 </p>
               </div>

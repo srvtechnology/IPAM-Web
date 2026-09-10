@@ -27,7 +27,16 @@ export default function CandidateDossierModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
       <div className="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl bg-surface-container p-6 shadow-2xl border border-outline-variant/20">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-headline-md text-on-surface">{application.candidateName}</h2>
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center text-primary font-bold text-[14px] shrink-0">
+              {application.candidateName
+                .split(" ")
+                .map((n) => n[0])
+                .slice(0, 2)
+                .join("")}
+            </div>
+            <h2 className="font-headline-md text-on-surface">{application.candidateName}</h2>
+          </div>
           <button type="button" onClick={onClose} className="text-on-surface-variant hover:text-on-surface">
             <span className="material-symbols-outlined text-[20px]">close</span>
           </button>
@@ -36,7 +45,12 @@ export default function CandidateDossierModal({
         <div className="space-y-1.5 font-body-default text-on-surface-variant">
           <p>{application.degree} &middot; {application.faculty} &middot; Class of {application.gradYear}</p>
           <p>{application.email} &middot; {application.phone}</p>
-          <p>{application.experienceYears} yrs experience &middot; Match score {application.matchScore}%</p>
+          <p>
+            {application.experienceYears} yrs experience &middot; Match score{" "}
+            <span className="px-1.5 py-0.5 rounded-full font-code-compact font-bold bg-secondary/15 text-secondary">
+              {application.matchScore}%
+            </span>
+          </p>
           {application.coverNote && <p className="pt-2 italic">&ldquo;{application.coverNote}&rdquo;</p>}
         </div>
 

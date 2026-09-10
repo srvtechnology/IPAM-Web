@@ -42,7 +42,15 @@ export default function SelectionOfferModal({
         className="w-full max-w-md rounded-2xl bg-surface-container p-6 shadow-2xl border border-outline-variant/20"
       >
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-headline-md text-on-surface">Select &amp; Offer — {candidateName}</h2>
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-secondary/20 flex items-center justify-center text-secondary shrink-0">
+              <span className="material-symbols-outlined text-[20px]">how_to_reg</span>
+            </div>
+            <div>
+              <h2 className="font-headline-md text-on-surface leading-tight">Select &amp; Offer</h2>
+              <p className="font-body-compact text-secondary">{candidateName}</p>
+            </div>
+          </div>
           <button type="button" onClick={onClose} className="text-on-surface-variant hover:text-on-surface">
             <span className="material-symbols-outlined text-[20px]">close</span>
           </button>
@@ -53,6 +61,14 @@ export default function SelectionOfferModal({
             {error}
           </div>
         )}
+
+        <div className="mb-4 p-3 bg-secondary/10 border border-secondary/25 rounded-xl flex items-start gap-2.5">
+          <span className="material-symbols-outlined text-secondary text-[18px] shrink-0 mt-0.5">verified</span>
+          <div className="text-[10.5px] text-on-surface-variant leading-relaxed">
+            Upon confirmation, this graduate will be marked as{" "}
+            <strong className="text-secondary">Selected / Placed</strong> in the IPAM Career Registry.
+          </div>
+        </div>
 
         <div className="space-y-3">
           <label className="block font-body-compact text-on-surface-variant">
@@ -88,7 +104,7 @@ export default function SelectionOfferModal({
           <button
             type="submit"
             disabled={loading}
-            className="px-4 py-2 rounded-lg bg-primary-container text-on-primary-container font-body-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+            className="px-4 py-2 rounded-lg bg-secondary hover:bg-secondary-fixed-dim text-on-secondary font-bold shadow-md transition-all disabled:opacity-50"
           >
             {loading ? "Saving…" : "Confirm Selection"}
           </button>

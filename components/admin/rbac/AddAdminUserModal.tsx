@@ -53,7 +53,19 @@ export default function AddAdminUserModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between">
-          <h2 className="font-headline-lg text-on-surface">{isEdit ? "Edit Admin User" : "Add Admin User"}</h2>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary-container text-on-primary-container flex items-center justify-center flex-shrink-0">
+              <span className="material-symbols-outlined text-[24px]">person_add</span>
+            </div>
+            <div>
+              <h2 className="font-headline-lg text-on-surface">{isEdit ? "Edit Admin User" : "Add Admin User"}</h2>
+              <p className="text-[11px] text-on-surface-variant">
+                {isEdit
+                  ? "Update institutional access for this administrative user."
+                  : "Create a verified administrative user with institutional access permissions."}
+              </p>
+            </div>
+          </div>
           <button type="button" onClick={onClose} className="text-on-surface-variant hover:text-on-surface">
             <span className="material-symbols-outlined">close</span>
           </button>

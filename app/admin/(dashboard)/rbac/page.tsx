@@ -27,6 +27,7 @@ export default async function RbacPage() {
         description: r.description,
         isSystemDefault: r.isSystemDefault,
         priorityLevel: r.priorityLevel,
+        badgeColor: r.badgeColor,
         permissions: r.permissions.map((p) => ({
           module: p.module,
           canRead: p.canRead,

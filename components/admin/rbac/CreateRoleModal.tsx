@@ -19,8 +19,17 @@ export interface RoleFormValue {
   slug: string;
   description: string;
   priorityLevel: number;
+  badgeColor?: string;
   permissions: RolePermissionRow[];
 }
+
+const BADGE_COLOR_OPTIONS = ["PRIMARY", "SECONDARY", "TERTIARY", "OUTLINE"] as const;
+const BADGE_COLOR_SWATCH: Record<string, string> = {
+  PRIMARY: "bg-primary/15 text-primary",
+  SECONDARY: "bg-secondary/15 text-secondary",
+  TERTIARY: "bg-tertiary/15 text-tertiary",
+  OUTLINE: "bg-surface-container-high text-outline",
+};
 
 function emptyPermissions(): RolePermissionRow[] {
   return PERMISSION_MODULE_DEFINITIONS.map((m) => ({
@@ -46,6 +55,7 @@ export default function CreateRoleModal({
   const [slug, setSlug] = useState(initial?.slug ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
   const [priorityLevel, setPriorityLevel] = useState(initial?.priorityLevel ?? 50);
+  const [badgeColor, setBadgeColor] = useState(initial?.badgeColor ?? "PRIMARY");
   const [permissions, setPermissions] = useState<RolePermissionRow[]>(
     initial?.permissions?.length ? initial.permissions : emptyPermissions()
   );
@@ -58,7 +68,7 @@ export default function CreateRoleModal({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const payload = { name, description, priorityLevel, permissions };
+    const payload = { name, description, priorityLevel, badgeColor, permissions };
     const result = isEdit
       ? await updateRole(initial!.id!, payload)
       : await createRole({ ...payload, slug });
@@ -73,7 +83,17 @@ export default function CreateRoleModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between">
-          <h2 className="font-headline-lg text-on-surface">{isEdit ? "Edit Role" : "Create Role"}</h2>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary-container text-on-primary-container flex items-center justify-center flex-shrink-0">
+              <span className="material-symbols-outlined text-[22px]">admin_panel_settings</span>
+            </div>
+            <div>
+              <h2 className="font-headline-lg text-on-surface">{isEdit ? "Edit Role" : "Create Institutional Role"}</h2>
+              <p className="text-[12px] text-on-surface-variant">
+                Define organizational title, authority tier, and granular capability matrix.
+              </p>
+            </div>
+          </div>
           <button type="button" onClick={onClose} className="text-on-surface-variant hover:text-on-surface">
             <span className="material-symbols-outlined">close</span>
           </button>
@@ -121,6 +141,25 @@ export default function CreateRoleModal({
               className="px-3 py-2 rounded-lg bg-surface-container border border-outline-variant/30 text-on-surface"
             />
           </label>
+          <label className="flex flex-col gap-1">
+            <span className="font-table-header uppercase text-on-surface-variant">Badge Color Accent</span>
+            <div className="flex items-center gap-2 h-9">
+              {BADGE_COLOR_OPTIONS.map((color) => (
+                <button
+                  type="button"
+                  key={color}
+                  onClick={() => setBadgeColor(color)}
+                  className={`flex-1 h-8 rounded-lg text-[11px] font-code-compact capitalize border transition-all cursor-pointer flex items-center justify-center ${
+                    badgeColor === color
+                      ? "border-primary ring-2 ring-primary/20 font-bold"
+                      : "border-outline-variant/30 opacity-70 hover:opacity-100"
+                  } ${BADGE_COLOR_SWATCH[color]}`}
+                >
+                  {color.toLowerCase()}
+                </button>
+              ))}
+            </div>
+          </label>
         </div>
 
         <div>
@@ -163,7 +202,12 @@ export default function CreateRoleModal({
 
         {error && <p className="font-body-compact text-error">{error}</p>}
 
-        <div className="flex justify-end gap-2 pt-2">
+        <div className="flex items-center justify-between pt-2">
+          <div className="text-[11px] font-code-compact text-outline flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-secondary"></span>
+            <span>Will be cryptographically recorded in Audit Trails</span>
+          </div>
+          <div className="flex gap-2">
           <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg text-on-surface-variant">
             Cancel
           </button>
@@ -174,6 +218,7 @@ export default function CreateRoleModal({
           >
             {loading ? "Saving…" : isEdit ? "Save Changes" : "Create Role"}
           </button>
+          </div>
         </div>
       </form>
     </div>

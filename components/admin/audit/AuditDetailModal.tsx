@@ -4,6 +4,20 @@ import { useState } from "react";
 import { useAuditLogs } from "@/hooks/admin/useAuditLogs";
 import type { AuditLogRow } from "./AuditTrailsView";
 
+const SEVERITY_COLOR: Record<string, string> = {
+  INFO: "text-on-surface-variant",
+  NOTICE: "text-primary",
+  WARNING: "text-tertiary",
+  CRITICAL: "text-error font-bold",
+};
+
+const STATUS_COLOR: Record<string, string> = {
+  SUCCESS: "text-secondary",
+  FLAGGED: "text-tertiary",
+  WARNING: "text-tertiary",
+  BLOCKED_RBAC_VIOLATION: "text-error font-bold",
+};
+
 export default function AuditDetailModal({ entry, onClose }: { entry: AuditLogRow; onClose: () => void }) {
   const { verifyIntegrity, verifying } = useAuditLogs();
   const [result, setResult] = useState<{ valid: boolean } | null>(null);
@@ -37,8 +51,8 @@ export default function AuditDetailModal({ entry, onClose }: { entry: AuditLogRo
           <Field label="Actor" value={`${entry.actorName} (${entry.actorEmail})`} />
           <Field label="Role" value={entry.actorRole} />
           <Field label="Category" value={entry.category} />
-          <Field label="Severity" value={entry.severity} />
-          <Field label="Status" value={entry.status} />
+          <Field label="Severity" value={entry.severity} valueClassName={SEVERITY_COLOR[entry.severity]} />
+          <Field label="Status" value={entry.status} valueClassName={STATUS_COLOR[entry.status]} />
           <Field label="Target" value={`${entry.target}${entry.targetType ? ` (${entry.targetType})` : ""}`} />
           <Field label="IP Address" value={entry.ipAddress} />
           <Field label="Location" value={entry.location} />
@@ -83,7 +97,7 @@ export default function AuditDetailModal({ entry, onClose }: { entry: AuditLogRo
             {result && (
               <span
                 className={`font-body-medium flex items-center gap-1 ${
-                  result.valid ? "text-tertiary" : "text-error"
+                  result.valid ? "text-secondary" : "text-error"
                 }`}
               >
                 <span className="material-symbols-outlined text-[18px]">
@@ -99,11 +113,19 @@ export default function AuditDetailModal({ entry, onClose }: { entry: AuditLogRo
   );
 }
 
-function Field({ label, value }: { label: string; value: string }) {
+function Field({
+  label,
+  value,
+  valueClassName,
+}: {
+  label: string;
+  value: string;
+  valueClassName?: string;
+}) {
   return (
     <div>
       <p className="font-table-header uppercase text-on-surface-variant">{label}</p>
-      <p className="font-body-compact text-on-surface truncate">{value}</p>
+      <p className={`font-body-compact truncate ${valueClassName ?? "text-on-surface"}`}>{value}</p>
     </div>
   );
 }

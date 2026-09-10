@@ -37,7 +37,10 @@ export default function AddBannerModal({ onClose }: { onClose: () => void }) {
         className="w-full max-w-lg rounded-2xl bg-surface-container p-6 shadow-2xl border border-outline-variant/20"
       >
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-headline-md text-on-surface">New Sponsor Banner</h2>
+          <div className="flex items-center gap-2.5">
+            <span className="material-symbols-outlined text-secondary text-[24px]">campaign</span>
+            <h2 className="font-headline-md text-on-surface">New Sponsor Banner</h2>
+          </div>
           <button type="button" onClick={onClose} className="text-on-surface-variant hover:text-on-surface">
             <span className="material-symbols-outlined text-[20px]">close</span>
           </button>
@@ -49,6 +52,10 @@ export default function AddBannerModal({ onClose }: { onClose: () => void }) {
           </div>
         )}
 
+        <h4 className="text-[12px] font-bold uppercase tracking-wider text-secondary flex items-center gap-1.5 mb-2">
+          <span className="material-symbols-outlined text-[16px]">corporate_fare</span>
+          Sponsor Details
+        </h4>
         <div className="grid grid-cols-2 gap-3">
           <label className="font-body-compact text-on-surface-variant">
             Code
@@ -68,7 +75,7 @@ export default function AddBannerModal({ onClose }: { onClose: () => void }) {
           </label>
           <label className="font-body-compact text-on-surface-variant">
             Monthly fee (USD)
-            <input required type="number" step="0.01" value={form.monthlyFee} onChange={(e) => set("monthlyFee", e.target.value)} className={inputClass} />
+            <input required type="number" step="0.01" value={form.monthlyFee} onChange={(e) => set("monthlyFee", e.target.value)} className={`${inputClass} font-mono text-secondary font-bold`} />
           </label>
           <label className="font-body-compact text-on-surface-variant">
             Cadence
@@ -103,7 +110,7 @@ export default function AddBannerModal({ onClose }: { onClose: () => void }) {
           <button
             type="submit"
             disabled={loading}
-            className="px-4 py-2 rounded-lg bg-primary-container text-on-primary-container font-body-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+            className="px-4 py-2 rounded-lg bg-secondary hover:bg-secondary-fixed-dim text-on-secondary font-bold shadow-md transition-all disabled:opacity-50"
           >
             {loading ? "Saving…" : "Create Banner"}
           </button>

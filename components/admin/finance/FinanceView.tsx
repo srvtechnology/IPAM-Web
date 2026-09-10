@@ -17,9 +17,9 @@ export interface TransactionRow {
 }
 
 const STATUS_STYLES: Record<string, string> = {
-  SETTLED: "bg-secondary-container text-on-secondary-container",
-  PENDING: "bg-tertiary-container text-on-tertiary-container",
-  RECONCILED: "bg-primary-container text-on-primary-container",
+  SETTLED: "bg-secondary/15 text-secondary border border-secondary/30",
+  PENDING: "bg-tertiary/15 text-tertiary border border-tertiary/30",
+  RECONCILED: "bg-primary/15 text-primary border border-primary/30",
 };
 
 export default function FinanceView({ transactions }: { transactions: TransactionRow[] }) {
@@ -32,6 +32,8 @@ export default function FinanceView({ transactions }: { transactions: Transactio
   const totalSettled = transactions
     .filter((t) => t.status !== "PENDING")
     .reduce((sum, t) => sum + Number(t.amount), 0);
+  const pendingCount = transactions.filter((t) => t.status === "PENDING").length;
+  const reconciledCount = transactions.filter((t) => t.status === "RECONCILED").length;
 
   return (
     <div className="space-y-4">
@@ -40,6 +42,30 @@ export default function FinanceView({ transactions }: { transactions: Transactio
         <p className="font-body-default text-on-surface-variant mt-1">
           {transactions.length} transactions &middot; ${totalSettled.toLocaleString()} settled/reconciled
         </p>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+        <div className="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/30 shadow-xs">
+          <div className="w-9 h-9 rounded-lg bg-secondary/15 flex items-center justify-center text-secondary mb-2">
+            <span className="material-symbols-outlined text-[20px]">account_balance_wallet</span>
+          </div>
+          <div className="font-display-metric text-secondary">${totalSettled.toLocaleString()}</div>
+          <p className="font-body-compact text-on-surface-variant mt-1">Settled &amp; Reconciled</p>
+        </div>
+        <div className="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/30 shadow-xs">
+          <div className="w-9 h-9 rounded-lg bg-tertiary/15 flex items-center justify-center text-tertiary mb-2">
+            <span className="material-symbols-outlined text-[20px]">pending_actions</span>
+          </div>
+          <div className="font-display-metric text-tertiary">{pendingCount}</div>
+          <p className="font-body-compact text-on-surface-variant mt-1">Pending Settlement</p>
+        </div>
+        <div className="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/30 shadow-xs">
+          <div className="w-9 h-9 rounded-lg bg-primary/15 flex items-center justify-center text-primary mb-2">
+            <span className="material-symbols-outlined text-[20px]">done_all</span>
+          </div>
+          <div className="font-display-metric text-primary">{reconciledCount}</div>
+          <p className="font-body-compact text-on-surface-variant mt-1">Reconciled</p>
+        </div>
       </div>
 
       <select
@@ -71,7 +97,7 @@ export default function FinanceView({ transactions }: { transactions: Transactio
                 <td className="px-4 py-3 font-body-medium text-on-surface">{t.refId}</td>
                 <td className="px-4 py-3 font-body-default text-on-surface-variant">{t.alumniName}</td>
                 <td className="px-4 py-3 font-body-default text-on-surface-variant">{t.method}</td>
-                <td className="px-4 py-3 font-body-default text-on-surface">
+                <td className="px-4 py-3 font-code-compact font-bold text-secondary">
                   {t.amount} {t.currency}
                 </td>
                 <td className="px-4 py-3">
