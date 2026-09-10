@@ -149,3 +149,7 @@ This build focused on real data, real auth, and real RBAC for every module — b
 - **Donations have no real payment gateway.** `POST /api/donations` succeeds immediately with a generated payment reference — no real payment processor is involved.
 
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for more detail and a fuller future-work list.
+
+## Deployment
+
+Live at [ipam.billnbite.cloud](https://ipam.billnbite.cloud) (Docker, auto-deployed on push to `main`).
