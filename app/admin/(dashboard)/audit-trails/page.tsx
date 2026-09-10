@@ -13,6 +13,7 @@ export default async function AuditTrailsPage() {
   });
 
   return (
+    // Audit trail view
     <AuditTrailsView
       entries={entries.map((e) => ({
         id: e.id,
