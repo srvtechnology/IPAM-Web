@@ -38,7 +38,7 @@ export default function Footer() {
           </div>
         </div>
         <p className="mt-8 border-t border-slate-800 pt-6 text-xs text-slate-500">
-          © {new Date().getFullYear()} IPAM Alumni Association. All rights reserved. Powered by SRV Technology.
+          © {new Date().getFullYear()} IPAM Alumni Association. All rights reserved. Powered by SRV Technology.....
         </p>
       </div>
     </footer>
