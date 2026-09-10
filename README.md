@@ -152,4 +152,4 @@ See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for more detail and a fuller 
 
 ## Deployment
 
-Live at [ipam.billnbite.cloud](https://ipam.billnbite.cloud) (Docker, auto-deployed on push to `main`).
+Live at [ipam.billnbite.cloud](https://ipam.billnbite.cloud) (Docker, auto-deployed on push to `main` via a GitHub webhook).
