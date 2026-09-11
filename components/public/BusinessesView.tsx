@@ -13,6 +13,7 @@ export interface BusinessListItem {
   tagline: string | null;
   location: string;
   featured: boolean;
+  image: string | null;
 }
 
 export default function BusinessesView({ businesses }: { businesses: BusinessListItem[] }) {
@@ -38,19 +39,27 @@ export default function BusinessesView({ businesses }: { businesses: BusinessLis
           <Link
             key={b.id}
             href={`/businesses/${b.id}`}
-            className="rounded-2xl border border-slate-200 bg-white p-6 transition hover:border-emerald-300 hover:shadow-md"
+            className="overflow-hidden rounded-2xl border border-slate-200 bg-white transition hover:border-emerald-300 hover:shadow-md"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
-              <Building2 className="h-5 w-5" />
+            <div className="relative h-40 overflow-hidden bg-slate-900">
+              {b.image ? (
+                <img src={b.image} alt={b.name} className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-emerald-50">
+                  <Building2 className="h-8 w-8 text-emerald-300" />
+                </div>
+              )}
+              {b.featured && (
+                <span className="absolute top-3 left-3 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                  Featured
+                </span>
+              )}
             </div>
-            <h3 className="mt-3 font-bold text-slate-900">{b.name}</h3>
-            <p className="text-sm text-emerald-700">{b.industry}</p>
-            <p className="mt-2 text-sm text-slate-500">{b.tagline ?? b.location}</p>
-            {b.featured && (
-              <span className="mt-3 inline-block rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
-                Featured
-              </span>
-            )}
+            <div className="p-6">
+              <h3 className="font-bold text-slate-900">{b.name}</h3>
+              <p className="text-sm text-emerald-700">{b.industry}</p>
+              <p className="mt-2 text-sm text-slate-500">{b.tagline ?? b.location}</p>
+            </div>
           </Link>
         ))}
         {businesses.length === 0 && <p className="text-sm text-slate-500">No businesses listed yet.</p>}

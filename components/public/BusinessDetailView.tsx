@@ -11,6 +11,8 @@ export interface BusinessDetail {
   tagline: string | null;
   description: string;
   about: string | null;
+  image: string | null;
+  logo: string | null;
   services: string[] | null;
   yearFounded: number | null;
   companySize: string | null;
@@ -29,7 +31,21 @@ export default function BusinessDetailView({ business }: { business: BusinessDet
         <ArrowLeft className="h-4 w-4" /> Back to businesses
       </Link>
 
-      <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-8">
+      <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+        <div className="relative h-56 w-full overflow-hidden bg-slate-900 sm:h-64">
+          {business.image ? (
+            <img src={business.image} alt={business.name} className="h-full w-full object-cover opacity-90" />
+          ) : null}
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/40 to-transparent" />
+          {business.logo && (
+            <img
+              src={business.logo}
+              alt={`${business.name} logo`}
+              className="absolute bottom-4 left-4 h-14 w-14 rounded-xl border-2 border-white bg-white object-contain shadow-md sm:bottom-6 sm:left-6"
+            />
+          )}
+        </div>
+        <div className="p-8">
         <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">{business.industry}</p>
         <h1 className="mt-1 text-2xl font-black text-slate-900">{business.name}</h1>
         {business.tagline && <p className="mt-1 text-slate-500">{business.tagline}</p>}
@@ -63,6 +79,7 @@ export default function BusinessDetailView({ business }: { business: BusinessDet
               <Phone className="h-4 w-4" /> {business.contactPhone}
             </span>
           )}
+        </div>
         </div>
       </div>
     </div>

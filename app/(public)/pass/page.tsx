@@ -18,6 +18,7 @@ export default async function VirtualPassPage() {
       pass={{
         id: user.id,
         name: user.profile.name,
+        avatar: user.profile.avatar,
         studentId: user.studentId,
         classYear: user.profile.classYear,
         degree: user.profile.degree,

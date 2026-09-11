@@ -52,7 +52,21 @@ export default function Header() {
         <div className="hidden items-center gap-3 md:flex">
           {session ? (
             <>
-              <Link href="/pass" className="text-sm font-medium text-slate-600 hover:text-emerald-700">
+              <Link
+                href="/pass"
+                className="flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-emerald-700"
+              >
+                {session.profile?.avatar ? (
+                  <img
+                    src={session.profile.avatar}
+                    alt={session.profile.name}
+                    className="h-7 w-7 rounded-full border-2 border-emerald-600 object-cover"
+                  />
+                ) : (
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-700">
+                    {(session.profile?.name ?? session.email).charAt(0)}
+                  </span>
+                )}
                 {session.profile?.name ?? session.email}
               </Link>
               <button

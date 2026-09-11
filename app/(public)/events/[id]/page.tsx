@@ -46,4 +46,4 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
 }
 
 type EventDetailAgenda = { time: string; activity: string; speaker?: string };
-type EventDetailSpeaker = { name: string; title: string; bio?: string };
+type EventDetailSpeaker = { name: string; title: string; bio?: string; image?: string };

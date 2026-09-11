@@ -13,6 +13,7 @@ export default async function BusinessesPage() {
         tagline: b.tagline,
         location: b.location,
         featured: b.featured,
+        image: b.image,
       }))}
     />
   );

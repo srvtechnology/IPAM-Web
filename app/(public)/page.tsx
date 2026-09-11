@@ -37,6 +37,13 @@ export default async function HomePage() {
               Browse Directory
             </Link>
           </div>
+          <div className="mx-auto mt-12 max-w-4xl overflow-hidden rounded-3xl border border-white/20 shadow-xl">
+            <img
+              src="https://lh3.googleusercontent.com/aida-public/AB6AXuCPRqjDx1rSUK5N34mRZRpy5vhVY-qWwFCp_oq0IRHrgppRAyHUdYHv--UaGtprGA173-WQRtyNUg3yVKAe5gk_dl-CQp0bkrH6qmYyr-qfgSTGyllwWJrUhlceuYCCTHxC1HhZ_et_UcOVXmj21_cIdz7Ec8u2x-qq3Ad8ph160p8rW-14dERGCzAChfRz2td8f8EiAXkJEldUJxjmq3lwhfFMyPmoj79XmE3wZ98PpNmWRGd17gdd"
+              alt="A diverse group of professional alumni networking at a high-end, modern corporate event"
+              className="h-64 w-full object-cover sm:h-80"
+            />
+          </div>
         </div>
       </section>
 
@@ -57,7 +64,15 @@ export default async function HomePage() {
           <div className="mt-8 grid gap-6 sm:grid-cols-3">
             {leaders.map((l) => (
               <div key={l.id} className="rounded-2xl bg-white p-6 text-center shadow-sm ring-1 ring-slate-200">
-                <div className="mx-auto h-16 w-16 rounded-full bg-emerald-100" />
+                {l.image ? (
+                  <img
+                    src={l.image}
+                    alt={l.name}
+                    className="mx-auto h-16 w-16 rounded-full border-2 border-emerald-200 object-cover"
+                  />
+                ) : (
+                  <div className="mx-auto h-16 w-16 rounded-full bg-emerald-100" />
+                )}
                 <h3 className="mt-4 font-bold text-slate-900">{l.name}</h3>
                 <p className="text-sm text-emerald-700">{l.role}</p>
                 <p className="mt-2 text-sm text-slate-500">{l.bio}</p>

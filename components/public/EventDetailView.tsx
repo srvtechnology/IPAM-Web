@@ -17,7 +17,7 @@ export interface EventDetail {
   category: string;
   description: string;
   agenda: { time: string; activity: string; speaker?: string }[] | null;
-  speakers: { name: string; title: string; bio?: string }[] | null;
+  speakers: { name: string; title: string; bio?: string; image?: string }[] | null;
   ticketPrice: string;
   currency: string;
   capacity: number;
@@ -67,9 +67,22 @@ export default function EventDetailView({ event }: { event: EventDetail }) {
             <h2 className="font-bold text-slate-900">Speakers</h2>
             <div className="mt-2 grid gap-3 sm:grid-cols-2">
               {event.speakers.map((s, i) => (
-                <div key={i} className="rounded-lg border border-slate-200 p-3">
-                  <p className="font-semibold text-slate-800">{s.name}</p>
-                  <p className="text-xs text-slate-500">{s.title}</p>
+                <div key={i} className="flex items-center gap-3 rounded-lg border border-slate-200 p-3">
+                  {s.image ? (
+                    <img
+                      src={s.image}
+                      alt={s.name}
+                      className="h-12 w-12 flex-shrink-0 rounded-2xl border-2 border-emerald-600 object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-emerald-100 font-bold text-emerald-700">
+                      {s.name.charAt(0)}
+                    </div>
+                  )}
+                  <div>
+                    <p className="font-semibold text-slate-800">{s.name}</p>
+                    <p className="text-xs text-slate-500">{s.title}</p>
+                  </div>
                 </div>
               ))}
             </div>

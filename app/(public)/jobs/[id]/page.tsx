@@ -37,7 +37,12 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
         benefits: (job.benefits as string[] | null) ?? null,
         aboutCompany: job.aboutCompany,
         postedByAlumni: job.postedByAlumni
-          ? { name: job.postedByAlumni.name, classYear: job.postedByAlumni.classYear, currentRole: job.postedByAlumni.currentRole }
+          ? {
+              name: job.postedByAlumni.name,
+              classYear: job.postedByAlumni.classYear,
+              currentRole: job.postedByAlumni.currentRole,
+              avatar: job.postedByAlumni.avatar,
+            }
           : null,
         deadline: job.deadline.toISOString(),
         applyUrl: job.applyUrl,

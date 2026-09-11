@@ -122,6 +122,9 @@ async function main() {
   });
 
   // ---------------- Leadership ----------------
+  const PRES_IMAGE =
+    "https://lh3.googleusercontent.com/aida-public/AB6AXuCsuL2S9s6sSIlISq3h7KL6-B0R7bx6LoT7A1zMV7Gefwcqg9gKchBTyLVaXC-eGBO4VYMSy6ylDo2C0qcKvfaxlLsL2QPdz_OgFLT2roVRd-zmsEuNQg1wjCn8fTH3uqamfM3-OhOVc7M8lyaOcsoTKVJ-cQeb_eSHGcJo0PXPi767uc89Oq4N5Enn3bYYil8d1LLvu0mYz7xJ2BqLHf-WUZ3L1j7PB0SsEewid-_8dSNE9lZob3y2";
+
   await db.leadershipMember.upsert({
     where: { id: "seed-leader-1" },
     update: {},
@@ -130,6 +133,7 @@ async function main() {
       name: "Prof. Aminata Bangura",
       role: "President, IPAM Alumni Association",
       classYear: "1998",
+      image: PRES_IMAGE,
       bio: "Two decades of public administration leadership across West Africa.",
       quote: "Our alumni network is the backbone of IPAM's legacy.",
       email: "aminata.bangura@alumni.ipam.edu",
@@ -155,6 +159,8 @@ async function main() {
       bio: "Passionate about public sector reform and youth empowerment.",
       skills: ["Policy Analysis", "Project Management", "Public Speaking"],
       membershipTier: "SILVER_LIFETIME" as const,
+      // Same photo the legacy AI-Studio prototype used for this exact demo persona.
+      avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80",
     },
     {
       email: "fatmata.kamara@alumni.ipam.edu",
@@ -172,6 +178,7 @@ async function main() {
       bio: "Macroeconomic policy specialist and IPAM guest lecturer.",
       skills: ["Macroeconomics", "Data Analysis", "Central Banking"],
       membershipTier: "GOLD_PATRON" as const,
+      avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=200&q=80",
     },
     {
       email: "david.koroma@alumni.ipam.edu",
@@ -189,6 +196,7 @@ async function main() {
       bio: "Building fintech products for the Sierra Leonean market.",
       skills: ["JavaScript", "Product Management"],
       membershipTier: "STANDARD" as const,
+      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
     },
     {
       email: "mariama.jalloh@alumni.ipam.edu",
@@ -206,6 +214,7 @@ async function main() {
       bio: "Championing transparency in public financial management.",
       skills: ["Governance", "Auditing", "Leadership"],
       membershipTier: "SILVER_LIFETIME" as const,
+      avatar: "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=200&q=80",
     },
   ];
 
@@ -224,6 +233,7 @@ async function main() {
         profile: {
           create: {
             name: a.name,
+            avatar: a.avatar,
             classYear: a.classYear,
             degree: a.degree,
             major: a.major,
@@ -250,6 +260,7 @@ async function main() {
         alumniUserId: user.id,
         name: a.name,
         email: a.email,
+        avatarUrl: a.avatar,
         regNo: a.studentId,
         degree: a.degree,
         faculty: a.major,
@@ -317,7 +328,7 @@ async function main() {
       category: "GALA",
       description: "An evening celebrating IPAM's alumni achievements.",
       agenda: [{ time: "6:00 PM", activity: "Reception" }, { time: "7:30 PM", activity: "Awards Ceremony" }],
-      speakers: [{ name: "Prof. Aminata Bangura", title: "Association President", image: "" }],
+      speakers: [{ name: "Prof. Aminata Bangura", title: "Association President", image: PRES_IMAGE }],
       ticketPrice: 50,
       currency: "USD",
       capacity: 300,
@@ -340,7 +351,7 @@ async function main() {
       category: "WEBINAR",
       description: "Panel discussion on navigating career transitions.",
       agenda: [{ time: "3:00 PM", activity: "Panel Discussion" }],
-      speakers: [{ name: "Dr. Fatmata Kamara", title: "Senior Economist", image: "" }],
+      speakers: [{ name: "Dr. Fatmata Kamara", title: "Senior Economist", image: alumniSeedData[1].avatar }],
       ticketPrice: 0,
       currency: "USD",
       capacity: 500,
@@ -362,7 +373,10 @@ async function main() {
       tagline: "Software built for Sierra Leone's future.",
       description: "A software consultancy building digital tools for local businesses.",
       website: "https://salonetech.example.com",
-      image: "",
+      // Same style of software-company office photo the legacy prototype used
+      // for its SaaS/software category business (Nexus Tech Solutions).
+      image:
+        "https://lh3.googleusercontent.com/aida-public/AB6AXuDHF48nWTEz7bPDMDEBe2lGoslnq28w7woy6xDiHqlP72TjTT6XvumtqD0b7z_cos7vG_S1aFaH3KGHjVSn0trPEfTW56GRE3EWPwt0XNXMfZ3cViim4nKTI4oTsLR8cvMOUi55KVS1etzuhlIm82HxhIte0rFY2HqUkxP2SPov66uidqvh-a4h8wURkZd27H-WpbiCOHaeJgptGDcjriLIRmXw1vR_l4bsvbPKCvdP63L99w6j5PAT",
       featured: true,
       location: "Freetown, Sierra Leone",
       contactEmail: "hello@salonetech.example.com",

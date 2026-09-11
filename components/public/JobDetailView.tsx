@@ -19,7 +19,7 @@ export interface JobDetail {
   requirements: string[];
   benefits: string[] | null;
   aboutCompany: string | null;
-  postedByAlumni: { name: string; classYear: number; currentRole: string } | null;
+  postedByAlumni: { name: string; classYear: number; currentRole: string; avatar: string | null } | null;
   deadline: string;
   applyUrl: string | null;
   saved: boolean;
@@ -90,9 +90,25 @@ export default function JobDetailView({ job }: { job: JobDetail }) {
         )}
 
         {job.postedByAlumni && (
-          <p className="mt-6 text-xs text-slate-400">
-            Posted by {job.postedByAlumni.name} (Class of {job.postedByAlumni.classYear}) · Deadline {new Date(job.deadline).toLocaleDateString()}
-          </p>
+          <div className="mt-6 flex items-center gap-3 rounded-2xl border border-emerald-200/80 bg-gradient-to-br from-emerald-50 to-teal-50/60 p-4">
+            {job.postedByAlumni.avatar ? (
+              <img
+                src={job.postedByAlumni.avatar}
+                alt={job.postedByAlumni.name}
+                className="h-12 w-12 flex-shrink-0 rounded-xl border-2 border-emerald-600 object-cover shadow-sm"
+              />
+            ) : (
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-100 font-bold text-emerald-700">
+                {job.postedByAlumni.name.charAt(0)}
+              </div>
+            )}
+            <p className="text-xs text-slate-500">
+              Posted by <span className="font-semibold text-slate-800">{job.postedByAlumni.name}</span> (Class of{" "}
+              {job.postedByAlumni.classYear}) · {job.postedByAlumni.currentRole}
+              <br />
+              Deadline {new Date(job.deadline).toLocaleDateString()}
+            </p>
+          </div>
         )}
 
         {job.applyUrl && (

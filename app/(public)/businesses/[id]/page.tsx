@@ -19,6 +19,8 @@ export default async function BusinessDetailPage({ params }: { params: Promise<{
         tagline: business.tagline,
         description: business.description,
         about: business.about,
+        image: business.image,
+        logo: business.logo,
         services: (business.services as string[] | null) ?? null,
         yearFounded: business.yearFounded,
         companySize: business.companySize,

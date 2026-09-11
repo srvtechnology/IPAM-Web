@@ -6,6 +6,7 @@ import { GraduationCap, ShieldCheck } from "lucide-react";
 export interface VirtualPassData {
   id: string;
   name: string;
+  avatar: string | null;
   studentId: string;
   classYear: number;
   degree: string;
@@ -33,9 +34,17 @@ export default function VirtualPassView({ pass }: { pass: VirtualPassData }) {
         </div>
 
         <div className="mt-6 flex items-center gap-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/20 text-xl font-black">
-            {pass.name.charAt(0)}
-          </div>
+          {pass.avatar ? (
+            <img
+              src={pass.avatar}
+              alt={pass.name}
+              className="h-16 w-16 flex-shrink-0 rounded-2xl border-2 border-white object-cover shadow-lg"
+            />
+          ) : (
+            <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-2xl bg-white/20 text-xl font-black">
+              {pass.name.charAt(0)}
+            </div>
+          )}
           <div>
             <p className="text-lg font-bold">{pass.name}</p>
             <p className="text-sm text-emerald-100">{pass.degree} · Class of {pass.classYear}</p>

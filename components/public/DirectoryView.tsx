@@ -71,9 +71,17 @@ export default function DirectoryView({ alumni }: { alumni: DirectoryAlumnus[] }
             className="rounded-2xl border border-slate-200 bg-white p-5 text-left transition hover:border-emerald-300 hover:shadow-md"
           >
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 font-bold text-emerald-700">
-                {a.name.charAt(0)}
-              </div>
+              {a.avatar ? (
+                <img
+                  src={a.avatar}
+                  alt={a.name}
+                  className="h-12 w-12 flex-shrink-0 rounded-full border-2 border-emerald-200 object-cover"
+                />
+              ) : (
+                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 font-bold text-emerald-700">
+                  {a.name.charAt(0)}
+                </div>
+              )}
               <div>
                 <h3 className="font-bold text-slate-900">{a.name}</h3>
                 <p className="text-xs text-slate-500">Class of {a.classYear}</p>
@@ -99,9 +107,17 @@ export default function DirectoryView({ alumni }: { alumni: DirectoryAlumnus[] }
           >
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-lg font-bold text-emerald-700">
-                  {selected.name.charAt(0)}
-                </div>
+                {selected.avatar ? (
+                  <img
+                    src={selected.avatar}
+                    alt={selected.name}
+                    className="h-14 w-14 flex-shrink-0 rounded-full border-2 border-emerald-200 object-cover"
+                  />
+                ) : (
+                  <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 text-lg font-bold text-emerald-700">
+                    {selected.name.charAt(0)}
+                  </div>
+                )}
                 <div>
                   <h2 className="text-lg font-bold text-slate-900">{selected.name}</h2>
                   <p className="text-sm text-slate-500">{selected.currentRole} at {selected.company}</p>
