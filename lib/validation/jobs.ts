@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+export const applyToJobSchema = z.object({
+  linkedinUrl: z.string().max(500).optional(),
+  coverNote: z.string().max(2000).optional(),
+});
+
 export const createJobSchema = z.object({
   title: z.string().min(1),
   company: z.string().min(1),

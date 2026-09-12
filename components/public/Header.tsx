@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useState } from "react";
-import { Menu, X, GraduationCap } from "lucide-react";
+import { Menu, X, GraduationCap, QrCode } from "lucide-react";
 import { useApp } from "@/lib/public/context";
 
 const NAV_LINKS = [
@@ -16,10 +16,15 @@ const NAV_LINKS = [
 ];
 
 export default function Header() {
-  const { session } = useApp();
+  const { session, setIsPassModalOpen, setPassModalTab } = useApp();
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  function openPassModal() {
+    setPassModalTab("virtual");
+    setIsPassModalOpen(true);
+  }
 
   async function handleLogout() {
     await fetch("/api/auth/alumni/logout", { method: "POST" });
@@ -52,6 +57,14 @@ export default function Header() {
         <div className="hidden items-center gap-3 md:flex">
           {session ? (
             <>
+              <button
+                onClick={openPassModal}
+                title="Digital Pass & QR"
+                className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm font-medium text-slate-600 hover:border-emerald-300 hover:text-emerald-700"
+              >
+                <QrCode className="h-4 w-4" />
+                <span className="hidden lg:inline">Digital Pass</span>
+              </button>
               <Link
                 href="/pass"
                 className="flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-emerald-700"
@@ -68,6 +81,11 @@ export default function Header() {
                   </span>
                 )}
                 {session.profile?.name ?? session.email}
+                {session.profile?.classYear && (
+                  <span className="rounded-full border border-emerald-200 bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                    Verified &apos;{String(session.profile.classYear).slice(-2)}
+                  </span>
+                )}
               </Link>
               <button
                 onClick={handleLogout}
@@ -106,6 +124,9 @@ export default function Header() {
             ))}
             {session ? (
               <>
+                <button onClick={openPassModal} className="flex items-center gap-1.5 py-1.5 text-left text-sm font-medium text-slate-700">
+                  <QrCode className="h-4 w-4" /> Digital Pass & QR
+                </button>
                 <Link href="/pass" className="py-1.5 text-sm font-medium text-slate-700">
                   My Virtual Pass
                 </Link>

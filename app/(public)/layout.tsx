@@ -3,6 +3,8 @@ import { getAlumniSession } from "@/lib/auth/session";
 import { AppProvider, type PublicSessionUser } from "@/lib/public/context";
 import Header from "@/components/public/Header";
 import Footer from "@/components/public/Footer";
+import InfoModals from "@/components/public/InfoModals";
+import GlobalVirtualIdModal from "@/components/public/GlobalVirtualIdModal";
 
 async function loadSession(): Promise<PublicSessionUser | null> {
   const token = await getAlumniSession();
@@ -42,6 +44,8 @@ export default async function PublicLayout({ children }: { children: React.React
         <Header />
         <main className="flex-1">{children}</main>
         <Footer />
+        <InfoModals />
+        <GlobalVirtualIdModal />
       </div>
     </AppProvider>
   );

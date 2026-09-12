@@ -16,15 +16,18 @@ const isProd = process.env.NODE_ENV === "production";
 const ALUMNI_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
 const ADMIN_MAX_AGE = 60 * 60 * 8; // 8 hours
 
-export async function setAlumniSessionCookie(payload: AlumniTokenPayload) {
+export async function setAlumniSessionCookie(payload: AlumniTokenPayload, options?: { persistent?: boolean }) {
   const token = await signAlumniToken(payload);
   const store = await cookies();
+  const persistent = options?.persistent ?? true;
   store.set(ALUMNI_COOKIE, token, {
     httpOnly: true,
     secure: isProd,
     sameSite: "lax",
     path: "/",
-    maxAge: ALUMNI_MAX_AGE,
+    // "Remember me" unchecked -> a browser-session cookie (no maxAge) that's
+    // gone once the browser closes, instead of persisting for 7 days.
+    ...(persistent ? { maxAge: ALUMNI_MAX_AGE } : {}),
   });
 }
 

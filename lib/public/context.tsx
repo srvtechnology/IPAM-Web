@@ -27,6 +27,11 @@ interface AppContextType {
   setIsSubmitBusinessOpen: (open: boolean) => void;
   infoModalType: "privacy" | "terms" | "contact" | "bylaws" | null;
   setInfoModalType: (type: "privacy" | "terms" | "contact" | "bylaws" | null) => void;
+
+  isPassModalOpen: boolean;
+  setIsPassModalOpen: (open: boolean) => void;
+  passModalTab: "virtual" | "qr" | "order";
+  setPassModalTab: (tab: "virtual" | "qr" | "order") => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -38,6 +43,8 @@ export const AppProvider: React.FC<{
   const [isPostJobOpen, setIsPostJobOpen] = useState(false);
   const [isSubmitBusinessOpen, setIsSubmitBusinessOpen] = useState(false);
   const [infoModalType, setInfoModalType] = useState<AppContextType["infoModalType"]>(null);
+  const [isPassModalOpen, setIsPassModalOpen] = useState(false);
+  const [passModalTab, setPassModalTab] = useState<AppContextType["passModalTab"]>("virtual");
 
   return (
     <AppContext.Provider
@@ -49,6 +56,10 @@ export const AppProvider: React.FC<{
         setIsSubmitBusinessOpen,
         infoModalType,
         setInfoModalType,
+        isPassModalOpen,
+        setIsPassModalOpen,
+        passModalTab,
+        setPassModalTab,
       }}
     >
       {children}

@@ -141,6 +141,72 @@ async function main() {
     },
   });
 
+  await db.leadershipMember.upsert({
+    where: { id: "seed-leader-2" },
+    update: {},
+    create: {
+      id: "seed-leader-2",
+      name: "Marcus Thorne",
+      role: "Secretary General",
+      classYear: "2005",
+      image:
+        "https://lh3.googleusercontent.com/aida-public/AB6AXuB_WKPQ7aK_zObvddw9LpJ_IVp5ME68iSknd7QdTkh0ytTIb54x6tQix3yNJqV2U9_3is-6mMnvycN3JijjFiFLn3OezWI5ZDiWsFEXwAWzS4Wu2IH5E23ALjw2QTtNvaOXYgUhKVn3YCVXAl0-Ra5jKPIwqfpGlqcCecschb7ql-fYW6f52EGgDlOBEAV9Q2EO-Rv7hibjhzU_z5tmhNLInzHWywTRzt2RBoOmhDLsXnz_L4V-yOWp",
+      bio: "Senior governance consultant and managing partner. With over 18 years of corporate compliance and association governance, he leads organizational strategy and member operations across all regions.",
+      quote: "Integrity and seamless operational transparency form the bedrock of an alumni network our members can be truly proud of.",
+      email: "secretary@ipamalumni.org",
+      initiatives: {
+        create: [
+          { title: "Digital bylaws modernization and transparent voting protocols" },
+          { title: "University registrar single sign-on integration" },
+        ],
+      },
+    },
+  });
+
+  await db.leadershipMember.upsert({
+    where: { id: "seed-leader-3" },
+    update: {},
+    create: {
+      id: "seed-leader-3",
+      name: "Elena Rodriguez",
+      role: "Treasurer",
+      classYear: "2012",
+      image:
+        "https://lh3.googleusercontent.com/aida-public/AB6AXuCS-NRqSAAcl0_OJslI41htFs9MZZD4KwiPZO2G5RGs8WReNqmyJoiG5Nib3PiWjDZSTiEnlGGq0vgY5tau-fBMyHi7JY6_hUliWrISs_jmMdaBR0b62sBxckmyApak3LKaK3VkjgQSL5dA66cObulhOzHXijuen4QyIq6PBDbRpiP7vsLR1O10a3rESoaXnTYvjeOOIOBH2oWRUzqw7CjFwqRkOS9mdAPaMtUjIWd16R5-rwZv3mZF",
+      bio: "CFA Charterholder and Senior Portfolio Manager. She oversees the endowment governance, fiscal accounting, and multi-currency scholarship distributions for the IPAM Alumni community.",
+      quote: "Every single dollar donated is directly optimized to lower student barriers and provide need-based educational lifelines.",
+      email: "treasury@ipamalumni.org",
+      initiatives: {
+        create: [
+          { title: "Clean audit compliance across all multi-currency regional funds" },
+          { title: "Direct disbursement of student hardship & merit grants" },
+        ],
+      },
+    },
+  });
+
+  await db.leadershipMember.upsert({
+    where: { id: "seed-leader-4" },
+    update: {},
+    create: {
+      id: "seed-leader-4",
+      name: "David Okoro",
+      role: "VP Outreach",
+      classYear: "2010",
+      image:
+        "https://lh3.googleusercontent.com/aida-public/AB6AXuBoDJ3459AtBhITEgI-DmIWmP2qjFktqreunpYDWbmXMFLHI48d52px0MVMdKqUwGhlg9YTo6UucW6Hjbq2YyxDThGUXFYe6EfjtTclQLVcEAMSG9jSiGE1BCwswn1p7V12MTVHYqasZW_TcL7zQ9TasJ3EhKRr7J3M93DXQk2JixzycfSlIEu8-qVx6BVQFmkic5u3pB5dy8paULxslw41hRY41cG_VypXLHe1JvkU-tVq2YfCoWmR",
+      bio: "Telecommunications executive and founder of a regional tech hub. He directs alumni relations across the UK, North America, Continental Europe, and Sub-Saharan Africa chapters.",
+      quote: "No matter where your degree takes you across the world, you will always find a supportive IPAM family waiting to welcome you.",
+      email: "outreach@ipamalumni.org",
+      initiatives: {
+        create: [
+          { title: "12 new regional alumni chapters established in 2024" },
+          { title: "Annual Global Homecoming & Cross-Continent Business Summits" },
+        ],
+      },
+    },
+  });
+
   // ---------------- Alumni users + members ----------------
   const alumniSeedData = [
     {

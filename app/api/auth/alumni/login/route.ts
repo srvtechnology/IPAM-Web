@@ -12,14 +12,14 @@ export async function POST(req: NextRequest) {
   const parsed = alumniLoginSchema.safeParse(body);
   if (!parsed.success) return fail(400, "Validation failed", { issues: parsed.error.flatten() });
 
-  const { email, password } = parsed.data;
+  const { email, password, rememberMe } = parsed.data;
   const user = await db.alumniUser.findUnique({ where: { email }, include: { profile: true } });
   if (!user) return fail(401, "Invalid email or password");
 
   const valid = await verifyPassword(password, user.passwordHash);
   if (!valid) return fail(401, "Invalid email or password");
 
-  await setAlumniSessionCookie({ sub: user.id, email: user.email });
+  await setAlumniSessionCookie({ sub: user.id, email: user.email }, { persistent: rememberMe });
 
   const { passwordHash: _omit, ...safeUser } = user;
   return ok(safeUser);

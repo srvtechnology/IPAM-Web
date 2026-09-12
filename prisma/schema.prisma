@@ -286,6 +286,8 @@ model AlumniUser {
   eventRegistrations   EventRegistration[]
   donations            Donation[]
   jobApplications      JobApplication[]
+  jobOpeningApplications JobOpeningApplication[]
+  physicalCardOrders   PhysicalCardOrder[]
   alumniRecord         AlumniRecord?
 
   bookmarksMade        AlumniBookmark[] @relation("BookmarkOwner")
@@ -381,8 +383,29 @@ model JobOpening {
   applyUrl         String?  @db.Text
 
   savedBy          SavedJob[]
+  applications     JobOpeningApplication[]
 
   @@map("job_openings")
+}
+
+// An alumni's 1-click application to a public, alumni-posted JobOpening.
+// Deliberately separate from JobApplication (which belongs to the
+// admin-managed AdminJobListing recruiting pipeline) — these are two
+// unrelated flows even though both are "job applications".
+model JobOpeningApplication {
+  id             String   @id @default(cuid())
+  jobId          String
+  job            JobOpening @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  alumniUserId   String
+  alumniUser     AlumniUser @relation(fields: [alumniUserId], references: [id], onDelete: Cascade)
+
+  linkedinUrl    String?  @db.Text
+  coverNote      String?  @db.Text
+  applicationRef String   @unique
+  createdAt      DateTime @default(now())
+
+  @@unique([jobId, alumniUserId])
+  @@map("job_opening_applications")
 }
 
 model SavedJob {
@@ -483,6 +506,25 @@ model Donation {
   transaction Transaction?
 
   @@map("donations")
+}
+
+// A self-service order placed by an alumni from their Virtual Pass page.
+// Deliberately separate from IdCardOrder (the registrar/admin-side issuance
+// desk model tied to AlumniRecord, used for bulk/walk-in printing) — this one
+// belongs to the logged-in AlumniUser who requested it themselves.
+model PhysicalCardOrder {
+  id              String       @id @default(cuid())
+  orderNumber     String       @unique
+  alumniUserId    String
+  alumniUser      AlumniUser   @relation(fields: [alumniUserId], references: [id], onDelete: Cascade)
+
+  cardTier        CardTier     @default(STANDARD_PVC)
+  deliveryAddress String       @db.Text
+  status          IdCardStatus @default(IN_PRINT_PRESS)
+  trackingCode    String?
+  createdAt       DateTime     @default(now())
+
+  @@map("physical_card_orders")
 }
 
 model AlumniBookmark {

@@ -1,6 +1,11 @@
+"use client";
+
 import Link from "next/link";
+import { useApp } from "@/lib/public/context";
 
 export default function Footer() {
+  const { setInfoModalType } = useApp();
+
   return (
     <footer className="border-t border-slate-200 bg-slate-900 text-slate-300">
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
@@ -37,7 +42,15 @@ export default function Footer() {
             </ul>
           </div>
         </div>
-        <p className="mt-8 border-t border-slate-800 pt-6 text-xs text-slate-500">
+
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-4 border-t border-slate-800 pt-6 text-xs font-semibold text-slate-400 sm:justify-start">
+          <button onClick={() => setInfoModalType("privacy")} className="hover:text-white">Privacy Policy</button>
+          <button onClick={() => setInfoModalType("terms")} className="hover:text-white">Terms of Service</button>
+          <button onClick={() => setInfoModalType("contact")} className="hover:text-white">Contact Us</button>
+          <button onClick={() => setInfoModalType("bylaws")} className="hover:text-white">Alumni Bylaws</button>
+        </div>
+
+        <p className="mt-6 text-xs text-slate-500">
           © {new Date().getFullYear()} IPAM Alumni Association. All rights reserved. Powered by SRV Technology.
         </p>
       </div>
