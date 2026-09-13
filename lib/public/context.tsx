@@ -8,6 +8,7 @@ export interface PublicSessionUser {
   studentId: string;
   isVerifiedAlumni: boolean;
   membershipTier: string;
+  savedJobsCount: number;
   profile: {
     id: string;
     name: string;

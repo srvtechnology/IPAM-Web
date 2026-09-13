@@ -10,10 +10,10 @@ async function loadSession(): Promise<PublicSessionUser | null> {
   const token = await getAlumniSession();
   if (!token) return null;
 
-  const user = await db.alumniUser.findUnique({
-    where: { id: token.sub },
-    include: { profile: true },
-  });
+  const [user, savedJobsCount] = await Promise.all([
+    db.alumniUser.findUnique({ where: { id: token.sub }, include: { profile: true } }),
+    db.savedJob.count({ where: { userId: token.sub } }),
+  ]);
   if (!user) return null;
 
   return {
@@ -22,6 +22,7 @@ async function loadSession(): Promise<PublicSessionUser | null> {
     studentId: user.studentId,
     isVerifiedAlumni: user.isVerifiedAlumni,
     membershipTier: user.membershipTier,
+    savedJobsCount,
     profile: user.profile
       ? {
           id: user.profile.id,
