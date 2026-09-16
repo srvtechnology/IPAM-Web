@@ -491,21 +491,45 @@ model AlumniBusiness {
 }
 
 model Donation {
-  id         String   @id @default(cuid())
-  userId     String?
-  user       AlumniUser? @relation(fields: [userId], references: [id], onDelete: SetNull)
-  donorName  String
-  donorEmail String
-  amount     Decimal  @db.Decimal(10, 2)
-  currency   String   @default("USD")
-  fund       String
-  paymentRef String   @unique
-  status     DonationStatus @default(PENDING)
-  createdAt  DateTime @default(now())
+  id             String   @id @default(cuid())
+  userId         String?
+  user           AlumniUser? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  donorName      String
+  donorEmail     String
+  amount         Decimal  @db.Decimal(10, 2)
+  currency       String   @default("USD")
+  fund           String
+  frequency      String?
+  paymentMethod  String?
+  isDedication   Boolean  @default(false)
+  dedicationName String?
+  isAnonymous    Boolean  @default(false)
+  paymentRef     String   @unique
+  status         DonationStatus @default(PENDING)
+  createdAt      DateTime @default(now())
 
   transaction Transaction?
 
   @@map("donations")
+}
+
+// A member-submitted request to host a chapter meetup/webinar, surfaced by
+// the public Events page's "Submit Event Proposal" flow. Deliberately not
+// related to AlumniEvent — it's a pending request, not a scheduled event —
+// and has no admin review UI yet (status just records submission intent).
+model EventProposal {
+  id             String        @id @default(cuid())
+  title          String
+  category       EventCategory
+  format         String
+  targetDate     DateTime?
+  location       String?
+  description    String        @db.Text
+  organizerEmail String
+  status         String        @default("PENDING")
+  createdAt      DateTime      @default(now())
+
+  @@map("event_proposals")
 }
 
 // A self-service order placed by an alumni from their Virtual Pass page.

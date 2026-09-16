@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { X } from "lucide-react";
+import { X, Plus } from "lucide-react";
 import { useCreateJob } from "@/hooks/public/useCreateJob";
 
 const JOB_TYPES = ["FULL_TIME", "PART_TIME", "CONTRACT", "REMOTE"];
@@ -43,15 +43,21 @@ export default function PostJobModal({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/60 p-4 backdrop-blur-xs" onClick={onClose}>
       <form
         onSubmit={handleSubmit}
         onClick={(e) => e.stopPropagation()}
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl"
+        className="relative my-8 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-slate-200 bg-white p-6 text-slate-800 shadow-xl sm:p-7"
       >
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-slate-900">Post a Job</h2>
-          <button type="button" onClick={onClose}><X className="h-5 w-5 text-slate-400" /></button>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">Alumni Hiring Network</span>
+            <h2 className="mt-1 text-2xl font-black text-slate-900">Post a Job Opening</h2>
+            <p className="text-xs text-slate-500">Connect fellow IPAM graduates to opportunities at your organization.</p>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-full bg-slate-100 p-2 text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-900">
+            <X className="h-5 w-5" />
+          </button>
         </div>
 
         {error && <div className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
@@ -78,13 +84,16 @@ export default function PostJobModal({ onClose }: { onClose: () => void }) {
           <Field label="Application deadline"><input type="date" value={form.deadline} onChange={(e) => update("deadline", e.target.value)} className="input" /></Field>
         </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="mt-6 w-full rounded-lg bg-emerald-600 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
-        >
-          {loading ? "Posting…" : "Post Job"}
-        </button>
+        <div className="pt-4">
+          <button
+            type="submit"
+            disabled={loading}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-bold text-white shadow-xs transition-all hover:bg-emerald-700 disabled:opacity-60"
+          >
+            <Plus className="h-4 w-4" />
+            <span>{loading ? "Posting…" : "Publish Alumni Job Opening"}</span>
+          </button>
+        </div>
       </form>
     </div>
   );

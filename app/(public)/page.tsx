@@ -17,47 +17,49 @@ export default async function HomePage() {
   ]);
 
   return (
-    <div>
+    <div className="pb-20">
       <HomeHeroSection />
 
-      <HomeMetricsSection />
+      <div className="mx-auto mt-10 max-w-7xl space-y-10 px-4 sm:mt-12 sm:space-y-12 sm:px-6 lg:px-8">
+        <HomeMetricsSection />
 
-      <HomeLeadershipSection leaders={leaders} />
+        <HomeLeadershipSection leaders={leaders} />
 
-      <HomeAboutSection />
+        <HomeAboutSection />
 
-      <HomeFeaturesSection />
+        <HomeFeaturesSection />
 
-      <HomeJobsSection
-        jobs={jobs.map((j) => ({ id: j.id, title: j.title, company: j.company, location: j.location, type: j.type }))}
-      />
+        <HomeJobsSection
+          jobs={jobs.map((j) => ({ id: j.id, title: j.title, company: j.company, location: j.location, type: j.type }))}
+        />
 
-      <HomeEventsSection
-        events={events.map((e) => ({
-          id: e.id,
-          title: e.title,
-          displayDate: e.displayDate,
-          description: e.description,
-          location: e.location,
-          ticketPrice: e.ticketPrice.toString(),
-          currency: e.currency,
-        }))}
-      />
+        <HomeEventsSection
+          events={events.map((e) => ({
+            id: e.id,
+            title: e.title,
+            displayDate: e.displayDate,
+            description: e.description,
+            location: e.location,
+            ticketPrice: e.ticketPrice.toString(),
+            currency: e.currency,
+          }))}
+        />
 
-      <HomeBusinessesSection
-        businesses={businesses.map((b) => ({
-          id: b.id,
-          name: b.name,
-          founders: b.founders,
-          classYear: b.classYear,
-          category: b.category,
-          industry: b.industry,
-          description: b.description,
-          location: b.location,
-          image: b.image,
-          featured: b.featured,
-        }))}
-      />
+        <HomeBusinessesSection
+          businesses={businesses.map((b) => ({
+            id: b.id,
+            name: b.name,
+            founders: b.founders,
+            classYear: b.classYear,
+            category: b.category,
+            industry: b.industry,
+            description: b.description,
+            location: b.location,
+            image: b.image,
+            featured: b.featured,
+          }))}
+        />
+      </div>
     </div>
   );
 }

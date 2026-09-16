@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search, Mail, Linkedin, X, MapPin, GraduationCap, Sparkles, UserPlus, Check, MessageSquare } from "lucide-react";
+import { Search, Mail, Linkedin, X, MapPin, GraduationCap, Sparkles, UserPlus, Check, MessageSquare, Users } from "lucide-react";
 import { useApp } from "@/lib/public/context";
 import { useConnect } from "@/hooks/public/useConnect";
 
@@ -100,22 +100,70 @@ export default function DirectoryView({ alumni }: { alumni: DirectoryAlumnus[] }
     }
   }
 
+  const mentorCount = alumni.filter((a) => a.isMentor).length;
+  const countryCount = Math.max(countries.length - 1, 0);
+
   return (
-    <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-      {toast && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-xl border border-emerald-500/40 bg-slate-900 px-5 py-3 text-white shadow-xl">
-          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600 text-xs font-bold">✓</div>
-          <span className="text-sm font-semibold">{toast}</span>
+    <div className="min-h-screen bg-slate-50 pb-20 text-slate-800">
+      {/* Top institutional banner */}
+      <section className="relative flex min-h-[580px] w-full items-center overflow-hidden border-b border-slate-800 bg-slate-950 text-white md:min-h-[640px]">
+        <div className="absolute inset-0 z-0">
+          <img
+            src="/images/ipam_university_campus_1788350001937.jpg"
+            alt="Institute of Public Administration and Management Campus"
+            className="h-full w-full scale-105 transform object-cover object-center opacity-20"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-950/95 via-slate-950/90 to-emerald-950/80" />
+          <div className="absolute inset-0 bg-[radial-gradient(#10b981_1px,transparent_1px)] opacity-10 [background-size:24px_24px]" />
         </div>
-      )}
 
-      <h1 className="text-3xl font-black text-slate-900 sm:text-4xl">Global Alumni Directory</h1>
-      <p className="mt-2 max-w-3xl text-slate-500">
-        Search and connect with {alumni.length} verified IPAM graduates worldwide. Find industry peers, mentors, and
-        fellow alumni by major, location, or class year.
-      </p>
+        <div className="relative z-10 mx-auto w-full max-w-7xl space-y-6 px-4 py-16 sm:px-6 sm:py-20 md:py-24 lg:px-8">
+          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-950/80 px-3.5 py-1.5 text-xs font-semibold text-emerald-300 shadow-xs backdrop-blur-md">
+            <Users className="h-4 w-4 text-emerald-400" />
+            <span>Verified Registry • IPAM Alumni Association Worldwide Network</span>
+          </div>
 
-      <div className="mt-6 space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+          <div className="max-w-3xl space-y-3">
+            <h1 className="text-3xl font-black leading-tight tracking-tight text-white sm:text-4xl md:text-5xl">
+              Global Alumni Directory
+            </h1>
+            <p className="text-base font-normal leading-relaxed text-slate-300 sm:text-lg">
+              Search and connect with {alumni.length} verified IPAM graduates worldwide. Find industry peers,
+              collaborate on strategic initiatives, and connect with experienced mentors across {countryCount || 40}+
+              countries.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 border-t border-slate-800/80 pt-4 sm:grid-cols-4">
+            <div>
+              <div className="text-2xl font-black text-emerald-400 sm:text-3xl">{alumni.length}+</div>
+              <div className="text-xs font-medium text-slate-300">Verified Alumni</div>
+            </div>
+            <div>
+              <div className="text-2xl font-black text-emerald-400 sm:text-3xl">{countryCount || 40}+</div>
+              <div className="text-xs font-medium text-slate-300">Countries Represented</div>
+            </div>
+            <div>
+              <div className="text-2xl font-black text-emerald-400 sm:text-3xl">{mentorCount}+</div>
+              <div className="text-xs font-medium text-slate-300">Active Mentors</div>
+            </div>
+            <div>
+              <div className="text-2xl font-black text-emerald-400 sm:text-3xl">100%</div>
+              <div className="text-xs font-medium text-slate-300">Global Network</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div className="relative z-20 mx-auto -mt-8 max-w-7xl space-y-8 px-4 sm:px-6 lg:px-8">
+        {toast && (
+          <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-xl border border-emerald-500/40 bg-slate-900 px-5 py-3 text-white shadow-2xl">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-xs font-black text-slate-950">✓</div>
+            <span className="text-sm font-semibold">{toast}</span>
+          </div>
+        )}
+
+      <div className="space-y-4 rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs md:p-6">
         <div className="relative">
           <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
@@ -280,63 +328,72 @@ export default function DirectoryView({ alumni }: { alumni: DirectoryAlumnus[] }
       )}
 
       {selected && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setSelected(null)}>
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-3">
-                {selected.avatar ? (
-                  <img src={selected.avatar} alt={selected.name} className="h-14 w-14 flex-shrink-0 rounded-full border-2 border-emerald-200 object-cover" />
-                ) : (
-                  <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 text-lg font-bold text-emerald-700">
-                    {selected.name.charAt(0)}
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/60 p-4 backdrop-blur-xs" onClick={() => setSelected(null)}>
+          <div className="my-8 w-full max-w-lg rounded-3xl border border-slate-200 bg-white text-slate-800 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="rounded-t-3xl border-b border-slate-200 bg-slate-50 p-6 sm:p-8">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  {selected.avatar ? (
+                    <img src={selected.avatar} alt={selected.name} className="h-16 w-16 flex-shrink-0 rounded-full border-2 border-emerald-600 object-cover shadow-xs" />
+                  ) : (
+                    <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full border-2 border-emerald-600 bg-slate-100 text-lg font-bold text-emerald-700">
+                      {selected.name.charAt(0)}
+                    </div>
+                  )}
+                  <div>
+                    <span className="rounded-full bg-emerald-600 px-2.5 py-0.5 text-xs font-black text-white">
+                      Class of &apos;{selected.classYear.toString().slice(-2)}
+                    </span>
+                    <h2 className="mt-1 text-2xl font-black text-slate-900">{selected.name}</h2>
+                    <p className="text-sm font-bold text-emerald-700">{selected.currentRole}</p>
+                    <p className="text-xs font-semibold text-slate-500">{selected.company}</p>
                   </div>
-                )}
-                <div>
-                  <h2 className="text-lg font-bold text-slate-900">{selected.name}</h2>
-                  <p className="text-sm text-slate-500">{selected.currentRole} at {selected.company}</p>
                 </div>
+                <button onClick={() => setSelected(null)} aria-label="Close" className="rounded-full bg-slate-100 p-2 text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-900">
+                  <X className="h-4 w-4" />
+                </button>
               </div>
-              <button onClick={() => setSelected(null)} aria-label="Close">
-                <X className="h-5 w-5 text-slate-400" />
-              </button>
             </div>
-            <p className="mt-4 text-sm text-slate-600">{selected.bio}</p>
-            <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
-              <div><dt className="text-slate-400">Class Year</dt><dd className="font-medium text-slate-800">{selected.classYear}</dd></div>
-              <div><dt className="text-slate-400">Degree</dt><dd className="font-medium text-slate-800">{selected.degree}</dd></div>
-              <div><dt className="text-slate-400">Location</dt><dd className="font-medium text-slate-800">{selected.location}, {selected.country}</dd></div>
-              <div><dt className="text-slate-400">Industry</dt><dd className="font-medium text-slate-800">{selected.industry}</dd></div>
-            </dl>
-            {selected.skills.length > 0 && (
-              <div className="mt-4 flex flex-wrap gap-2">
-                {selected.skills.map((s) => (
-                  <span key={s} className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">{s}</span>
-                ))}
-              </div>
-            )}
-            <div className="mt-5 flex gap-3">
-              <a href={`mailto:${selected.email}`} className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
-                <Mail className="h-4 w-4" /> Email
-              </a>
-              {selected.linkedin && (
-                <a href={selected.linkedin} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-                  <Linkedin className="h-4 w-4" /> LinkedIn
-                </a>
+            <div className="p-6 sm:p-8">
+              <p className="text-sm leading-[1.6] text-slate-600">{selected.bio}</p>
+              <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                <div><dt className="text-slate-400">Class Year</dt><dd className="font-medium text-slate-800">{selected.classYear}</dd></div>
+                <div><dt className="text-slate-400">Degree</dt><dd className="font-medium text-slate-800">{selected.degree}</dd></div>
+                <div><dt className="text-slate-400">Location</dt><dd className="font-medium text-slate-800">{selected.location}, {selected.country}</dd></div>
+                <div><dt className="text-slate-400">Industry</dt><dd className="font-medium text-slate-800">{selected.industry}</dd></div>
+              </dl>
+              {selected.skills.length > 0 && (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {selected.skills.map((s) => (
+                    <span key={s} className="rounded-md border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{s}</span>
+                  ))}
+                </div>
               )}
-              <button
-                onClick={(e) => handleConnect(e, selected)}
-                className={`ml-auto flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold transition-all ${
-                  connectedIds.includes(selected.id)
-                    ? "border border-emerald-300 bg-emerald-100 text-emerald-800"
-                    : "border border-slate-300 text-slate-700 hover:bg-slate-50"
-                }`}
-              >
-                {connectedIds.includes(selected.id) ? (<><Check className="h-4 w-4" /> Pending</>) : (<><UserPlus className="h-4 w-4" /> Connect</>)}
-              </button>
+              <div className="mt-5 flex gap-3">
+                <a href={`mailto:${selected.email}`} className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white shadow-xs transition-all hover:bg-emerald-700">
+                  <Mail className="h-4 w-4" /> Email
+                </a>
+                {selected.linkedin && (
+                  <a href={selected.linkedin} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-xs transition-all hover:bg-slate-50">
+                    <Linkedin className="h-4 w-4" /> LinkedIn
+                  </a>
+                )}
+                <button
+                  onClick={(e) => handleConnect(e, selected)}
+                  className={`ml-auto flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-bold transition-all ${
+                    connectedIds.includes(selected.id)
+                      ? "border border-slate-300 bg-slate-100 text-slate-700"
+                      : "border border-slate-200 text-slate-700 hover:bg-slate-50"
+                  }`}
+                >
+                  {connectedIds.includes(selected.id) ? (<><Check className="h-4 w-4" /> Pending</>) : (<><UserPlus className="h-4 w-4" /> Connect</>)}
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

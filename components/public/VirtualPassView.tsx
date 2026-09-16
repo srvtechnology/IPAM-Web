@@ -112,321 +112,324 @@ export default function VirtualPassView({ pass }: { pass: VirtualPassData }) {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
-      <div className="text-center">
-        <h1 className="text-2xl font-black text-slate-900 sm:text-3xl">Virtual Alumni Pass</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Present this pass at IPAM events and partner venues, or share it with anyone who needs to verify your credential.
-        </p>
-      </div>
+    <div className="min-h-screen bg-slate-950 pb-16 text-slate-200">
+      <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
+        <div className="text-center">
+          <h1 className="text-2xl font-black text-white sm:text-3xl">Virtual Alumni Pass</h1>
+          <p className="mt-1 text-sm text-slate-400">
+            Present this pass at IPAM events and partner venues, or share it with anyone who needs to verify your
+            credential.
+          </p>
+        </div>
 
-      <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-12">
-        {/* Left: flip card */}
-        <div className="lg:col-span-7">
-          <div
-            className="relative mx-auto max-w-md cursor-pointer select-none"
-            onClick={() => setIsFlipped((v) => !v)}
-            title="Click card to flip"
-          >
-            {!isFlipped ? (
-              <div className="aspect-[1.586/1] w-full overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-700 to-teal-800 p-6 text-white shadow-xl">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <GraduationCap className="h-6 w-6" />
-                    <span className="text-sm font-bold">IPAM Alumni Association</span>
+        <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-12">
+          {/* Left: flip card */}
+          <div className="lg:col-span-7">
+            <div
+              className="relative mx-auto max-w-md cursor-pointer select-none"
+              onClick={() => setIsFlipped((v) => !v)}
+              title="Click card to flip"
+            >
+              {!isFlipped ? (
+                <div className="aspect-[1.586/1] w-full overflow-hidden rounded-3xl border-2 border-emerald-500/40 bg-gradient-to-br from-emerald-900 via-slate-900 to-slate-950 p-6 text-white shadow-2xl">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <GraduationCap className="h-6 w-6" />
+                      <span className="text-sm font-bold">IPAM Alumni Association</span>
+                    </div>
+                    <span className="rounded-lg bg-white/15 px-2 py-1 text-[10px] font-black">IPAM</span>
                   </div>
-                  <span className="rounded-lg bg-white/20 px-2 py-1 text-[10px] font-black">IPAM</span>
-                </div>
 
-                <div className="mt-6 flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-4">
-                    {pass.avatar ? (
-                      <img
-                        src={pass.avatar}
-                        alt={pass.name}
-                        className="h-16 w-16 flex-shrink-0 rounded-2xl border-2 border-white object-cover shadow-lg"
-                      />
-                    ) : (
-                      <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-2xl bg-white/20 text-xl font-black">
-                        {pass.name.charAt(0)}
-                      </div>
-                    )}
-                    <div>
-                      <p className="text-lg font-bold leading-tight">{pass.name}</p>
-                      <p className="text-sm text-emerald-100">{pass.degree}</p>
-                      <div className="mt-1 flex items-center gap-1.5">
-                        <span className="rounded-md bg-white/20 px-2 py-0.5 text-[10px] font-bold">
-                          Class of {pass.classYear}
-                        </span>
-                        {pass.isVerifiedAlumni && (
-                          <span className="rounded-md bg-emerald-400 px-2 py-0.5 text-[10px] font-black text-emerald-950">
-                            Verified
+                  <div className="mt-6 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      {pass.avatar ? (
+                        <img
+                          src={pass.avatar}
+                          alt={pass.name}
+                          className="h-16 w-16 flex-shrink-0 rounded-2xl border-2 border-emerald-400/60 object-cover shadow-lg"
+                        />
+                      ) : (
+                        <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-2xl bg-white/15 text-xl font-black">
+                          {pass.name.charAt(0)}
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-lg font-bold leading-tight">{pass.name}</p>
+                        <p className="text-sm text-emerald-200">{pass.degree}</p>
+                        <div className="mt-1 flex items-center gap-1.5">
+                          <span className="rounded-md border border-slate-700 bg-slate-900/80 px-2 py-0.5 text-[10px] font-bold text-slate-200">
+                            Class of {pass.classYear}
                           </span>
-                        )}
+                          {pass.isVerifiedAlumni && (
+                            <span className="rounded-md bg-emerald-500 px-2 py-0.5 text-[10px] font-black text-slate-950">
+                              Verified
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
+                    <div className="shrink-0 rounded-xl bg-white p-1.5">
+                      <QRCodeSVG value={cardUrl} size={56} level="M" />
+                    </div>
                   </div>
-                  <div className="shrink-0 rounded-xl bg-white p-1.5">
-                    <QRCodeSVG value={cardUrl} size={56} level="M" />
-                  </div>
-                </div>
 
-                <div className="mt-6 flex items-end justify-between border-t border-white/20 pt-3 text-xs">
-                  <div>
-                    <p className="text-[10px] uppercase text-emerald-200/80">Member ID</p>
-                    <p className="font-mono font-bold">{pass.studentId}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[10px] uppercase text-emerald-200/80">Tier</p>
-                    <p className="font-black text-amber-300">{pass.membershipTier.replace(/_/g, " ")}</p>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="aspect-[1.586/1] w-full overflow-hidden rounded-3xl border border-slate-800 bg-slate-950 p-6 text-white shadow-xl">
-                <div className="-mx-6 -mt-6 h-9 bg-slate-800" />
-                <div className="mt-4 flex items-center justify-between gap-4">
-                  <div className="space-y-1.5">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                      Registrar Signature & Security Token
-                    </p>
-                    <p className="font-mono text-[11px] font-bold text-emerald-400">
-                      SHA256: 8f4a-92b1-ipam-alum-pass
-                    </p>
-                    <p className="text-[10px] leading-snug text-slate-400">
-                      Valid for global university privileges and partner facility access.
-                    </p>
-                  </div>
-                  <div className="shrink-0 rounded-xl bg-white p-1.5">
-                    <QRCodeSVG value={cardUrl} size={56} level="M" />
+                  <div className="mt-6 flex items-end justify-between border-t border-white/10 pt-3 text-xs">
+                    <div>
+                      <p className="text-[10px] uppercase text-emerald-300">Member ID</p>
+                      <p className="font-mono font-bold">{pass.studentId}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] uppercase text-emerald-300">Tier</p>
+                      <p className="font-black text-amber-300">{pass.membershipTier.replace(/_/g, " ")}</p>
+                    </div>
                   </div>
                 </div>
-                <div className="mt-5 flex h-8 items-center justify-center rounded-lg bg-white font-mono text-[10px] font-black tracking-widest text-black">
-                  ||| | |||| | || ||||| ||| |||| | |||
+              ) : (
+                <div className="aspect-[1.586/1] w-full overflow-hidden rounded-3xl border border-slate-800 bg-slate-950 p-6 text-white shadow-xl">
+                  <div className="-mx-6 -mt-6 h-9 border-y border-slate-800 bg-slate-900" />
+                  <div className="mt-4 flex items-center justify-between gap-4">
+                    <div className="space-y-1.5">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        Registrar Signature & Security Token
+                      </p>
+                      <p className="font-mono text-[11px] font-bold text-emerald-400">
+                        SHA256: 8f4a-92b1-ipam-alum-pass
+                      </p>
+                      <p className="text-[10px] leading-snug text-slate-400">
+                        Valid for global university privileges and partner facility access.
+                      </p>
+                    </div>
+                    <div className="shrink-0 rounded-xl bg-white p-1.5">
+                      <QRCodeSVG value={cardUrl} size={56} level="M" />
+                    </div>
+                  </div>
+                  <div className="mt-5 flex h-8 items-center justify-center rounded-lg bg-white font-mono text-[10px] font-black tracking-widest text-black">
+                    ||| | |||| | || ||||| ||| |||| | |||
+                  </div>
+                  <div className="mt-3 flex items-center justify-between border-t border-slate-800 pt-2 text-[10px] text-slate-400">
+                    <span>Official Credential · IPAM Alumni Association</span>
+                    <span className="font-bold text-emerald-400">ipamalumni.org/pass</span>
+                  </div>
                 </div>
-                <div className="mt-3 flex items-center justify-between border-t border-slate-800 pt-2 text-[10px] text-slate-400">
-                  <span>Official Credential · IPAM Alumni Association</span>
-                  <span className="font-bold text-emerald-400">ipamalumni.org/pass</span>
-                </div>
-              </div>
-            )}
+              )}
+            </div>
+
+            <div className="mx-auto mt-3 flex max-w-md items-center justify-center gap-1.5 text-xs text-slate-400">
+              <RotateCw className="h-3.5 w-3.5 text-emerald-400" />
+              <span>Click card to flip ({isFlipped ? "showing back" : "showing front"})</span>
+            </div>
+
+            <div className="mx-auto mt-6 flex max-w-md flex-wrap items-center justify-center gap-3">
+              <button
+                onClick={() => alert("Digital pass saved to Apple / Google Wallet!")}
+                className="flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-xs font-black text-slate-950 shadow-md hover:bg-emerald-400"
+              >
+                <Smartphone className="h-4 w-4 text-slate-950" />
+                Add to Wallet
+              </button>
+              <button
+                onClick={() => window.print()}
+                className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900 px-4 py-2.5 text-xs font-bold text-slate-300 hover:bg-slate-850"
+              >
+                <Printer className="h-4 w-4 text-slate-400" />
+                Print / PDF Pass
+              </button>
+              <button
+                onClick={() => setIsOrderOpen(true)}
+                className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900 px-4 py-2.5 text-xs font-bold text-slate-300 hover:bg-slate-850"
+              >
+                <CreditCard className="h-4 w-4 text-emerald-400" />
+                Order Physical PVC
+              </button>
+            </div>
           </div>
 
-          <div className="mx-auto mt-3 flex max-w-md items-center justify-center gap-1.5 text-xs text-slate-500">
-            <RotateCw className="h-3.5 w-3.5 text-emerald-600" />
-            <span>Click card to flip ({isFlipped ? "showing back" : "showing front"})</span>
-          </div>
+          {/* Right: QR + sharing suite */}
+          <div className="space-y-6 lg:col-span-5">
+            <div ref={qrRef} className="rounded-3xl border border-slate-800 bg-slate-900/80 p-6 text-center shadow-xl backdrop-blur-md">
+              <div className="mx-auto inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-950 px-3 py-1 text-xs font-bold uppercase tracking-wide text-emerald-300">
+                <ScanLine className="h-3.5 w-3.5" /> Live Scannable QR
+              </div>
+              <h3 className="mt-2 text-lg font-black text-white">Scan to Verify</h3>
+              <div className="mx-auto mt-4 inline-block rounded-2xl border-2 border-emerald-500/30 bg-gradient-to-b from-slate-950 to-emerald-950/40 p-5">
+                <QRCodeSVG value={cardUrl} size={180} level="H" includeMargin />
+                <div className="mt-3 border-t border-slate-800 pt-2">
+                  <p className="text-xs font-black text-white">{pass.name}</p>
+                  <p className="font-mono text-[11px] font-bold text-emerald-400">{pass.studentId}</p>
+                </div>
+              </div>
 
-          <div className="mx-auto mt-6 flex max-w-md flex-wrap items-center justify-center gap-3">
-            <button
-              onClick={() => alert("Digital pass saved to Apple / Google Wallet!")}
-              className="flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-bold text-white hover:bg-black"
-            >
-              <Smartphone className="h-4 w-4 text-emerald-400" />
-              Add to Wallet
-            </button>
-            <button
-              onClick={() => window.print()}
-              className="flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50"
-            >
-              <Printer className="h-4 w-4 text-slate-500" />
-              Print / PDF Pass
-            </button>
-            <button
-              onClick={() => setIsOrderOpen(true)}
-              className="flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50"
-            >
-              <CreditCard className="h-4 w-4 text-emerald-600" />
-              Order Physical PVC
-            </button>
+              <div className="mt-4 grid grid-cols-2 gap-2.5">
+                <button
+                  onClick={handleDownloadQR}
+                  className="flex items-center justify-center gap-1.5 rounded-xl bg-emerald-500 py-2.5 text-xs font-black text-slate-950 hover:bg-emerald-400"
+                >
+                  <Download className="h-3.5 w-3.5" /> Download QR
+                </button>
+                <button
+                  onClick={handleCopyLink}
+                  className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-800 bg-slate-950 py-2.5 text-xs font-bold text-white hover:bg-slate-850"
+                >
+                  {copiedLink ? (
+                    <>
+                      <Check className="h-3.5 w-3.5 text-emerald-400" /> Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-3.5 w-3.5" /> Copy Link
+                    </>
+                  )}
+                </button>
+              </div>
+
+              <button
+                onClick={handleTestScan}
+                className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-xl border border-slate-800 py-2.5 text-xs font-bold text-slate-300 hover:bg-slate-850"
+              >
+                <ScanLine className="h-3.5 w-3.5 text-emerald-400" /> Test Scan QR Code
+              </button>
+            </div>
+
+            <div className="rounded-3xl border border-slate-800 bg-slate-900/80 p-6 shadow-xl backdrop-blur-md">
+              <h4 className="flex items-center gap-2 text-sm font-extrabold text-white">
+                <Share2 className="h-4 w-4 text-emerald-400" /> Share Pass to Anyone
+              </h4>
+              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <button
+                  onClick={handleNativeShare}
+                  className="flex flex-col items-center gap-1 rounded-2xl border border-slate-800 bg-slate-950 p-3 text-xs font-bold text-slate-200 hover:border-emerald-500/40 hover:bg-emerald-950/40"
+                >
+                  <Share2 className="h-4 w-4 text-emerald-400" /> Share
+                </button>
+                <a
+                  href={`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-col items-center gap-1 rounded-2xl border border-slate-800 bg-slate-950 p-3 text-xs font-bold text-slate-200 hover:border-emerald-500/40 hover:bg-emerald-950/40"
+                >
+                  <MessageCircle className="h-4 w-4 text-green-500" /> WhatsApp
+                </a>
+                <a
+                  href={`mailto:?subject=${encodeURIComponent(shareTitle)}&body=${encodeURIComponent(shareText)}`}
+                  className="flex flex-col items-center gap-1 rounded-2xl border border-slate-800 bg-slate-950 p-3 text-xs font-bold text-slate-200 hover:border-emerald-500/40 hover:bg-emerald-950/40"
+                >
+                  <Mail className="h-4 w-4 text-sky-400" /> Email
+                </a>
+                <a
+                  href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(cardUrl)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-col items-center gap-1 rounded-2xl border border-slate-800 bg-slate-950 p-3 text-xs font-bold text-slate-200 hover:border-emerald-500/40 hover:bg-emerald-950/40"
+                >
+                  <Linkedin className="h-4 w-4 text-sky-400" /> LinkedIn
+                </a>
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-slate-800 bg-slate-900/80 p-6 shadow-xl backdrop-blur-md">
+              <h4 className="flex items-center gap-2 text-sm font-extrabold text-white">
+                <Send className="h-4 w-4 text-emerald-400" /> Send Pass via Email
+              </h4>
+              <p className="mt-1 text-xs text-slate-400">
+                Send directly to an employer, recruiter, or colleague for verification.
+              </p>
+
+              {dispatchSent ? (
+                <div className="mt-4 space-y-2 rounded-2xl border border-emerald-500/30 bg-emerald-950 p-4 text-center">
+                  <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500 text-slate-950">
+                    <Check className="h-4 w-4" />
+                  </div>
+                  <p className="text-xs font-bold text-emerald-200">Digital pass dispatched to {recipientEmail}.</p>
+                  <button
+                    onClick={() => {
+                      setDispatchSent(false);
+                      setRecipientEmail("");
+                      setRecipientName("");
+                    }}
+                    className="text-[11px] font-bold text-emerald-400 hover:underline"
+                  >
+                    Send to another recipient
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleDispatch} className="mt-3 space-y-2.5">
+                  <input
+                    type="text"
+                    placeholder="Recipient name (optional)"
+                    value={recipientName}
+                    onChange={(e) => setRecipientName(e.target.value)}
+                    className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none"
+                  />
+                  <input
+                    type="email"
+                    required
+                    placeholder="Recipient email address"
+                    value={recipientEmail}
+                    onChange={(e) => setRecipientEmail(e.target.value)}
+                    className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none"
+                  />
+                  <button
+                    type="submit"
+                    className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-emerald-500 py-2.5 text-xs font-black text-slate-950 hover:bg-emerald-400"
+                  >
+                    <Send className="h-3.5 w-3.5" /> Dispatch Digital Pass
+                  </button>
+                </form>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Right: QR + sharing suite */}
-        <div className="space-y-6 lg:col-span-5">
-          <div ref={qrRef} className="rounded-3xl border border-slate-200 bg-white p-6 text-center shadow-sm">
-            <div className="mx-auto inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-emerald-800">
-              <ScanLine className="h-3.5 w-3.5" /> Live Scannable QR
-            </div>
-            <h3 className="mt-2 text-lg font-black text-slate-900">Scan to Verify</h3>
-            <div className="mx-auto mt-4 inline-block rounded-2xl border-2 border-emerald-200/80 bg-gradient-to-b from-slate-50 to-emerald-50/40 p-5">
-              <QRCodeSVG value={cardUrl} size={180} level="H" includeMargin />
-              <div className="mt-3 border-t border-slate-200 pt-2">
-                <p className="text-xs font-black text-slate-900">{pass.name}</p>
-                <p className="font-mono text-[11px] font-bold text-emerald-700">{pass.studentId}</p>
-              </div>
-            </div>
+        {isOrderOpen && <OrderCardModal pass={pass} onClose={() => setIsOrderOpen(false)} />}
 
-            <div className="mt-4 grid grid-cols-2 gap-2.5">
-              <button
-                onClick={handleDownloadQR}
-                className="flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-white hover:bg-emerald-700"
-              >
-                <Download className="h-3.5 w-3.5" /> Download QR
-              </button>
-              <button
-                onClick={handleCopyLink}
-                className="flex items-center justify-center gap-1.5 rounded-xl bg-slate-900 py-2.5 text-xs font-bold text-white hover:bg-slate-800"
-              >
-                {copiedLink ? (
-                  <>
-                    <Check className="h-3.5 w-3.5 text-emerald-400" /> Copied!
-                  </>
-                ) : (
-                  <>
-                    <Copy className="h-3.5 w-3.5" /> Copy Link
-                  </>
-                )}
-              </button>
-            </div>
-
-            <button
-              onClick={handleTestScan}
-              className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-xl border border-slate-200 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50"
-            >
-              <ScanLine className="h-3.5 w-3.5 text-emerald-600" /> Test Scan QR Code
-            </button>
-          </div>
-
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h4 className="flex items-center gap-2 text-sm font-extrabold text-slate-900">
-              <Share2 className="h-4 w-4 text-emerald-600" /> Share Pass to Anyone
-            </h4>
-            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-              <button
-                onClick={handleNativeShare}
-                className="flex flex-col items-center gap-1 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs font-bold text-slate-800 hover:border-emerald-300 hover:bg-emerald-50/50"
-              >
-                <Share2 className="h-4 w-4 text-emerald-600" /> Share
-              </button>
-              <a
-                href={`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex flex-col items-center gap-1 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs font-bold text-slate-800 hover:border-emerald-300 hover:bg-emerald-50/50"
-              >
-                <MessageCircle className="h-4 w-4 text-green-600" /> WhatsApp
-              </a>
-              <a
-                href={`mailto:?subject=${encodeURIComponent(shareTitle)}&body=${encodeURIComponent(shareText)}`}
-                className="flex flex-col items-center gap-1 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs font-bold text-slate-800 hover:border-emerald-300 hover:bg-emerald-50/50"
-              >
-                <Mail className="h-4 w-4 text-blue-600" /> Email
-              </a>
-              <a
-                href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(cardUrl)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex flex-col items-center gap-1 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs font-bold text-slate-800 hover:border-emerald-300 hover:bg-emerald-50/50"
-              >
-                <Linkedin className="h-4 w-4 text-sky-700" /> LinkedIn
-              </a>
-            </div>
-          </div>
-
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h4 className="flex items-center gap-2 text-sm font-extrabold text-slate-900">
-              <Send className="h-4 w-4 text-emerald-600" /> Send Pass via Email
-            </h4>
-            <p className="mt-1 text-xs text-slate-500">
-              Send directly to an employer, recruiter, or colleague for verification.
-            </p>
-
-            {dispatchSent ? (
-              <div className="mt-4 space-y-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-center">
-                <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-white">
-                  <Check className="h-4 w-4" />
-                </div>
-                <p className="text-xs font-bold text-emerald-900">Digital pass dispatched to {recipientEmail}.</p>
-                <button
-                  onClick={() => {
-                    setDispatchSent(false);
-                    setRecipientEmail("");
-                    setRecipientName("");
-                  }}
-                  className="text-[11px] font-bold text-emerald-700 hover:underline"
-                >
-                  Send to another recipient
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={handleDispatch} className="mt-3 space-y-2.5">
-                <input
-                  type="text"
-                  placeholder="Recipient name (optional)"
-                  value={recipientName}
-                  onChange={(e) => setRecipientName(e.target.value)}
-                  className="input"
-                />
-                <input
-                  type="email"
-                  required
-                  placeholder="Recipient email address"
-                  value={recipientEmail}
-                  onChange={(e) => setRecipientEmail(e.target.value)}
-                  className="input"
-                />
-                <button
-                  type="submit"
-                  className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-white hover:bg-emerald-700"
-                >
-                  <Send className="h-3.5 w-3.5" /> Dispatch Digital Pass
-                </button>
-              </form>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {isOrderOpen && <OrderCardModal pass={pass} onClose={() => setIsOrderOpen(false)} />}
-
-      {scanState && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-          onClick={() => setScanState(null)}
-        >
+        {scanState && (
           <div
-            className="w-full max-w-sm rounded-3xl bg-white p-6 text-center shadow-xl"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm"
+            onClick={() => setScanState(null)}
           >
-            {scanState === "scanning" ? (
-              <div className="space-y-3 py-4">
-                <div className="mx-auto flex h-14 w-14 animate-pulse items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
-                  <ScanLine className="h-7 w-7" />
+            <div
+              className="w-full max-w-sm rounded-3xl border border-slate-800 bg-slate-900 p-6 text-center text-white shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {scanState === "scanning" ? (
+                <div className="space-y-3 py-4">
+                  <div className="mx-auto flex h-14 w-14 animate-pulse items-center justify-center rounded-2xl border border-emerald-500/30 bg-emerald-950 text-emerald-400">
+                    <ScanLine className="h-7 w-7" />
+                  </div>
+                  <h3 className="text-lg font-black text-white">Scanning QR Code…</h3>
+                  <p className="text-xs text-slate-400">Connecting to IPAM registrar verification nodes…</p>
                 </div>
-                <h3 className="text-lg font-black text-slate-900">Scanning QR Code…</h3>
-                <p className="text-xs text-slate-500">Connecting to IPAM registrar verification nodes…</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
-                  <CheckCircle2 className="h-8 w-8" />
+              ) : (
+                <div className="space-y-3">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-emerald-500/30 bg-emerald-950 text-emerald-400">
+                    <CheckCircle2 className="h-8 w-8" />
+                  </div>
+                  <h3 className="text-lg font-black text-white">Credential Authenticated</h3>
+                  <div className="space-y-1 rounded-2xl border border-slate-800 bg-slate-950 p-4 text-left text-xs">
+                    <div className="flex justify-between"><span className="text-slate-400">Name</span><span className="font-bold text-white">{pass.name}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Member ID</span><span className="font-mono font-bold text-white">{pass.studentId}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Degree</span><span className="font-bold text-white">{pass.degree}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Status</span><span className="font-bold text-emerald-400">Good Standing</span></div>
+                  </div>
+                  <button
+                    onClick={() => setScanState(null)}
+                    className="w-full rounded-xl bg-emerald-500 py-2.5 text-xs font-black text-slate-950 hover:bg-emerald-400"
+                  >
+                    Done
+                  </button>
                 </div>
-                <h3 className="text-lg font-black text-slate-900">Credential Authenticated</h3>
-                <div className="space-y-1 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left text-xs">
-                  <div className="flex justify-between"><span className="text-slate-500">Name</span><span className="font-bold text-slate-900">{pass.name}</span></div>
-                  <div className="flex justify-between"><span className="text-slate-500">Member ID</span><span className="font-mono font-bold text-slate-900">{pass.studentId}</span></div>
-                  <div className="flex justify-between"><span className="text-slate-500">Degree</span><span className="font-bold text-slate-900">{pass.degree}</span></div>
-                  <div className="flex justify-between"><span className="text-slate-500">Status</span><span className="font-bold text-emerald-700">Good Standing</span></div>
-                </div>
-                <button
-                  onClick={() => setScanState(null)}
-                  className="w-full rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-white hover:bg-emerald-700"
-                >
-                  Done
-                </button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
 
 function OrderCardModal({ pass, onClose }: { pass: VirtualPassData; onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs" onClick={onClose}>
       <div
         className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}

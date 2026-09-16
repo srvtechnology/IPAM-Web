@@ -38,14 +38,14 @@ export default function LeadershipModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/40 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/60 p-4 backdrop-blur-xs" onClick={onClose}>
       <div
-        className="relative my-8 w-full max-w-lg rounded-3xl border border-slate-200 bg-white shadow-2xl"
+        className="relative my-8 w-full max-w-lg overflow-hidden rounded-3xl border border-slate-200 bg-white text-slate-800 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 z-10 rounded-full bg-slate-100 p-2 text-slate-500 hover:bg-slate-200 hover:text-slate-900"
+          className="absolute right-4 top-4 z-20 rounded-full bg-slate-100 p-2 text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-900"
         >
           <X className="h-5 w-5" />
         </button>
@@ -56,18 +56,18 @@ export default function LeadershipModal({
               <img
                 src={leader.image}
                 alt={leader.name}
-                className="h-20 w-20 shrink-0 rounded-full border-2 border-emerald-600 object-cover shadow-sm"
+                className="h-20 w-20 shrink-0 rounded-full border-2 border-emerald-600 object-cover shadow-xs"
               />
             ) : (
-              <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full border-2 border-emerald-600 bg-emerald-100 text-2xl font-bold text-emerald-700">
+              <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full border-2 border-emerald-600 bg-slate-100 text-2xl font-bold text-emerald-700">
                 {leader.name.charAt(0)}
               </div>
             )}
             <div>
-              <span className="rounded-full border border-emerald-200 bg-emerald-100 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800">
+              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800">
                 {leader.classYear}
               </span>
-              <h3 className="mt-1 text-xl font-bold text-slate-950">{leader.name}</h3>
+              <h3 className="mt-1 text-xl font-extrabold text-slate-900">{leader.name}</h3>
               <p className="text-xs font-semibold text-emerald-700">{leader.role}</p>
             </div>
           </div>
@@ -81,13 +81,13 @@ export default function LeadershipModal({
 
           <div className="border-t border-slate-200 pt-4">
             {sent ? (
-              <div className="space-y-1 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-center text-emerald-800">
+              <div className="space-y-1 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-center text-emerald-900">
                 <CheckCircle2 className="mx-auto h-6 w-6 text-emerald-600" />
-                <p className="text-xs font-bold">Message delivered to {leader.name}&apos;s office!</p>
+                <p className="text-xs font-bold text-slate-900">Message delivered to {leader.name}&apos;s office!</p>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-3">
-                <label className="block text-xs font-bold text-slate-900">Send Note to {leader.role}</label>
+                <label className="block text-xs font-bold text-slate-700">Send Note to {leader.role}</label>
                 <textarea
                   rows={3}
                   required

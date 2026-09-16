@@ -6,4 +6,9 @@ export const createDonationSchema = z.object({
   amount: z.coerce.number().positive(),
   currency: z.string().default("USD"),
   fund: z.string().min(1),
+  frequency: z.enum(["ONE_TIME", "MONTHLY"]).optional(),
+  paymentMethod: z.enum(["CARD", "MOMO", "BANK", "PAYPAL"]).optional(),
+  isDedication: z.boolean().optional(),
+  dedicationName: z.string().optional(),
+  isAnonymous: z.boolean().optional(),
 });
