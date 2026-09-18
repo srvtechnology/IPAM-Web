@@ -20,11 +20,27 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
     registered = !!reg;
   }
 
+  const relatedEventsRaw = await db.alumniEvent.findMany({
+    where: { id: { not: id } },
+    orderBy: { date: "asc" },
+    take: 3,
+  });
+
   return (
     <EventDetailView
+      relatedEvents={relatedEventsRaw.map((e) => ({
+        id: e.id,
+        title: e.title,
+        displayDate: e.displayDate,
+        description: e.description,
+        location: e.location,
+        ticketPrice: e.ticketPrice.toString(),
+        currency: e.currency,
+      }))}
       event={{
         id: event.id,
         title: event.title,
+        date: event.date.toISOString(),
         displayDate: event.displayDate,
         time: event.time,
         location: event.location,
@@ -35,6 +51,9 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
         description: event.description,
         agenda: event.agenda as EventDetailAgenda[] | null,
         speakers: event.speakers as EventDetailSpeaker[] | null,
+        dressCode: event.dressCode,
+        highlights: event.highlights as string[] | null,
+        faqs: event.faqs as EventDetailFaq[] | null,
         ticketPrice: event.ticketPrice.toString(),
         currency: event.currency,
         capacity: event.capacity,
@@ -47,3 +66,4 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
 
 type EventDetailAgenda = { time: string; activity: string; speaker?: string };
 type EventDetailSpeaker = { name: string; title: string; bio?: string; image?: string };
+type EventDetailFaq = { question: string; answer: string };
