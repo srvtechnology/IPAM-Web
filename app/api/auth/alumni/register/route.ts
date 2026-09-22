@@ -42,6 +42,7 @@ export async function POST(req: NextRequest) {
             country: input.country,
             industry: input.industry,
             bio: input.bio,
+            isMentor: input.isMentor,
           },
         },
       },

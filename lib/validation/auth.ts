@@ -14,6 +14,7 @@ export const alumniRegisterSchema = z.object({
   country: z.string().default(""),
   industry: z.string().default("General"),
   bio: z.string().default(""),
+  isMentor: z.coerce.boolean().default(false),
 });
 
 export const alumniLoginSchema = z.object({
