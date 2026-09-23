@@ -5,6 +5,8 @@ import { useAlumniRecords } from "@/hooks/admin/useAlumniRecords";
 import { useAdminSession } from "@/lib/admin/context";
 import AddAlumniModal from "./AddAlumniModal";
 import AuditAlumniModal from "./AuditAlumniModal";
+import RejectAlumniModal from "./RejectAlumniModal";
+import AlumniActionDropdown from "./AlumniActionDropdown";
 
 export interface AlumniRecordRow {
   id: string;
@@ -17,7 +19,8 @@ export interface AlumniRecordRow {
   gradYear: number;
   authStatus: string;
   role: string;
-  status: "APPROVED" | "PENDING" | "FLAGGED";
+  status: "APPROVED" | "PENDING" | "REJECTED" | "FLAGGED";
+  rejectionReason?: string | null;
   phone: string | null;
   digitalPassIssued: boolean;
   dateRegistered: string;
@@ -26,16 +29,19 @@ export interface AlumniRecordRow {
 const STATUS_STYLES: Record<AlumniRecordRow["status"], string> = {
   APPROVED: "bg-secondary-container text-on-secondary-container",
   PENDING: "bg-tertiary-container text-on-tertiary-container",
+  REJECTED: "bg-error-container text-on-error-container font-bold",
   FLAGGED: "bg-error-container text-on-error-container",
 };
 
 export default function AlumniDirectoryView({ records }: { records: AlumniRecordRow[] }) {
   const { can } = useAdminSession();
-  const { approveRecord, loading } = useAlumniRecords();
+  const { approveRecord, markPendingRecord, loading } = useAlumniRecords();
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [addOpen, setAddOpen] = useState(false);
   const [inspecting, setInspecting] = useState<AlumniRecordRow | null>(null);
+  const [rejecting, setRejecting] = useState<AlumniRecordRow | null>(null);
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
 
   const canWrite = can("DIRECTORY", "canWrite");
   const canApprove = can("DIRECTORY", "canApprove");
@@ -66,6 +72,11 @@ export default function AlumniDirectoryView({ records }: { records: AlumniRecord
             <span className="text-tertiary font-medium">
               {records.filter((r) => r.status === "PENDING").length} pending registrar sign-off
             </span>
+            {records.filter((r) => r.status === "REJECTED").length > 0 && (
+              <span className="text-error font-medium">
+                {" "}&middot; {records.filter((r) => r.status === "REJECTED").length} rejected
+              </span>
+            )}
           </p>
         </div>
         {canWrite && (
@@ -95,6 +106,7 @@ export default function AlumniDirectoryView({ records }: { records: AlumniRecord
           <option value="ALL">All statuses</option>
           <option value="PENDING">Pending</option>
           <option value="APPROVED">Approved</option>
+          <option value="REJECTED">Rejected</option>
           <option value="FLAGGED">Flagged</option>
         </select>
       </div>
@@ -120,7 +132,14 @@ export default function AlumniDirectoryView({ records }: { records: AlumniRecord
                       {r.initials ?? r.name.charAt(0)}
                     </div>
                     <div className="min-w-0">
-                      <p className="font-body-medium text-on-surface truncate">{r.name}</p>
+                      <button
+                        type="button"
+                        onClick={() => setInspecting(r)}
+                        className="font-body-medium text-on-surface hover:text-primary hover:underline truncate text-left block cursor-pointer"
+                        title="Click to inspect record"
+                      >
+                        {r.name}
+                      </button>
                       <p className="font-body-compact text-on-surface-variant truncate">{r.email}</p>
                     </div>
                   </div>
@@ -142,33 +161,35 @@ export default function AlumniDirectoryView({ records }: { records: AlumniRecord
                   </span>
                 </td>
                 <td className="px-4 py-3">
-                  <span
-                    className={`font-label-badge px-2 py-0.5 rounded-full ${STATUS_STYLES[r.status]}`}
-                  >
-                    {r.status}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setInspecting(r)}
-                      className="font-body-compact text-primary hover:underline"
+                  <div className="flex flex-col items-start gap-1">
+                    <span
+                      className={`font-label-badge px-2 py-0.5 rounded-full ${STATUS_STYLES[r.status]}`}
                     >
-                      Inspect
-                    </button>
-                    {canApprove && r.status === "PENDING" && (
-                      <button
-                        type="button"
-                        disabled={loading}
-                        onClick={() => approveRecord(r.id)}
-                        className="flex items-center gap-1 font-body-compact rounded-full bg-secondary-container text-on-secondary-container px-2.5 py-1 hover:opacity-90 transition-opacity disabled:opacity-50"
+                      {r.status}
+                    </span>
+                    {r.status === "REJECTED" && r.rejectionReason && (
+                      <span
+                        className="text-[11px] text-error truncate max-w-[180px]"
+                        title={r.rejectionReason}
                       >
-                        <span className="material-symbols-outlined text-[14px]">check_circle</span>
-                        Approve
-                      </button>
+                        {r.rejectionReason}
+                      </span>
                     )}
                   </div>
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <AlumniActionDropdown
+                    record={r}
+                    canApprove={canApprove}
+                    loading={loading}
+                    isOpen={openDropdownId === r.id}
+                    onToggle={() => setOpenDropdownId(openDropdownId === r.id ? null : r.id)}
+                    onClose={() => setOpenDropdownId(null)}
+                    onInspect={() => setInspecting(r)}
+                    onApprove={() => approveRecord(r.id)}
+                    onReject={() => setRejecting(r)}
+                    onMarkPending={() => markPendingRecord(r.id)}
+                  />
                 </td>
               </tr>
             ))}
@@ -184,7 +205,19 @@ export default function AlumniDirectoryView({ records }: { records: AlumniRecord
       </div>
 
       {addOpen && <AddAlumniModal onClose={() => setAddOpen(false)} />}
-      {inspecting && <AuditAlumniModal record={inspecting} onClose={() => setInspecting(null)} />}
+      {inspecting && (
+        <AuditAlumniModal
+          record={inspecting}
+          onClose={() => setInspecting(null)}
+          onOpenReject={(rec) => setRejecting(rec)}
+        />
+      )}
+      {rejecting && (
+        <RejectAlumniModal
+          record={rejecting}
+          onClose={() => setRejecting(null)}
+        />
+      )}
     </div>
   );
 }

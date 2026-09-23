@@ -37,5 +37,14 @@ export function useAlumniRecords() {
   const approveRecord = (id: string) =>
     request(`/api/admin/directory/${id}/approve`, { method: "PATCH" });
 
-  return { createRecord, updateRecord, approveRecord, loading, error };
+  const rejectRecord = (id: string, rejectionReason: string) =>
+    request(`/api/admin/directory/${id}/reject`, {
+      method: "PATCH",
+      body: JSON.stringify({ rejectionReason }),
+    });
+
+  const markPendingRecord = (id: string) =>
+    request(`/api/admin/directory/${id}/pending`, { method: "PATCH" });
+
+  return { createRecord, updateRecord, approveRecord, rejectRecord, markPendingRecord, loading, error };
 }

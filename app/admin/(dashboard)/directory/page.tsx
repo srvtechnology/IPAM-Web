@@ -18,6 +18,7 @@ export default async function DirectoryPage() {
         authStatus: r.authStatus,
         role: r.role,
         status: r.status,
+        rejectionReason: r.rejectionReason,
         phone: r.phone,
         digitalPassIssued: r.digitalPassIssued,
         dateRegistered: r.dateRegistered.toISOString(),
