@@ -16,6 +16,11 @@ export const createAlumniRecordSchema = z.object({
 
 export const updateAlumniRecordSchema = createAlumniRecordSchema.partial().extend({
   authStatus: z.enum(["OTP_VERIFIED", "BIOMETRIC_SYNCED", "PENDING_2FA", "UNVERIFIED"]).optional(),
-  status: z.enum(["APPROVED", "PENDING", "FLAGGED"]).optional(),
+  status: z.enum(["APPROVED", "PENDING", "REJECTED", "FLAGGED"]).optional(),
+  rejectionReason: z.string().nullable().optional(),
   digitalPassIssued: z.boolean().optional(),
+});
+
+export const rejectAlumniRecordSchema = z.object({
+  rejectionReason: z.string().min(1, "Rejection reason is required"),
 });

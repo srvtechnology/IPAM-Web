@@ -16,13 +16,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const [updated] = await db.$transaction([
     db.alumniRecord.update({
       where: { id },
-      data: { status: "APPROVED", authStatus: "BIOMETRIC_SYNCED", rejectionReason: null },
+      data: { status: "PENDING" },
     }),
     ...(target.alumniUserId
       ? [
           db.alumniUser.update({
             where: { id: target.alumniUserId },
-            data: { status: "APPROVED", isVerifiedAlumni: true, rejectionReason: null },
+            data: { status: "PENDING", isVerifiedAlumni: false },
           }),
         ]
       : []),
@@ -36,8 +36,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     actorName: admin2?.name ?? admin.name,
     actorEmail: admin2?.email ?? admin.email,
     actorRole: admin2?.role.name ?? "Admin",
-    action: "ALUMNI_DEGREE_APPROVED",
-    actionLabel: "Official Registrar Degree Sign-off",
+    action: "ALUMNI_STATUS_PENDING",
+    actionLabel: "Registrar Set Pending Status",
     category: "ALUMNI_VERIFICATION",
     target: `Alumni: ${target.name} (${target.regNo})`,
     targetType: "Alumni Record",
@@ -46,9 +46,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     ipAddress,
     location,
     deviceInfo,
-    details: `Official degree verification applied for ${target.degree} (class of ${target.gradYear}). Biometric identity synchronized to IPAM SIS central node.`,
-    beforeState: { status: target.status, authStatus: target.authStatus },
-    afterState: { status: "APPROVED", authStatus: "BIOMETRIC_SYNCED" },
+    details: `Alumni record status reset to PENDING by registrar for document re-evaluation.`,
+    beforeState: { status: target.status, rejectionReason: target.rejectionReason },
+    afterState: { status: "PENDING" },
   });
 
   return ok(updated);
