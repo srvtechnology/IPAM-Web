@@ -74,6 +74,7 @@ enum AdminAlumniRole {
 enum VerificationStatus {
   APPROVED
   PENDING
+  REJECTED
   FLAGGED
 }
 
@@ -276,6 +277,8 @@ model AlumniUser {
   passwordHash         String
   studentId            String    @unique
   isVerifiedAlumni     Boolean   @default(false)
+  status               VerificationStatus @default(PENDING)
+  rejectionReason      String?   @db.Text
   membershipTier       MembershipTier @default(STANDARD)
   membershipValidUntil DateTime?
   createdAt            DateTime  @default(now())
@@ -638,6 +641,7 @@ model AlumniRecord {
   authStatus        AuthStatus @default(UNVERIFIED)
   role              AdminAlumniRole @default(ALUMNI_MEMBER)
   status            VerificationStatus @default(PENDING)
+  rejectionReason   String?            @db.Text
   phone             String?
   nationalId        String?
   biometricScore    Int?
