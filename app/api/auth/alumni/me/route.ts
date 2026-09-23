@@ -11,6 +11,7 @@ export async function GET() {
     include: { profile: { include: { skills: true } } },
   });
   if (!user) return fail(401, "Not authenticated");
+  if (user.status !== "APPROVED") return fail(403, "Account is not in approved status");
 
   const { passwordHash: _omit, ...safeUser } = user;
   return ok(safeUser);

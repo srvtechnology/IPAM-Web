@@ -14,7 +14,7 @@ async function loadSession(): Promise<PublicSessionUser | null> {
     db.alumniUser.findUnique({ where: { id: token.sub }, include: { profile: true } }),
     db.savedJob.count({ where: { userId: token.sub } }),
   ]);
-  if (!user) return null;
+  if (!user || user.status !== "APPROVED") return null;
 
   return {
     id: user.id,

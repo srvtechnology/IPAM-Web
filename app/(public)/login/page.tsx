@@ -17,6 +17,9 @@ import {
   Briefcase,
   Users,
   Award,
+  Clock,
+  AlertTriangle,
+  RefreshCw,
 } from "lucide-react";
 
 export default function LoginPage() {
@@ -29,9 +32,15 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
 
+  // Status response state
+  const [statusType, setStatusType] = useState<"PENDING" | "REJECTED" | null>(null);
+  const [rejectionReason, setRejectionReason] = useState<string | null>(null);
+  const [rejectedEmail, setRejectedEmail] = useState<string | null>(null);
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    setStatusType(null);
     setLoading(true);
     try {
       const res = await fetch("/api/auth/alumni/login", {
@@ -41,6 +50,16 @@ export default function LoginPage() {
       });
       const json = await res.json();
       if (!res.ok) {
+        if (json.status === "REJECTED") {
+          setStatusType("REJECTED");
+          setRejectionReason(json.rejectionReason ?? "Application did not meet registration criteria.");
+          setRejectedEmail(json.email ?? email);
+          return;
+        }
+        if (json.status === "PENDING") {
+          setStatusType("PENDING");
+          return;
+        }
         setError(json.error ?? "Login failed");
         return;
       }
@@ -114,6 +133,50 @@ export default function LoginPage() {
                   <span>Create Account / Register</span>
                 </Link>
               </div>
+
+              {statusType === "REJECTED" && (
+                <div className="mb-6 rounded-2xl border border-rose-500/40 bg-rose-950/80 p-5 shadow-lg text-rose-200">
+                  <div className="flex items-center gap-2.5 font-bold text-rose-300 text-sm">
+                    <AlertTriangle className="h-5 w-5 text-rose-400 shrink-0" />
+                    <span>Registration Application Rejected</span>
+                  </div>
+                  <p className="mt-2 text-xs leading-relaxed text-slate-300">
+                    The IPAM Office of the Registrar reviewed your application and was unable to approve your account.
+                  </p>
+                  {rejectionReason && (
+                    <div className="mt-2.5 rounded-xl border border-rose-500/30 bg-slate-950/80 p-3 text-xs text-rose-200">
+                      <strong className="text-rose-400">Rejection Reason:</strong>
+                      <p className="mt-0.5 italic text-slate-200">&quot;{rejectionReason}&quot;</p>
+                    </div>
+                  )}
+                  <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-1 border-t border-rose-500/20">
+                    <span className="text-[11px] text-slate-400">You may update your details and re-submit:</span>
+                    <Link
+                      href={`/register?resubmit=true&email=${encodeURIComponent(rejectedEmail || email)}`}
+                      className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-rose-500 px-3.5 py-2 text-xs font-black text-slate-950 hover:bg-rose-400 transition-colors shadow-sm"
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" />
+                      <span>Re-submit Registration</span>
+                    </Link>
+                  </div>
+                </div>
+              )}
+
+              {statusType === "PENDING" && (
+                <div className="mb-6 rounded-2xl border border-amber-500/40 bg-amber-950/80 p-5 shadow-lg text-amber-200">
+                  <div className="flex items-center gap-2.5 font-bold text-amber-300 text-sm">
+                    <Clock className="h-5 w-5 text-amber-400 shrink-0" />
+                    <span>Account Pending Administrative Approval</span>
+                  </div>
+                  <p className="mt-2 text-xs leading-relaxed text-slate-300">
+                    Your registration has been submitted and is currently in a <strong>Pending Approval</strong> state
+                    awaiting verification by the IPAM Office of the Registrar.
+                  </p>
+                  <p className="mt-2 text-xs text-amber-300/90 font-medium">
+                    You will be able to sign in once an administrator approves your graduation credentials. Please check back later.
+                  </p>
+                </div>
+              )}
 
               {error && (
                 <div className="mb-4 rounded-lg border border-rose-500/30 bg-rose-950/60 px-3 py-2 text-sm text-rose-300">

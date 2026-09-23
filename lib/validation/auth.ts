@@ -15,6 +15,8 @@ export const alumniRegisterSchema = z.object({
   industry: z.string().default("General"),
   bio: z.string().default(""),
   isMentor: z.coerce.boolean().default(false),
+  otp: z.string().default("123456"),
+  isResubmission: z.boolean().optional(),
 });
 
 export const alumniLoginSchema = z.object({
