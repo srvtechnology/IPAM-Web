@@ -70,6 +70,15 @@ All routes live under `app/api/**`. Every response is JSON, shaped `{ "data": ..
 | GET | `/api/donations` | none / alumni | Lists recent donations (`take: 100`). With `?mine=true`, requires an alumni session and returns only that alumni's donations. |
 | POST | `/api/donations` | none (session optional) | Records a donation (`createDonationSchema`: `{ donorName, donorEmail, amount, currency?, fund }`). If an alumni session is present, `userId` is set; guest giving is allowed. **Stubbed payment**: generates a `paymentRef` and sets `status: SUCCEEDED` immediately — no real gateway. Also creates a linked `Transaction` row (`status: SETTLED`) so Finance stays the single source of truth for money movement. |
 
+## Public — Physical Card Orders & Stripe Payment Gateway
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| GET | `/api/physical-card-orders/pricing` | none | Returns active card tier pricing, currency, shipping fees, and payment channel toggles configured by admin. |
+| POST | `/api/payments/stripe/create-payment-intent` | alumni | Creates a Stripe `PaymentIntent` for the selected card tier and active pricing. |
+| GET | `/api/physical-card-orders` | alumni | Retrieves past physical card orders for the logged-in alumni member. |
+| POST | `/api/physical-card-orders` | alumni | Places an order for a physical ID card (`createPhysicalCardOrderSchema`: `{ cardTier, deliveryAddress, recipientName, recipientPhone, paymentMethod: "COD" \| "STRIPE", paymentRef? }`). Verifies Stripe payment or sets up Cash on Delivery (COD), creating a linked `Transaction` row in Finance. |
+
 ## Admin — Alumni Directory & Verification
 
 | Method | Path | RBAC | Purpose |
@@ -85,10 +94,12 @@ All routes live under `app/api/**`. Every response is JSON, shaped `{ "data": ..
 
 | Method | Path | RBAC | Purpose |
 |---|---|---|---|
-| GET | `/api/admin/id-cards` | `ID_CARDS.canRead` | List orders. |
+| GET | `/api/admin/id-cards` | `ID_CARDS.canRead` | List orders (both registrar walk-ins and alumni portal orders). |
 | POST | `/api/admin/id-cards` | `ID_CARDS.canWrite` | Create an order (`createIdCardOrderSchema`: `{ alumniRecordId?, studentName, regNo, deliveryAddress, courierType, cardTier, faculty?, degree?, gradYear? }`). |
 | GET | `/api/admin/id-cards/[id]` | `ID_CARDS.canRead` | One order. |
 | PATCH | `/api/admin/id-cards/[id]` | `ID_CARDS.canWrite` | Update status/tracking/notes (`updateIdCardOrderSchema`). Status changes auto-stamp the relevant date field and write an audit log (`SMART_ID_BUREAU`) — see the worked example in [`docs/ARCHITECTURE.md`](ARCHITECTURE.md). |
+| GET / PATCH | `/api/admin/settings/card-pricing` | `ID_CARDS` or `SYSTEM_SETTINGS` | Read and update physical card tier prices (PVC, Gold RFID, Executive Titanium), currency (USD/SLE), shipping fee, and payment method toggles (COD, Stripe). Audit-logged (`SMART_ID_BUREAU`). |
+| GET / PATCH | `/api/admin/physical-card-orders/[id]` | `ID_CARDS.canWrite` | Inspect or update status/tracking for alumni self-service card orders, or mark COD payment as collected/paid (auto-settles linked `Transaction` in Finance). Audit-logged (`SMART_ID_BUREAU`). |
 
 ## Admin — Omnichannel Broadcast
 

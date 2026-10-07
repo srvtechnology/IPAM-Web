@@ -7,6 +7,7 @@ import { useConnect } from "@/hooks/public/useConnect";
 
 export interface DirectoryAlumnus {
   id: string;
+  userId?: string;
   name: string;
   avatar: string | null;
   classYear: number;
@@ -40,7 +41,13 @@ function matchesDecade(classYear: number, decade: string) {
   return true;
 }
 
-export default function DirectoryView({ alumni }: { alumni: DirectoryAlumnus[] }) {
+export default function DirectoryView({
+  alumni,
+  currentUserId,
+}: {
+  alumni: DirectoryAlumnus[];
+  currentUserId?: string | null;
+}) {
   const { session } = useApp();
   const { connect } = useConnect();
   const [query, setQuery] = useState("");
@@ -52,12 +59,24 @@ export default function DirectoryView({ alumni }: { alumni: DirectoryAlumnus[] }
   const [connectedIds, setConnectedIds] = useState<string[]>([]);
   const [toast, setToast] = useState<string | null>(null);
 
-  const industries = useMemo(() => ["all", ...Array.from(new Set(alumni.map((a) => a.industry)))], [alumni]);
-  const countries = useMemo(() => ["all", ...Array.from(new Set(alumni.map((a) => a.country)))], [alumni]);
+  function isOwnProfile(a: DirectoryAlumnus) {
+    if (currentUserId && a.userId === currentUserId) return true;
+    if (session?.id && a.userId === session.id) return true;
+    if (session?.profile?.id && a.id === session.profile.id) return true;
+    if (session?.email && a.email && session.email.toLowerCase() === a.email.toLowerCase()) return true;
+    return false;
+  }
+
+  const visibleAlumni = useMemo(() => {
+    return alumni.filter((a) => !isOwnProfile(a));
+  }, [alumni, session, currentUserId]);
+
+  const industries = useMemo(() => ["all", ...Array.from(new Set(visibleAlumni.map((a) => a.industry)))], [visibleAlumni]);
+  const countries = useMemo(() => ["all", ...Array.from(new Set(visibleAlumni.map((a) => a.country)))], [visibleAlumni]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return alumni.filter((a) => {
+    return visibleAlumni.filter((a) => {
       if (mentorOnly && !a.isMentor) return false;
       if (industry !== "all" && a.industry !== industry) return false;
       if (country !== "all" && a.country !== country) return false;
@@ -72,7 +91,7 @@ export default function DirectoryView({ alumni }: { alumni: DirectoryAlumnus[] }
         a.skills.some((s) => s.toLowerCase().includes(q))
       );
     });
-  }, [alumni, query, mentorOnly, industry, country, decade]);
+  }, [visibleAlumni, query, mentorOnly, industry, country, decade]);
 
   const hasActiveFilters = industry !== "all" || country !== "all" || decade !== "all" || mentorOnly || !!query;
 
@@ -86,6 +105,11 @@ export default function DirectoryView({ alumni }: { alumni: DirectoryAlumnus[] }
 
   async function handleConnect(e: React.MouseEvent, a: DirectoryAlumnus) {
     e.stopPropagation();
+    if (isOwnProfile(a)) {
+      setToast("You cannot send a connection request to your own profile.");
+      setTimeout(() => setToast(null), 3000);
+      return;
+    }
     if (!session) {
       setToast("Sign in to connect with alumni.");
       setTimeout(() => setToast(null), 3000);
@@ -100,7 +124,7 @@ export default function DirectoryView({ alumni }: { alumni: DirectoryAlumnus[] }
     }
   }
 
-  const mentorCount = alumni.filter((a) => a.isMentor).length;
+  const mentorCount = visibleAlumni.filter((a) => a.isMentor).length;
   const countryCount = Math.max(countries.length - 1, 0);
 
   return (
@@ -303,23 +327,31 @@ export default function DirectoryView({ alumni }: { alumni: DirectoryAlumnus[] }
                 </div>
 
                 <div className="mt-6 flex items-center gap-2 border-t border-slate-200 pt-4">
-                  <button
-                    onClick={(e) => handleConnect(e, a)}
-                    className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition-all ${
-                      isConnected
-                        ? "border border-emerald-300 bg-emerald-100 text-emerald-800"
-                        : "bg-emerald-600 text-white shadow-sm hover:bg-emerald-700"
-                    }`}
-                  >
-                    {isConnected ? (<><Check className="h-3.5 w-3.5" /><span>Pending</span></>) : (<><UserPlus className="h-3.5 w-3.5" /><span>Connect</span></>)}
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setSelected(a); }}
-                    title="View Full Profile"
-                    className="rounded-lg bg-slate-100 p-2 text-slate-900 transition-colors hover:bg-slate-200"
-                  >
-                    <MessageSquare className="h-4 w-4 text-emerald-600" />
-                  </button>
+                  {isOwnProfile(a) ? (
+                    <span className="flex-1 rounded-lg bg-slate-100 py-2 text-center text-xs font-bold text-slate-500">
+                      Your Profile
+                    </span>
+                  ) : (
+                    <>
+                      <button
+                        onClick={(e) => handleConnect(e, a)}
+                        className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition-all ${
+                          isConnected
+                            ? "border border-emerald-300 bg-emerald-100 text-emerald-800"
+                            : "bg-emerald-600 text-white shadow-sm hover:bg-emerald-700"
+                        }`}
+                      >
+                        {isConnected ? (<><Check className="h-3.5 w-3.5" /><span>Pending</span></>) : (<><UserPlus className="h-3.5 w-3.5" /><span>Connect</span></>)}
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setSelected(a); }}
+                        title="View Full Profile"
+                        className="rounded-lg bg-slate-100 p-2 text-slate-900 transition-colors hover:bg-slate-200"
+                      >
+                        <MessageSquare className="h-4 w-4 text-emerald-600" />
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             );
@@ -378,16 +410,18 @@ export default function DirectoryView({ alumni }: { alumni: DirectoryAlumnus[] }
                     <Linkedin className="h-4 w-4" /> LinkedIn
                   </a>
                 )}
-                <button
-                  onClick={(e) => handleConnect(e, selected)}
-                  className={`ml-auto flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-bold transition-all ${
-                    connectedIds.includes(selected.id)
-                      ? "border border-slate-300 bg-slate-100 text-slate-700"
-                      : "border border-slate-200 text-slate-700 hover:bg-slate-50"
-                  }`}
-                >
-                  {connectedIds.includes(selected.id) ? (<><Check className="h-4 w-4" /> Pending</>) : (<><UserPlus className="h-4 w-4" /> Connect</>)}
-                </button>
+                {!isOwnProfile(selected) && (
+                  <button
+                    onClick={(e) => handleConnect(e, selected)}
+                    className={`ml-auto flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-bold transition-all ${
+                      connectedIds.includes(selected.id)
+                        ? "border border-slate-300 bg-slate-100 text-slate-700"
+                        : "border border-slate-200 text-slate-700 hover:bg-slate-50"
+                    }`}
+                  >
+                    {connectedIds.includes(selected.id) ? (<><Check className="h-4 w-4" /> Pending</>) : (<><UserPlus className="h-4 w-4" /> Connect</>)}
+                  </button>
+                )}
               </div>
             </div>
           </div>

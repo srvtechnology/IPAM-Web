@@ -92,6 +92,18 @@ erDiagram
         string paymentRef UK
         enum status
     }
+    PhysicalCardOrder {
+        string id PK
+        string orderNumber UK
+        string alumniUserId FK
+        enum cardTier
+        decimal amount
+        string currency
+        string paymentMethod
+        string paymentStatus
+        string paymentRef
+        enum status
+    }
 
     AdminUser {
         string id PK

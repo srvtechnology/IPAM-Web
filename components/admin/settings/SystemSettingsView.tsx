@@ -2,6 +2,7 @@
 
 import { useAdminSession } from "@/lib/admin/context";
 import { useSettings } from "@/hooks/admin/useSettings";
+import CardPricingManager from "./CardPricingManager";
 
 export default function SystemSettingsView({ orgDefaultTheme }: { orgDefaultTheme: "dark" | "light" }) {
   const { theme, toggleTheme, can } = useAdminSession();
@@ -72,6 +73,10 @@ export default function SystemSettingsView({ orgDefaultTheme }: { orgDefaultThem
           </p>
         )}
         {error && <p className="font-body-compact text-error">{error}</p>}
+      </div>
+
+      <div className="bg-surface-container p-space-lg rounded-xl shadow-md">
+        <CardPricingManager canWrite={canWrite} />
       </div>
     </div>
   );

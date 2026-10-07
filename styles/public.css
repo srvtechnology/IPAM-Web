@@ -9,3 +9,102 @@
     @apply w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none;
   }
 }
+
+/* Screen mode: hide print-only card container */
+.print-only {
+  display: none !important;
+}
+
+/* When printing pass only: hide screen content, header, footer */
+body.printing-pass-only header,
+body.printing-pass-only footer,
+body.printing-pass-only nav,
+body.printing-pass-only aside,
+body.printing-pass-only .screen-only-pass {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  overflow: hidden !important;
+}
+
+body.printing-pass-only .print-only,
+body.printing-pass-only #printable-pass-card {
+  display: flex !important;
+  visibility: visible !important;
+}
+
+@media print {
+  @page {
+    size: auto;
+    margin: 10mm;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    width: 100% !important;
+  }
+
+  /* Completely hide all screen headers, footers, navigation, modals, and screen pass view */
+  header,
+  footer,
+  nav,
+  aside,
+  dialog,
+  [role="dialog"],
+  .no-print,
+  .screen-only-pass,
+  .print-hidden,
+  .print\:hidden {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+
+  main {
+    min-height: 0 !important;
+    height: auto !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: block !important;
+  }
+
+  /* Show ONLY the card front and back container */
+  .print-only,
+  #printable-pass-card {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    visibility: visible !important;
+    margin: 0 auto !important;
+    padding: 10px 0 !important;
+    background: transparent !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  #printable-pass-card * {
+    visibility: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+

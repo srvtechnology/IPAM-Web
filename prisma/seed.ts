@@ -294,6 +294,7 @@ async function main() {
         passwordHash,
         studentId: a.studentId,
         isVerifiedAlumni: true,
+        status: "APPROVED",
         membershipTier: a.membershipTier,
         membershipValidUntil: new Date("2027-12-31"),
         profile: {
@@ -460,6 +461,59 @@ async function main() {
       recordsSynced: alumniSeedData.length,
       status: "SUCCESS",
       latencyMs: 842,
+    },
+  });
+
+  // ---------------- Physical Card Pricing & Options Setting ----------------
+  await db.systemSetting.upsert({
+    where: { key: "physical_card_pricing" },
+    update: {},
+    create: {
+      key: "physical_card_pricing",
+      value: {
+        currency: "USD",
+        shippingFee: 0,
+        codEnabled: true,
+        stripeEnabled: true,
+        tiers: {
+          STANDARD_PVC: {
+            name: "Standard PVC Card",
+            price: 15,
+            description: "High-durability laminated PVC card with embedded QR identifier and campus barcode.",
+            features: [
+              "UV-resistant laminated PVC body",
+              "High-contrast QR code for instant scan",
+              "Standard tracked postal courier",
+            ],
+            enabled: true,
+          },
+          GOLD_RFID_SMART: {
+            name: "Gold RFID Smart Card",
+            price: 35,
+            description: "Smart 13.56MHz RFID chip card with metallic gold foil finish for contactless campus gate access.",
+            features: [
+              "13.56MHz high-frequency RFID contactless chip",
+              "Reflective metallic gold leaf border & insignia",
+              "Direct turnstile, library & faculty gate tap access",
+              "Priority express courier dispatch",
+            ],
+            enabled: true,
+          },
+          EXECUTIVE_TITANIUM: {
+            name: "Executive Titanium Card",
+            price: 75,
+            description: "Heavy solid metal titanium card with precision laser engraving and dual RFID + NFC chips.",
+            features: [
+              "Solid aerospace-grade titanium core (18g)",
+              "Deep fiber-laser precision engraving",
+              "Dual-frequency smart chip (NFC + RFID)",
+              "Priority global DHL/FedEx courier with signature tracking",
+              "Lifetime card replacement warranty",
+            ],
+            enabled: true,
+          },
+        },
+      },
     },
   });
 

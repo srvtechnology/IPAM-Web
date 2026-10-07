@@ -34,5 +34,8 @@ export function useIdCardOrders() {
   const updateOrder = (id: string, payload: Record<string, unknown>) =>
     request(`/api/admin/id-cards/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
 
-  return { createOrder, updateOrder, loading, error };
+  const updatePhysicalCardOrder = (id: string, payload: Record<string, unknown>) =>
+    request(`/api/admin/physical-card-orders/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
+
+  return { createOrder, updateOrder, updatePhysicalCardOrder, loading, error };
 }

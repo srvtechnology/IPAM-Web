@@ -6,7 +6,13 @@ import { useIdCardOrders } from "@/hooks/admin/useIdCardOrders";
 const COURIER_OPTIONS = ["DHL_EXPRESS_RUSH", "INTL_AIR_CARGO", "CAMPUS_DESK", "PROVINCIAL_POST"];
 const TIER_OPTIONS = ["STANDARD_PVC", "GOLD_RFID_SMART", "EXECUTIVE_TITANIUM"];
 
-export default function CreateIdCardModal({ onClose }: { onClose: () => void }) {
+export default function CreateIdCardModal({
+  onClose,
+  onCreated,
+}: {
+  onClose: () => void;
+  onCreated?: () => void;
+}) {
   const { createOrder, loading, error } = useIdCardOrders();
   const [form, setForm] = useState({
     studentName: "",
@@ -23,7 +29,10 @@ export default function CreateIdCardModal({ onClose }: { onClose: () => void }) 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const result = await createOrder(form);
-    if (result) onClose();
+    if (result) {
+      onCreated?.();
+      onClose();
+    }
   }
 
   return (

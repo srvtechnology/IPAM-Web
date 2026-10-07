@@ -17,7 +17,6 @@ import {
   ScanLine,
   CheckCircle2,
   Printer,
-  Smartphone,
   X,
 } from "lucide-react";
 import PhysicalCardOrderForm from "@/components/public/PhysicalCardOrderForm";
@@ -106,14 +105,38 @@ export default function VirtualPassView({ pass }: { pass: VirtualPassData }) {
     setDispatchSent(true);
   }
 
+  useEffect(() => {
+    function onBeforePrint() {
+      document.body.classList.add("printing-pass-only");
+    }
+    function onAfterPrint() {
+      document.body.classList.remove("printing-pass-only");
+    }
+    window.addEventListener("beforeprint", onBeforePrint);
+    window.addEventListener("afterprint", onAfterPrint);
+    return () => {
+      window.removeEventListener("beforeprint", onBeforePrint);
+      window.removeEventListener("afterprint", onAfterPrint);
+    };
+  }, []);
+
+  function handlePrintPass() {
+    document.body.classList.add("printing-pass-only");
+    window.print();
+    setTimeout(() => {
+      document.body.classList.remove("printing-pass-only");
+    }, 1500);
+  }
+
   function handleTestScan() {
     setScanState("scanning");
     setTimeout(() => setScanState("verified"), 1200);
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 pb-16 text-slate-200">
-      <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
+    <>
+      <div className="screen-only-pass no-print print:hidden print-hidden bg-slate-950 pb-16 text-slate-200">
+        <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="text-center">
           <h1 className="text-2xl font-black text-white sm:text-3xl">Virtual Alumni Pass</h1>
           <p className="mt-1 text-sm text-slate-400">
@@ -221,25 +244,18 @@ export default function VirtualPassView({ pass }: { pass: VirtualPassData }) {
 
             <div className="mx-auto mt-6 flex max-w-md flex-wrap items-center justify-center gap-3">
               <button
-                onClick={() => alert("Digital pass saved to Apple / Google Wallet!")}
-                className="flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-xs font-black text-slate-950 shadow-md hover:bg-emerald-400"
+                onClick={() => setIsOrderOpen(true)}
+                className="flex items-center gap-2 rounded-xl bg-emerald-500 px-5 py-2.5 text-xs font-black text-slate-950 shadow-md hover:bg-emerald-400 transition-colors cursor-pointer"
               >
-                <Smartphone className="h-4 w-4 text-slate-950" />
-                Add to Wallet
+                <CreditCard className="h-4 w-4 text-slate-950" />
+                Order Physical Card
               </button>
               <button
-                onClick={() => window.print()}
-                className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900 px-4 py-2.5 text-xs font-bold text-slate-300 hover:bg-slate-850"
+                onClick={handlePrintPass}
+                className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900 px-5 py-2.5 text-xs font-bold text-slate-300 hover:bg-slate-800 hover:text-white transition-colors cursor-pointer"
               >
                 <Printer className="h-4 w-4 text-slate-400" />
                 Print / PDF Pass
-              </button>
-              <button
-                onClick={() => setIsOrderOpen(true)}
-                className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900 px-4 py-2.5 text-xs font-bold text-slate-300 hover:bg-slate-850"
-              >
-                <CreditCard className="h-4 w-4 text-emerald-400" />
-                Order Physical PVC
               </button>
             </div>
           </div>
@@ -424,6 +440,99 @@ export default function VirtualPassView({ pass }: { pass: VirtualPassData }) {
         )}
       </div>
     </div>
+
+      {/* =================================================================== */}
+      {/* PRINT-ONLY: ONLY CARD FRONT AND BACK SIDES                          */}
+      {/* =================================================================== */}
+      <div id="printable-pass-card" className="print-only hidden print:flex">
+        <div className="flex flex-col items-center justify-center gap-6 py-4">
+          {/* CARD FRONT */}
+          <div className="w-[380px] aspect-[1.586/1] overflow-hidden rounded-2xl border-2 border-emerald-600 bg-gradient-to-br from-emerald-900 via-slate-900 to-slate-950 p-5 text-white shadow-md relative">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <GraduationCap className="h-5 w-5 text-emerald-300" />
+                <span className="text-xs font-bold tracking-tight">IPAM Alumni Association</span>
+              </div>
+              <span className="rounded-md bg-white/20 px-2 py-0.5 text-[9px] font-black uppercase">IPAM</span>
+            </div>
+
+            <div className="mt-4 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                {pass.avatar ? (
+                  <img
+                    src={pass.avatar}
+                    alt={pass.name}
+                    className="h-14 w-14 flex-shrink-0 rounded-xl border border-emerald-400/80 object-cover"
+                  />
+                ) : (
+                  <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-xl bg-white/20 text-lg font-black">
+                    {pass.name.charAt(0)}
+                  </div>
+                )}
+                <div>
+                  <p className="text-base font-black leading-tight text-white">{pass.name}</p>
+                  <p className="text-xs text-emerald-200">{pass.degree}</p>
+                  <div className="mt-1 flex items-center gap-1.5">
+                    <span className="rounded border border-slate-700 bg-slate-900/90 px-1.5 py-0.5 text-[9px] font-bold text-slate-200">
+                      Class of {pass.classYear}
+                    </span>
+                    {pass.isVerifiedAlumni && (
+                      <span className="rounded bg-emerald-500 px-1.5 py-0.5 text-[9px] font-black text-slate-950">
+                        Verified
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="shrink-0 rounded-lg bg-white p-1">
+                <QRCodeSVG value={cardUrl} size={50} level="M" />
+              </div>
+            </div>
+
+            <div className="mt-4 flex items-end justify-between border-t border-white/15 pt-2 text-[10px]">
+              <div>
+                <p className="text-[9px] uppercase tracking-wider text-emerald-300 font-bold">Member ID</p>
+                <p className="font-mono font-bold text-white">{pass.studentId}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[9px] uppercase tracking-wider text-emerald-300 font-bold">Membership Tier</p>
+                <p className="font-black text-amber-300">{pass.membershipTier.replace(/_/g, " ")}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* CARD BACK */}
+          <div className="w-[380px] aspect-[1.586/1] overflow-hidden rounded-2xl border-2 border-slate-700 bg-slate-950 p-5 text-white shadow-md relative">
+            <div className="-mx-5 -mt-5 h-7 border-b border-slate-800 bg-slate-900" />
+            <div className="mt-3 flex items-center justify-between gap-3">
+              <div className="space-y-1">
+                <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                  Registrar Signature & Security Token
+                </p>
+                <p className="font-mono text-[10px] font-bold text-emerald-400">
+                  SHA256: 8f4a-92b1-ipam-alum-pass
+                </p>
+                <p className="text-[9px] leading-tight text-slate-400">
+                  Valid for official university privileges, alumni voting, and partner facility access.
+                </p>
+              </div>
+              <div className="shrink-0 rounded-lg bg-white p-1">
+                <QRCodeSVG value={cardUrl} size={50} level="M" />
+              </div>
+            </div>
+
+            <div className="mt-3.5 flex h-6 items-center justify-center rounded bg-white font-mono text-[9px] font-black tracking-widest text-black">
+              ||| | |||| | || ||||| ||| |||| | |||
+            </div>
+
+            <div className="mt-2.5 flex items-center justify-between border-t border-slate-800 pt-1.5 text-[9px] text-slate-400">
+              <span>Official Credential · IPAM Alumni Association</span>
+              <span className="font-bold text-emerald-400">ipamalumni.org/pass</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -431,12 +540,17 @@ function OrderCardModal({ pass, onClose }: { pass: VirtualPassData; onClose: () 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs" onClick={onClose}>
       <div
-        className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
+        className="w-full max-w-lg max-h-[92vh] overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-slate-900">Order Physical Alumni ID Card</h2>
-          <button onClick={onClose}><X className="h-5 w-5 text-slate-400" /></button>
+        <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-3">
+          <div>
+            <h2 className="text-lg font-black text-slate-900">Order Physical Alumni ID Card</h2>
+            <p className="text-xs text-slate-500">Official University credentials delivered to your doorstep</p>
+          </div>
+          <button onClick={onClose} className="rounded-lg p-1.5 hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
+            <X className="h-5 w-5" />
+          </button>
         </div>
         <PhysicalCardOrderForm memberName={pass.name} />
       </div>

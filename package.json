@@ -13,7 +13,8 @@
     "prisma:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
     "prisma:seed": "tsx prisma/seed.ts",
-    "test:e2e": "tsx tests/e2e-auth-approval.test.ts"
+    "test:e2e": "tsx tests/e2e-auth-approval.test.ts",
+    "test:card-orders": "tsx tests/physical-card-orders.test.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

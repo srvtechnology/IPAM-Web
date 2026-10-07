@@ -546,10 +546,19 @@ model PhysicalCardOrder {
   alumniUser      AlumniUser   @relation(fields: [alumniUserId], references: [id], onDelete: Cascade)
 
   cardTier        CardTier     @default(STANDARD_PVC)
+  amount          Decimal      @default(0) @db.Decimal(10, 2)
+  currency        String       @default("USD")
   deliveryAddress String       @db.Text
+  recipientName   String?
+  recipientPhone  String?
+  paymentMethod   String       @default("COD")
+  paymentStatus   String       @default("PENDING")
+  paymentRef      String?
   status          IdCardStatus @default(IN_PRINT_PRESS)
   trackingCode    String?
   createdAt       DateTime     @default(now())
+
+  transaction     Transaction?
 
   @@map("physical_card_orders")
 }
@@ -795,6 +804,9 @@ model Transaction {
 
   donationId  String?  @unique
   donation    Donation? @relation(fields: [donationId], references: [id], onDelete: SetNull)
+
+  cardOrderId String?  @unique
+  cardOrder   PhysicalCardOrder? @relation(fields: [cardOrderId], references: [id], onDelete: SetNull)
 
   @@map("transactions")
 }
