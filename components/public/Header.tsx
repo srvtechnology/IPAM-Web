@@ -243,6 +243,14 @@ export default function Header() {
                           <span>Full Virtual Card Page</span>
                         </Link>
                         <Link
+                          href="/jobs/manage"
+                          onClick={() => setShowUserDropdown(false)}
+                          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-colors hover:bg-emerald-950/60 hover:text-emerald-300"
+                        >
+                          <Briefcase className="h-4 w-4 text-emerald-400" />
+                          <span>Hire Management &amp; My Jobs</span>
+                        </Link>
+                        <Link
                           href="/jobs"
                           onClick={() => setShowUserDropdown(false)}
                           className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left transition-colors hover:bg-emerald-950/60 hover:text-emerald-300"

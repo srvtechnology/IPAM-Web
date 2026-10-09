@@ -383,7 +383,13 @@ async function main() {
   // ---------------- Events ----------------
   await db.alumniEvent.upsert({
     where: { id: "seed-event-1" },
-    update: {},
+    update: {
+      isPaid: true,
+      ticketPrice: 50,
+      currency: "USD",
+      status: "PUBLISHED",
+      registeredCount: 4,
+    },
     create: {
       id: "seed-event-1",
       title: "IPAM Alumni Annual Gala 2026",
@@ -391,21 +397,36 @@ async function main() {
       displayDate: "December 12, 2026",
       time: "6:00 PM",
       location: "Freetown Grand Hall",
+      venueDetails: "Main Ballroom, 2nd Floor, Waterfront District",
       isVirtual: false,
       category: "GALA",
-      description: "An evening celebrating IPAM's alumni achievements.",
-      agenda: [{ time: "6:00 PM", activity: "Reception" }, { time: "7:30 PM", activity: "Awards Ceremony" }],
+      description: "An evening celebrating IPAM's alumni achievements with keynote addresses, awards banquet, and musical gala.",
+      agenda: [
+        { time: "6:00 PM", activity: "Red Carpet & Welcome Reception" },
+        { time: "7:15 PM", activity: "President's Address & Keynote" },
+        { time: "8:00 PM", activity: "Distinguished Alumni Awards Ceremony" },
+        { time: "9:30 PM", activity: "Banquet Dinner & Networking Gala" },
+      ],
       speakers: [{ name: "Prof. Aminata Bangura", title: "Association President", image: PRES_IMAGE }],
+      isPaid: true,
       ticketPrice: 50,
       currency: "USD",
       capacity: 300,
-      registeredCount: 0,
+      registeredCount: 4,
+      status: "PUBLISHED",
+      featured: true,
     },
   });
 
   await db.alumniEvent.upsert({
     where: { id: "seed-event-2" },
-    update: {},
+    update: {
+      isPaid: false,
+      ticketPrice: 0,
+      currency: "USD",
+      status: "PUBLISHED",
+      registeredCount: 1,
+    },
     create: {
       id: "seed-event-2",
       title: "Career Growth Webinar",
@@ -413,16 +434,412 @@ async function main() {
       displayDate: "October 5, 2026",
       time: "3:00 PM",
       location: "Online",
+      venueDetails: "Zoom Meeting Link provided upon booking",
       isVirtual: true,
       virtualLink: "https://meet.ipam.edu/career-growth",
       category: "WEBINAR",
-      description: "Panel discussion on navigating career transitions.",
-      agenda: [{ time: "3:00 PM", activity: "Panel Discussion" }],
+      description: "Panel discussion on navigating career transitions, cross-border remote work, and executive certifications.",
+      agenda: [{ time: "3:00 PM", activity: "Panel Discussion" }, { time: "4:00 PM", activity: "Audience Q&A" }],
       speakers: [{ name: "Dr. Fatmata Kamara", title: "Senior Economist", image: alumniSeedData[1].avatar }],
+      isPaid: false,
       ticketPrice: 0,
       currency: "USD",
       capacity: 500,
+      registeredCount: 1,
+      status: "PUBLISHED",
+      featured: false,
+    },
+  });
+
+  await db.alumniEvent.upsert({
+    where: { id: "seed-event-3" },
+    update: {
+      isPaid: true,
+      ticketPrice: 15,
+      currency: "USD",
+      status: "PUBLISHED",
+      registeredCount: 3,
+    },
+    create: {
+      id: "seed-event-3",
+      title: "Freetown Young Alumni Networking Mixer",
+      date: new Date("2026-11-06T18:30:00Z"),
+      displayDate: "November 6, 2026",
+      time: "6:30 PM",
+      location: "Lumley Beach Pavilion, Freetown",
+      venueDetails: "Sunset Deck, Lumley Beach Road",
+      isVirtual: false,
+      category: "NETWORKING",
+      description: "Casual evening mixer connecting recent graduates (Classes 2018-2025) with established industry leaders in tech, banking, and public policy.",
+      agenda: [
+        { time: "6:30 PM", activity: "Arrival & Cocktails" },
+        { time: "7:00 PM", activity: "Speed Mentorship Circles" },
+        { time: "8:00 PM", activity: "Open Socializing" },
+      ],
+      speakers: [{ name: "Alex Sesay", title: "Program Manager, UNDP", image: alumniSeedData[0].avatar }],
+      isPaid: true,
+      ticketPrice: 15,
+      currency: "USD",
+      capacity: 80,
+      registeredCount: 3,
+      status: "PUBLISHED",
+      featured: true,
+    },
+  });
+
+  await db.alumniEvent.upsert({
+    where: { id: "seed-event-4" },
+    update: {
+      isPaid: true,
+      ticketPrice: 25,
+      currency: "USD",
+      status: "PUBLISHED",
+      registeredCount: 3,
+    },
+    create: {
+      id: "seed-event-4",
+      title: "Fintech & Digital Banking Masterclass 2026",
+      date: new Date("2026-11-20T10:00:00Z"),
+      displayDate: "November 20, 2026",
+      time: "10:00 AM",
+      location: "IPAM Innovation Hub & Online",
+      venueDetails: "Auditorium C, IPAM Campus, Tower Hill",
+      isVirtual: false,
+      category: "CAREER_WORKSHOP",
+      description: "Hands-on masterclass covering regulatory sandboxes, mobile money interoperability, and modern payment gateways in West Africa.",
+      agenda: [
+        { time: "10:00 AM", activity: "Keynote: Central Banking & Digital Rails" },
+        { time: "11:30 AM", activity: "Case Studies: Orange Money & Commercial Fintechs" },
+        { time: "1:00 PM", activity: "Hands-on Architecture Lab" },
+      ],
+      speakers: [
+        { name: "Dr. Fatmata Kamara", title: "Senior Economist, Bank of Sierra Leone", image: alumniSeedData[1].avatar },
+        { name: "David Koroma", title: "Fintech Engineer, Orange", image: alumniSeedData[2].avatar },
+      ],
+      isPaid: true,
+      ticketPrice: 25,
+      currency: "USD",
+      capacity: 120,
+      registeredCount: 3,
+      status: "PUBLISHED",
+      featured: true,
+    },
+  });
+
+  await db.alumniEvent.upsert({
+    where: { id: "seed-event-5" },
+    update: {
+      isPaid: true,
+      ticketPrice: 40,
+      currency: "USD",
+      status: "PUBLISHED",
       registeredCount: 0,
+    },
+    create: {
+      id: "seed-event-5",
+      title: "UK & Diaspora Alumni Winter Reception",
+      date: new Date("2026-12-05T19:00:00Z"),
+      displayDate: "December 5, 2026",
+      time: "7:00 PM",
+      location: "The Royal Horseguards Hotel, London, UK",
+      venueDetails: "Gladstone Library Suite, Whitehall Court, London",
+      isVirtual: false,
+      category: "REGIONAL_MEETUP",
+      description: "Annual diaspora gathering for IPAM alumni residing in the United Kingdom and Europe. Featuring university updates from visiting faculty.",
+      agenda: [{ time: "7:00 PM", activity: "Welcome Drinks" }, { time: "8:00 PM", activity: "Diaspora Chapter AGM" }],
+      speakers: [{ name: "David Okoro", title: "VP Outreach", image: alumniSeedData[2].avatar }],
+      isPaid: true,
+      ticketPrice: 40,
+      currency: "USD",
+      capacity: 150,
+      registeredCount: 0,
+      status: "PUBLISHED",
+      featured: false,
+    },
+  });
+
+  await db.alumniEvent.upsert({
+    where: { id: "seed-event-6" },
+    update: {
+      isPaid: false,
+      ticketPrice: 0,
+      currency: "USD",
+      status: "PUBLISHED",
+      registeredCount: 1,
+    },
+    create: {
+      id: "seed-event-6",
+      title: "IPAM Mentorship Network Orientation",
+      date: new Date("2026-10-18T14:00:00Z"),
+      displayDate: "October 18, 2026",
+      time: "2:00 PM",
+      location: "Online",
+      venueDetails: "Zoom Meeting Room",
+      isVirtual: true,
+      virtualLink: "https://meet.ipam.edu/mentorship-induction",
+      category: "CAREER_WORKSHOP",
+      description: "Onboarding and orientation session for approved alumni mentors and final-year student mentees.",
+      agenda: [{ time: "2:00 PM", activity: "Mentorship Framework & Ethics" }, { time: "3:00 PM", activity: "Mentor-Mentee Pair Breakouts" }],
+      speakers: [{ name: "Mariama Jalloh", title: "Director of Operations", image: alumniSeedData[3].avatar }],
+      isPaid: false,
+      ticketPrice: 0,
+      currency: "USD",
+      capacity: 250,
+      registeredCount: 1,
+      status: "PUBLISHED",
+      featured: false,
+    },
+  });
+
+  // ---------------- Sample Bookings ----------------
+  const alexUser = await db.alumniUser.findUnique({ where: { email: "demo.alumni@ipam.edu" } });
+  const davidUser = await db.alumniUser.findUnique({ where: { email: "david.koroma@alumni.ipam.edu" } });
+  const fatmataUser = await db.alumniUser.findUnique({ where: { email: "fatmata.kamara@alumni.ipam.edu" } });
+  const mariamaUser = await db.alumniUser.findUnique({ where: { email: "mariama.jalloh@alumni.ipam.edu" } });
+
+  // 1. Alex Sesay: Paid Gala booking (2 tickets)
+  if (alexUser) {
+    await db.eventRegistration.upsert({
+      where: { bookingReference: "BK-EVT-GALA-001" },
+      update: {},
+      create: {
+        bookingReference: "BK-EVT-GALA-001",
+        eventId: "seed-event-1",
+        userId: alexUser.id,
+        ticketCount: 2,
+        unitPrice: 50,
+        totalAmount: 100,
+        currency: "USD",
+        paymentStatus: "PAID",
+        paymentMethod: "STRIPE",
+        paymentRef: "pi_seed_gala_alex_01",
+        bookingStatus: "CONFIRMED",
+        attendeeName: "Alex Sesay",
+        attendeeEmail: "demo.alumni@ipam.edu",
+        attendeePhone: "+232 76 112233",
+        notes: "Table 4 reservation requested with guest.",
+        source: "SELF_SERVICE",
+      },
+    });
+
+    // Alex Sesay: Attended Young Alumni Mixer
+    await db.eventRegistration.upsert({
+      where: { bookingReference: "BK-EVT-NETW-003" },
+      update: {},
+      create: {
+        bookingReference: "BK-EVT-NETW-003",
+        eventId: "seed-event-3",
+        userId: alexUser.id,
+        ticketCount: 1,
+        unitPrice: 15,
+        totalAmount: 15,
+        currency: "USD",
+        paymentStatus: "PAID",
+        paymentMethod: "STRIPE",
+        paymentRef: "pi_seed_netw_alex_03",
+        bookingStatus: "ATTENDED",
+        attendedAt: new Date("2026-10-02T19:15:00Z"),
+        attendeeName: "Alex Sesay",
+        attendeeEmail: "demo.alumni@ipam.edu",
+        attendeePhone: "+232 76 112233",
+        notes: "VIP guest speaker & alumni patron badge issued.",
+        source: "SELF_SERVICE",
+      },
+    });
+  }
+
+  // 2. David Koroma: Free Career Webinar booking & Walk-in Fintech Workshop booking
+  if (davidUser) {
+    await db.eventRegistration.upsert({
+      where: { bookingReference: "BK-EVT-WEBN-002" },
+      update: {},
+      create: {
+        bookingReference: "BK-EVT-WEBN-002",
+        eventId: "seed-event-2",
+        userId: davidUser.id,
+        ticketCount: 1,
+        unitPrice: 0,
+        totalAmount: 0,
+        currency: "USD",
+        paymentStatus: "FREE",
+        paymentMethod: "FREE",
+        bookingStatus: "CONFIRMED",
+        attendeeName: "David Koroma",
+        attendeeEmail: "david.koroma@alumni.ipam.edu",
+        attendeePhone: "+232 88 554433",
+        notes: "Joining live session from Freetown tech hub.",
+        source: "SELF_SERVICE",
+      },
+    });
+
+    await db.eventRegistration.upsert({
+      where: { bookingReference: "BK-EVT-FINTECH-005" },
+      update: {},
+      create: {
+        bookingReference: "BK-EVT-FINTECH-005",
+        eventId: "seed-event-4",
+        userId: davidUser.id,
+        ticketCount: 1,
+        unitPrice: 25,
+        totalAmount: 25,
+        currency: "USD",
+        paymentStatus: "PAID",
+        paymentMethod: "OFFLINE_CASH",
+        paymentRef: "CASH-REG-DESK-005",
+        bookingStatus: "ATTENDED",
+        attendedAt: new Date("2026-10-04T10:05:00Z"),
+        attendeeName: "David Koroma",
+        attendeeEmail: "david.koroma@alumni.ipam.edu",
+        attendeePhone: "+232 88 554433",
+        notes: "Paid in person at the Registrar Desk prior to lab session.",
+        source: "ADMIN_DESK",
+      },
+    });
+  }
+
+  // 3. Dr. Fatmata Kamara: Paid Gala booking & Fintech Workshop booking
+  if (fatmataUser) {
+    await db.eventRegistration.upsert({
+      where: { bookingReference: "BK-EVT-GALA-002" },
+      update: {},
+      create: {
+        bookingReference: "BK-EVT-GALA-002",
+        eventId: "seed-event-1",
+        userId: fatmataUser.id,
+        ticketCount: 1,
+        unitPrice: 50,
+        totalAmount: 50,
+        currency: "USD",
+        paymentStatus: "PAID",
+        paymentMethod: "BANK_TRANSFER",
+        paymentRef: "wire_bsl_9921_kamara",
+        bookingStatus: "CONFIRMED",
+        attendeeName: "Dr. Fatmata Kamara",
+        attendeeEmail: "fatmata.kamara@alumni.ipam.edu",
+        attendeePhone: "+232 78 443322",
+        notes: "Central Bank corporate table guest.",
+        source: "SELF_SERVICE",
+      },
+    });
+
+    await db.eventRegistration.upsert({
+      where: { bookingReference: "BK-EVT-FINTECH-004" },
+      update: {},
+      create: {
+        bookingReference: "BK-EVT-FINTECH-004",
+        eventId: "seed-event-4",
+        userId: fatmataUser.id,
+        ticketCount: 2,
+        unitPrice: 25,
+        totalAmount: 50,
+        currency: "USD",
+        paymentStatus: "PAID",
+        paymentMethod: "STRIPE",
+        paymentRef: "pi_seed_fintech_fatmata_04",
+        bookingStatus: "CONFIRMED",
+        attendeeName: "Dr. Fatmata Kamara",
+        attendeeEmail: "fatmata.kamara@alumni.ipam.edu",
+        attendeePhone: "+232 78 443322",
+        notes: "Keynote speaker pass + research assistant seat.",
+        source: "SELF_SERVICE",
+      },
+    });
+  }
+
+  // 4. Mariama Jalloh: Complimentary Gala ticket & Mentorship Orientation
+  if (mariamaUser) {
+    await db.eventRegistration.upsert({
+      where: { bookingReference: "BK-EVT-GALA-006" },
+      update: {},
+      create: {
+        bookingReference: "BK-EVT-GALA-006",
+        eventId: "seed-event-1",
+        userId: mariamaUser.id,
+        ticketCount: 1,
+        unitPrice: 50,
+        totalAmount: 50,
+        currency: "USD",
+        paymentStatus: "PAID",
+        paymentMethod: "COMPLIMENTARY",
+        paymentRef: "COMP-EXEC-PASS-2026",
+        bookingStatus: "CONFIRMED",
+        attendeeName: "Mariama Jalloh",
+        attendeeEmail: "mariama.jalloh@alumni.ipam.edu",
+        attendeePhone: "+232 77 665544",
+        notes: "Executive Alumni Council VIP complimentary admission.",
+        source: "ADMIN_DESK",
+      },
+    });
+
+    await db.eventRegistration.upsert({
+      where: { bookingReference: "BK-EVT-MENTOR-007" },
+      update: {},
+      create: {
+        bookingReference: "BK-EVT-MENTOR-007",
+        eventId: "seed-event-6",
+        userId: mariamaUser.id,
+        ticketCount: 1,
+        unitPrice: 0,
+        totalAmount: 0,
+        currency: "USD",
+        paymentStatus: "FREE",
+        paymentMethod: "FREE",
+        bookingStatus: "ATTENDED",
+        attendedAt: new Date("2026-10-01T14:02:00Z"),
+        attendeeName: "Mariama Jalloh",
+        attendeeEmail: "mariama.jalloh@alumni.ipam.edu",
+        attendeePhone: "+232 77 665544",
+        notes: "Mentor orientation session leader.",
+        source: "SELF_SERVICE",
+      },
+    });
+  }
+
+  // 5. Walk-in Guest without an account: Networking Mixer
+  await db.eventRegistration.upsert({
+    where: { bookingReference: "BK-EVT-NETW-008" },
+    update: {},
+    create: {
+      bookingReference: "BK-EVT-NETW-008",
+      eventId: "seed-event-3",
+      userId: null,
+      ticketCount: 2,
+      unitPrice: 15,
+      totalAmount: 30,
+      currency: "USD",
+      paymentStatus: "PAID",
+      paymentMethod: "OFFLINE_CASH",
+      paymentRef: "CASH-DOOR-3301",
+      bookingStatus: "CONFIRMED",
+      attendeeName: "Samuel Browne",
+      attendeeEmail: "samuel.browne@guest.sl",
+      attendeePhone: "+232 77 998877",
+      notes: "Walk-in registration at the venue entrance. Cash collected by Registrar.",
+      source: "ADMIN_DESK",
+    },
+  });
+
+  // 6. Cancelled & Refunded ticket: Gala
+  await db.eventRegistration.upsert({
+    where: { bookingReference: "BK-EVT-GALA-009" },
+    update: {},
+    create: {
+      bookingReference: "BK-EVT-GALA-009",
+      eventId: "seed-event-1",
+      userId: null,
+      ticketCount: 1,
+      unitPrice: 50,
+      totalAmount: 50,
+      currency: "USD",
+      paymentStatus: "REFUNDED",
+      paymentMethod: "STRIPE",
+      paymentRef: "ref_seed_refund_kallon_09",
+      bookingStatus: "CANCELLED",
+      attendeeName: "Kallon Bangura",
+      attendeeEmail: "kallon.b@alumni.ipam.edu",
+      attendeePhone: "+232 30 112233",
+      notes: "Cancelled due to emergency travel; refund processed.",
+      source: "SELF_SERVICE",
     },
   });
 

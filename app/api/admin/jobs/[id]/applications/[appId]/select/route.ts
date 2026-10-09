@@ -5,8 +5,6 @@ import { writeAuditLog, requestMeta } from "@/lib/audit";
 import { selectApplicationSchema } from "@/lib/validation/admin-jobs";
 import { ok, fail } from "@/lib/api-response";
 
-// Records a selection/offer decision on a candidate — ported from the legacy
-// admin portal's SelectionOfferModal flow.
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string; appId: string }> }
@@ -14,10 +12,11 @@ export async function POST(
   const gate = await requirePermission(req, "JOBS", "canApprove");
   if (gate instanceof NextResponse) return gate;
   const { admin } = gate;
-  const roleName = (await db.adminRoleDefinition.findUnique({ where: { id: admin.roleId }, select: { name: true } }))?.name ?? "Admin";
+  const roleName =
+    (await db.adminRoleDefinition.findUnique({ where: { id: admin.roleId }, select: { name: true } }))?.name ?? "Admin";
 
   const { appId } = await params;
-  const existing = await db.jobApplication.findUnique({ where: { id: appId } });
+  const existing = await db.jobOpeningApplication.findUnique({ where: { id: appId } });
   if (!existing) return fail(404, "Application not found");
 
   const body = await req.json().catch(() => null);
@@ -25,7 +24,7 @@ export async function POST(
   const parsed = selectApplicationSchema.safeParse(body);
   if (!parsed.success) return fail(400, "Validation failed", { issues: parsed.error.flatten() });
 
-  const application = await db.jobApplication.update({
+  const application = await db.jobOpeningApplication.update({
     where: { id: appId },
     data: {
       ...parsed.data,
@@ -43,14 +42,14 @@ export async function POST(
     action: "CANDIDATE_SELECTED",
     actionLabel: "Candidate Selection & Offer Recorded",
     category: "SYSTEM_CORE",
-    target: `Application: ${existing.candidateName}`,
+    target: `Application: ${existing.candidateName || existing.id}`,
     targetType: "Job Application",
     status: "SUCCESS",
     severity: "NOTICE",
     ipAddress,
     location,
     deviceInfo,
-    details: `${existing.candidateName} selected with offer ${parsed.data.offerSalary}, decision status ${parsed.data.decisionStatus}.`,
+    details: `${existing.candidateName || "Candidate"} selected with offer ${parsed.data.offerSalary}, decision status ${parsed.data.decisionStatus}.`,
     beforeState: { status: existing.status },
     afterState: { status: "SELECTED", decisionStatus: parsed.data.decisionStatus },
   });

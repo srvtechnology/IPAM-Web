@@ -9,21 +9,30 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   if (gate instanceof NextResponse) return gate;
 
   const { id } = await params;
-  const applications = await db.jobApplication.findMany({
+  const applications = await db.jobOpeningApplication.findMany({
     where: { jobId: id },
-    orderBy: { appliedDate: "desc" },
+    orderBy: { createdAt: "desc" },
+    include: {
+      alumniUser: {
+        select: {
+          email: true,
+          profile: {
+            select: { name: true, degree: true, major: true, classYear: true, avatar: true },
+          },
+        },
+      },
+    },
   });
   return ok(applications);
 }
 
 // Recruiters/registrars can manually register a candidate against a listing
-// (e.g. a walk-in applicant) in addition to any that arrive via other intake.
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const gate = await requirePermission(req, "JOBS", "canWrite");
   if (gate instanceof NextResponse) return gate;
 
   const { id } = await params;
-  const job = await db.adminJobListing.findUnique({ where: { id } });
+  const job = await db.jobOpening.findUnique({ where: { id } });
   if (!job) return fail(404, "Job listing not found");
 
   const body = await req.json().catch(() => null);
@@ -31,11 +40,26 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const parsed = createJobApplicationSchema.safeParse(body);
   if (!parsed.success) return fail(400, "Validation failed", { issues: parsed.error.flatten() });
 
-  const { skills, ...rest } = parsed.data;
-  const application = await db.jobApplication.create({
-    data: { ...rest, skills, jobId: id },
+  const applicationRef = `IPAM-REF-${Math.floor(100000 + Math.random() * 900000)}`;
+
+  const application = await db.jobOpeningApplication.create({
+    data: {
+      jobId: id,
+      candidateName: parsed.data.candidateName,
+      degree: parsed.data.degree,
+      faculty: parsed.data.faculty,
+      gradYear: parsed.data.gradYear,
+      email: parsed.data.email,
+      phone: parsed.data.phone,
+      gpa: parsed.data.gpa || null,
+      coverNote: parsed.data.coverNote || null,
+      experienceYears: parsed.data.experienceYears ?? 0,
+      skills: parsed.data.skills || [],
+      status: "APPLIED",
+      matchScore: 85,
+      applicationRef,
+    },
   });
-  await db.adminJobListing.update({ where: { id }, data: { applicantsCount: { increment: 1 } } });
 
   return ok(application, 201);
 }

@@ -13,7 +13,10 @@ export async function GET(
   if (gate instanceof NextResponse) return gate;
 
   const { appId } = await params;
-  const application = await db.jobApplication.findUnique({ where: { id: appId }, include: { job: true } });
+  const application = await db.jobOpeningApplication.findUnique({
+    where: { id: appId },
+    include: { job: true },
+  });
   if (!application) return fail(404, "Application not found");
   return ok(application);
 }
@@ -25,10 +28,11 @@ export async function PATCH(
   const gate = await requirePermission(req, "JOBS", "canWrite");
   if (gate instanceof NextResponse) return gate;
   const { admin } = gate;
-  const roleName = (await db.adminRoleDefinition.findUnique({ where: { id: admin.roleId }, select: { name: true } }))?.name ?? "Admin";
+  const roleName =
+    (await db.adminRoleDefinition.findUnique({ where: { id: admin.roleId }, select: { name: true } }))?.name ?? "Admin";
 
   const { appId } = await params;
-  const existing = await db.jobApplication.findUnique({ where: { id: appId } });
+  const existing = await db.jobOpeningApplication.findUnique({ where: { id: appId } });
   if (!existing) return fail(404, "Application not found");
 
   const body = await req.json().catch(() => null);
@@ -36,7 +40,10 @@ export async function PATCH(
   const parsed = updateJobApplicationSchema.safeParse(body);
   if (!parsed.success) return fail(400, "Validation failed", { issues: parsed.error.flatten() });
 
-  const application = await db.jobApplication.update({ where: { id: appId }, data: parsed.data });
+  const application = await db.jobOpeningApplication.update({
+    where: { id: appId },
+    data: parsed.data,
+  });
 
   if (parsed.data.status && parsed.data.status !== existing.status) {
     const { ipAddress, location, deviceInfo } = requestMeta(req);
@@ -48,14 +55,14 @@ export async function PATCH(
       action: "JOB_APPLICATION_STATUS_CHANGED",
       actionLabel: "Candidate Pipeline Status Update",
       category: "SYSTEM_CORE",
-      target: `Application: ${existing.candidateName}`,
+      target: `Application: ${existing.candidateName || existing.id}`,
       targetType: "Job Application",
       status: "SUCCESS",
       severity: "INFO",
       ipAddress,
       location,
       deviceInfo,
-      details: `Candidate ${existing.candidateName} moved from ${existing.status} to ${parsed.data.status}.`,
+      details: `Candidate ${existing.candidateName || existing.id} moved from ${existing.status} to ${parsed.data.status}.`,
       beforeState: { status: existing.status },
       afterState: { status: parsed.data.status },
     });

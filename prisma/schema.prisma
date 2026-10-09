@@ -368,46 +368,84 @@ model JobOpening {
   company          String
   companyLogo      String?  @db.Text
   location         String
-  type             JobType
+  country          String?
+  state            String?
+  city             String?
+  type             JobType  @default(FULL_TIME)
   workplaceType    WorkplaceType?
   salary           String
-  category         JobCategory
+  category         JobCategory @default(ENGINEERING)
   description      String   @db.Text
   responsibilities Json?
   requirements     Json
   benefits         Json?
   aboutCompany     String?  @db.Text
 
+  experienceRequired Boolean @default(false)
+  experienceLevel    String?
+  hiringType         String   @default("TILL_DATE") // "IMMEDIATE" | "TILL_DATE"
+  positionsOpen      Int      @default(1)
+  status             String   @default("ACTIVE") // "ACTIVE" | "REVIEWING" | "SHORTLISTING" | "INTERVIEWING" | "OFFER_EXTENDED" | "CLOSED"
+  postedByType       String   @default("ALUMNI") // "ADMIN" | "ALUMNI"
+  postedByName       String?
+  postedByTitle      String?
+
   postedByAlumniId String?
   postedByAlumni   AlumniMember? @relation(fields: [postedByAlumniId], references: [id], onDelete: SetNull)
 
+  postedByAdminId  String?
+  postedByAdmin    AdminUser? @relation(fields: [postedByAdminId], references: [id], onDelete: SetNull)
+
+  employerId       String?
+  employer         EmployerDetail? @relation(fields: [employerId], references: [id], onDelete: SetNull)
+
   postedDate       DateTime @default(now())
-  deadline         DateTime
+  deadline         DateTime?
   applyUrl         String?  @db.Text
 
   savedBy          SavedJob[]
   applications     JobOpeningApplication[]
 
+  @@index([postedByAlumniId])
+  @@index([postedByAdminId])
   @@map("job_openings")
 }
 
-// An alumni's 1-click application to a public, alumni-posted JobOpening.
-// Deliberately separate from JobApplication (which belongs to the
-// admin-managed AdminJobListing recruiting pipeline) — these are two
-// unrelated flows even though both are "job applications".
 model JobOpeningApplication {
-  id             String   @id @default(cuid())
-  jobId          String
-  job            JobOpening @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  alumniUserId   String
-  alumniUser     AlumniUser @relation(fields: [alumniUserId], references: [id], onDelete: Cascade)
+  id               String      @id @default(cuid())
+  jobId            String
+  job              JobOpening  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  alumniUserId     String?
+  alumniUser       AlumniUser? @relation(fields: [alumniUserId], references: [id], onDelete: SetNull)
 
-  linkedinUrl    String?  @db.Text
-  coverNote      String?  @db.Text
-  applicationRef String   @unique
-  createdAt      DateTime @default(now())
+  candidateName    String?
+  email            String?
+  phone            String?
+  degree           String?
+  faculty          String?
+  gradYear         Int?
+  avatarUrl        String?     @db.Text
+  gpa              String?
+  experienceYears  Int         @default(0)
+  skills           Json?
+  matchScore       Int         @default(85)
+  status           String      @default("APPLIED") // "APPLIED" | "REVIEWING" | "SHORTLISTED" | "INTERVIEW_SCHEDULED" | "SELECTED" | "REJECTED"
+  interviewDate    DateTime?
+  notes            String?     @db.Text
+  selectedDate     DateTime?
+  offerSalary      String?
+  startDate        DateTime?
+  decisionStatus   String?     // "OFFER_EXTENDED" | "OFFER_ACCEPTED" | "PLACEMENT_CONFIRMED"
+  recruiterRemarks String?     @db.Text
 
-  @@unique([jobId, alumniUserId])
+  linkedinUrl      String?     @db.Text
+  coverNote        String?     @db.Text
+  applicationRef   String      @unique
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @default(now()) @updatedAt
+
+  @@index([jobId])
+  @@index([alumniUserId])
   @@map("job_opening_applications")
 }
 
@@ -439,6 +477,7 @@ model AlumniEvent {
   description     String   @db.Text
   agenda          Json?
   speakers        Json?
+  isPaid          Boolean  @default(false)
   ticketPrice     Decimal  @db.Decimal(10, 2) @default(0)
   currency        String   @default("USD")
   capacity        Int
@@ -446,6 +485,10 @@ model AlumniEvent {
   dressCode       String?
   highlights      Json?
   faqs            Json?
+  status          String   @default("PUBLISHED") // "DRAFT" | "PUBLISHED" | "COMPLETED" | "CANCELLED"
+  featured        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now()) @updatedAt
 
   registrations   EventRegistration[]
 
@@ -453,14 +496,32 @@ model AlumniEvent {
 }
 
 model EventRegistration {
-  id           String   @id @default(cuid())
-  eventId      String
-  event        AlumniEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  userId       String
-  user         AlumniUser  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  registeredAt DateTime @default(now())
+  id               String       @id @default(cuid())
+  bookingReference String       @unique
+  eventId          String
+  event            AlumniEvent  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId           String?
+  user             AlumniUser?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  ticketCount      Int          @default(1)
+  unitPrice        Decimal      @default(0) @db.Decimal(10, 2)
+  totalAmount      Decimal      @default(0) @db.Decimal(10, 2)
+  currency         String       @default("USD")
+  paymentStatus    String       @default("FREE") // "FREE" | "PAID" | "PENDING" | "REFUNDED"
+  paymentMethod    String?      // "FREE" | "STRIPE" | "OFFLINE_CASH" | "BANK_TRANSFER" | "COMPLIMENTARY"
+  paymentRef       String?
+  bookingStatus    String       @default("CONFIRMED") // "CONFIRMED" | "CANCELLED" | "ATTENDED"
+  attendedAt       DateTime?
+  attendeeName     String?
+  attendeeEmail    String?
+  attendeePhone    String?
+  notes            String?      @db.Text
+  source           String       @default("SELF_SERVICE") // "SELF_SERVICE" | "ADMIN_DESK"
+  registeredAt     DateTime     @default(now())
+  updatedAt        DateTime     @default(now()) @updatedAt
 
-  @@unique([eventId, userId])
+  @@index([eventId])
+  @@index([userId])
+  @@index([bookingReference])
   @@map("event_registrations")
 }
 
@@ -600,6 +661,7 @@ model AdminUser {
   customPermissionOverrides Json?
 
   auditLogs                 AuditLogEntry[]
+  postedJobs                JobOpening[]
 
   @@map("admin_users")
 }
@@ -831,6 +893,7 @@ model EmployerDetail {
   contactLinkedIn String?
 
   jobs            AdminJobListing[]
+  jobOpenings     JobOpening[]
 
   @@map("employer_details")
 }

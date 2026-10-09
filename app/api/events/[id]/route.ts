@@ -13,8 +13,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const session = await getAlumniSession();
   let registered = false;
   if (session) {
-    const reg = await db.eventRegistration.findUnique({
-      where: { eventId_userId: { eventId: id, userId: session.sub } },
+    const reg = await db.eventRegistration.findFirst({
+      where: { eventId: id, userId: session.sub, bookingStatus: { not: "CANCELLED" } },
     });
     registered = !!reg;
   }

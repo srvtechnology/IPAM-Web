@@ -8,6 +8,7 @@ export interface JobApplicationRecord {
   applicationRef: string;
   linkedinUrl: string | null;
   coverNote: string | null;
+  status?: string;
   createdAt: string;
 }
 
@@ -17,7 +18,13 @@ export function useApplyToJob(jobId: string, initialApplication: JobApplicationR
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function apply(payload: { linkedinUrl?: string; coverNote?: string }) {
+  async function apply(payload: {
+    linkedinUrl?: string;
+    coverNote?: string;
+    phone?: string;
+    experienceYears?: number;
+    skills?: string[];
+  }) {
     setLoading(true);
     setError(null);
     try {

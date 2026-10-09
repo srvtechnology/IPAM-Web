@@ -26,20 +26,43 @@ export const createEmployerSchema = z.object({
 export const updateEmployerSchema = createEmployerSchema.partial();
 
 export const createAdminJobSchema = z.object({
-  title: z.string().min(1),
-  company: z.string().min(1),
+  title: z.string().min(1, "Job title is required"),
+  company: z.string().min(1, "Company / Employer name is required"),
   employerId: z.string().optional(),
-  location: z.string().min(1),
+  country: z.string().optional(),
+  state: z.string().optional(),
+  city: z.string().optional(),
+  location: z.string().optional(),
   workMode: z.enum(["ON_SITE", "HYBRID", "REMOTE"]).optional(),
-  type: z.enum(["FULL_TIME", "CONTRACT", "EXECUTIVE", "INTERNSHIP"]),
+  workplaceType: z.enum(["ON_SITE", "HYBRID", "REMOTE"]).optional(),
+  type: z.enum(["FULL_TIME", "PART_TIME", "CONTRACT", "REMOTE", "EXECUTIVE", "INTERNSHIP"]).default("FULL_TIME"),
+  category: z
+    .enum([
+      "ENGINEERING",
+      "DATA_AI",
+      "FINANCE_BANKING",
+      "OPERATIONS",
+      "PRODUCT_DESIGN",
+      "LEGAL_PUBLIC_POLICY",
+    ])
+    .default("ENGINEERING"),
   department: z.string().optional(),
+  experienceRequired: z.boolean().default(false),
   experienceLevel: z.string().optional(),
-  salaryRange: z.string().min(1),
+  salaryRange: z.string().optional(),
+  salary: z.string().optional(),
+  salaryMin: z.coerce.number().optional(),
+  salaryMax: z.coerce.number().optional(),
+  currency: z.string().optional(),
+  hiringType: z.enum(["IMMEDIATE", "TILL_DATE"]).default("TILL_DATE"),
+  positionsOpen: z.coerce.number().int().min(1).default(1),
   status: z
     .enum(["ACTIVE", "REVIEWING", "SHORTLISTING", "INTERVIEWING", "OFFER_EXTENDED", "CLOSED"])
     .default("ACTIVE"),
-  closingDate: z.coerce.date(),
+  closingDate: z.coerce.date().nullable().optional(),
+  deadline: z.coerce.date().nullable().optional(),
   verifiedOnly: z.boolean().default(false),
+  aboutCompany: z.string().optional(),
   description: z.string().optional(),
   requirements: z.array(z.string()).optional(),
   skillsRequired: z.array(z.string()).optional(),
@@ -68,8 +91,12 @@ export const updateJobApplicationSchema = z.object({
     .enum(["APPLIED", "REVIEWING", "SHORTLISTED", "INTERVIEW_SCHEDULED", "SELECTED", "REJECTED"])
     .optional(),
   matchScore: z.coerce.number().int().optional(),
-  interviewDate: z.coerce.date().optional(),
+  interviewDate: z.coerce.date().nullable().optional(),
   notes: z.string().optional(),
+  offerSalary: z.string().optional(),
+  startDate: z.coerce.date().nullable().optional(),
+  decisionStatus: z.enum(["OFFER_EXTENDED", "OFFER_ACCEPTED", "PLACEMENT_CONFIRMED"]).optional(),
+  recruiterRemarks: z.string().optional(),
 });
 
 export const selectApplicationSchema = z.object({
