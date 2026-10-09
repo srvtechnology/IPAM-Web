@@ -164,30 +164,30 @@ export default function VirtualIdModal({
                 title="Click card to flip"
               >
                 {!isFlipped ? (
-                  <div className="aspect-[1.586/1] w-full overflow-hidden rounded-2xl border border-emerald-600/40 bg-gradient-to-br from-emerald-700 to-teal-800 p-4 text-white shadow-lg sm:p-5">
+                  <div className="aspect-[1.586/1] w-full overflow-hidden rounded-2xl border-2 border-emerald-500/40 bg-gradient-to-br from-emerald-900 via-slate-900 to-slate-950 p-4 text-white shadow-2xl sm:p-5">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
                         <GraduationCap className="h-4 w-4" />
                         <span className="text-xs font-bold">IPAM Alumni Association</span>
                       </div>
-                      <span className="rounded-lg bg-white/20 px-2 py-0.5 text-[9px] font-black">IPAM</span>
+                      <span className="rounded-lg bg-white/15 px-2 py-0.5 text-[9px] font-black">IPAM</span>
                     </div>
                     <div className="mt-4 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3">
                         {profile.avatar ? (
-                          <img src={profile.avatar} alt={profile.name} className="h-14 w-14 shrink-0 rounded-xl border-2 border-emerald-400 object-cover shadow-md" />
+                          <img src={profile.avatar} alt={profile.name} className="h-14 w-14 shrink-0 rounded-xl border-2 border-emerald-400/60 object-cover shadow-lg" />
                         ) : (
-                          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white/20 text-lg font-black">
+                          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white/15 text-lg font-black">
                             {profile.name.charAt(0)}
                           </div>
                         )}
                         <div className="min-w-0 space-y-0.5">
                           <p className="truncate text-sm font-black leading-tight sm:text-base">{profile.name}</p>
-                          <p className="truncate text-[11px] font-medium text-emerald-300 sm:text-xs">{profile.degree}</p>
+                          <p className="truncate text-[11px] font-medium text-emerald-200 sm:text-xs">{profile.degree}</p>
                           <div className="flex items-center gap-1.5 pt-0.5">
-                            <span className="rounded bg-white/20 px-2 py-0.5 text-[9px] font-bold">Class of {profile.classYear}</span>
+                            <span className="rounded-md border border-slate-700 bg-slate-900/80 px-2 py-0.5 text-[9px] font-bold text-slate-200">Class of {profile.classYear}</span>
                             {session.isVerifiedAlumni && (
-                              <span className="rounded bg-emerald-500 px-2 py-0.5 text-[9px] font-black text-slate-950">Verified</span>
+                              <span className="rounded-md bg-emerald-500 px-2 py-0.5 text-[9px] font-black text-slate-950">Verified</span>
                             )}
                           </div>
                         </div>
@@ -201,20 +201,20 @@ export default function VirtualIdModal({
                         <span className="block pt-0.5 text-[8px] font-extrabold leading-tight text-slate-900">SCAN QR</span>
                       </div>
                     </div>
-                    <div className="mt-3 flex items-end justify-between border-t border-white/20 pt-1.5 text-[9px] sm:text-[10px]">
+                    <div className="mt-3 flex items-end justify-between border-t border-white/10 pt-1.5 text-[9px] sm:text-[10px]">
                       <div>
-                        <span className="block text-emerald-300/80">Member ID</span>
+                        <span className="block text-[9px] uppercase text-emerald-300">Member ID</span>
                         <span className="font-mono font-bold tracking-wider text-white">{session.studentId}</span>
                       </div>
                       <div className="text-right">
-                        <span className="block text-emerald-300/80">Tier</span>
+                        <span className="block text-[9px] uppercase text-emerald-300">Tier</span>
                         <span className="font-black text-amber-300">{session.membershipTier.replace(/_/g, " ")}</span>
                       </div>
                     </div>
                   </div>
                 ) : (
-                  <div className="aspect-[1.586/1] w-full overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 p-4 text-white shadow-lg sm:p-5">
-                    <div className="-mx-4 -mt-1 h-8 bg-slate-800 sm:-mx-5" />
+                  <div className="aspect-[1.586/1] w-full overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 p-4 text-white shadow-xl sm:p-5">
+                    <div className="-mx-4 -mt-1 h-8 border-y border-slate-800 bg-slate-900 sm:-mx-5" />
                     <div className="flex items-center justify-between gap-3 py-1">
                       <div className="space-y-1">
                         <div className="text-[9px] font-bold uppercase text-slate-400">Cryptographic RFID / QR Token</div>
@@ -239,7 +239,7 @@ export default function VirtualIdModal({
                 )}
 
                 <div className="mt-2 flex items-center justify-center gap-1.5 text-center text-xs text-slate-500">
-                  <RotateCw className="h-3.5 w-3.5 text-emerald-600" />
+                  <RotateCw className="h-3.5 w-3.5 text-emerald-500" />
                   <span>Click card to flip ({isFlipped ? "showing back" : "showing front"})</span>
                 </div>
               </div>
