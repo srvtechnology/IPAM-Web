@@ -389,6 +389,11 @@ async function main() {
       currency: "USD",
       status: "PUBLISHED",
       registeredCount: 4,
+      bannerImage: "/images/alumni_gala_event_1788454750646.jpg",
+      bannerImages: [
+        "/images/alumni_gala_event_1788454750646.jpg",
+        "/images/ipam_university_campus_1788350001937.jpg",
+      ],
     },
     create: {
       id: "seed-event-1",
@@ -401,6 +406,11 @@ async function main() {
       isVirtual: false,
       category: "GALA",
       description: "An evening celebrating IPAM's alumni achievements with keynote addresses, awards banquet, and musical gala.",
+      bannerImage: "/images/alumni_gala_event_1788454750646.jpg",
+      bannerImages: [
+        "/images/alumni_gala_event_1788454750646.jpg",
+        "/images/ipam_university_campus_1788350001937.jpg",
+      ],
       agenda: [
         { time: "6:00 PM", activity: "Red Carpet & Welcome Reception" },
         { time: "7:15 PM", activity: "President's Address & Keynote" },
@@ -426,6 +436,8 @@ async function main() {
       currency: "USD",
       status: "PUBLISHED",
       registeredCount: 1,
+      bannerImage: "/images/alumni_tech_summit.jpg",
+      bannerImages: ["/images/alumni_tech_summit.jpg"],
     },
     create: {
       id: "seed-event-2",
@@ -439,6 +451,8 @@ async function main() {
       virtualLink: "https://meet.ipam.edu/career-growth",
       category: "WEBINAR",
       description: "Panel discussion on navigating career transitions, cross-border remote work, and executive certifications.",
+      bannerImage: "/images/alumni_tech_summit.jpg",
+      bannerImages: ["/images/alumni_tech_summit.jpg"],
       agenda: [{ time: "3:00 PM", activity: "Panel Discussion" }, { time: "4:00 PM", activity: "Audience Q&A" }],
       speakers: [{ name: "Dr. Fatmata Kamara", title: "Senior Economist", image: alumniSeedData[1].avatar }],
       isPaid: false,
@@ -459,6 +473,11 @@ async function main() {
       currency: "USD",
       status: "PUBLISHED",
       registeredCount: 3,
+      bannerImage: "/images/alumni_networking_mixer.jpg",
+      bannerImages: [
+        "/images/alumni_networking_mixer.jpg",
+        "/images/ipam_university_campus_1788350001937.jpg",
+      ],
     },
     create: {
       id: "seed-event-3",
@@ -471,6 +490,11 @@ async function main() {
       isVirtual: false,
       category: "NETWORKING",
       description: "Casual evening mixer connecting recent graduates (Classes 2018-2025) with established industry leaders in tech, banking, and public policy.",
+      bannerImage: "/images/alumni_networking_mixer.jpg",
+      bannerImages: [
+        "/images/alumni_networking_mixer.jpg",
+        "/images/ipam_university_campus_1788350001937.jpg",
+      ],
       agenda: [
         { time: "6:30 PM", activity: "Arrival & Cocktails" },
         { time: "7:00 PM", activity: "Speed Mentorship Circles" },

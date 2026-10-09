@@ -29,12 +29,12 @@ export const faqItemSchema = z.object({
 });
 
 export const createEventSchema = z.object({
-  title: z.string().min(3, "Title must be at least 3 characters"),
+  title: z.string().min(1, "Title is required"),
   category: eventCategoryEnum.default("NETWORKING"),
   date: z.string().or(z.date()),
-  displayDate: z.string().min(2, "Display date is required"),
-  time: z.string().min(2, "Time is required"),
-  location: z.string().min(2, "Location is required"),
+  displayDate: z.string().min(1, "Display date is required"),
+  time: z.string().min(1, "Time is required"),
+  location: z.string().min(1, "Location is required"),
   venueDetails: z.string().optional().nullable(),
   isVirtual: z.boolean().default(false),
   virtualLink: z.string().optional().nullable(),
@@ -43,7 +43,9 @@ export const createEventSchema = z.object({
   currency: z.enum(["USD", "SLE"]).default("USD"),
   capacity: z.number().int().min(1, "Capacity must be at least 1"),
   dressCode: z.string().optional().nullable(),
-  description: z.string().min(10, "Description must be at least 10 characters"),
+  description: z.string().min(1, "Description is required"),
+  bannerImage: z.string().optional().nullable(),
+  bannerImages: z.array(z.string()).optional().nullable(),
   agenda: z.array(agendaItemSchema).optional().nullable(),
   speakers: z.array(speakerItemSchema).optional().nullable(),
   highlights: z.array(z.string()).optional().nullable(),

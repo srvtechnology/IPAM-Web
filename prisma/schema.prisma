@@ -487,6 +487,8 @@ model JobOpeningApplication {
 
   linkedinUrl      String?     @db.Text
   coverNote        String?     @db.Text
+  cvUrl            String?     @db.LongText
+  cvFileName       String?
   applicationRef   String      @unique
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @default(now()) @updatedAt
@@ -521,6 +523,8 @@ model AlumniEvent {
   category        EventCategory
   icon            String?
   bannerColor     String?
+  bannerImage     String?  @db.LongText
+  bannerImages    Json?
   description     String   @db.Text
   agenda          Json?
   speakers        Json?

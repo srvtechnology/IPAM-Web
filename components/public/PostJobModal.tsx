@@ -96,28 +96,35 @@ export default function PostJobModal({ onClose }: { onClose: () => void }) {
         ? new Date(form.deadline).toISOString()
         : new Date(Date.now() + 30 * 86400000).toISOString();
 
+    const rawReqs = form.requirements
+      .split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
     const ok = await createJob({
-      title: form.title,
-      company: form.company,
-      country,
-      state,
-      city,
+      title: form.title.trim(),
+      company: form.company.trim(),
+      country: country || "Sierra Leone",
+      state: state || null,
+      city: city || null,
       location: locationFormatted,
       type: form.type,
       workplaceType: form.workplaceType,
       category: form.category,
-      salary: form.salary,
+      salary: form.salary.trim() || "Competitive / Market Standard",
       positionsOpen: Number(form.positionsOpen) || 1,
-      experienceRequired: form.experienceRequired,
-      experienceLevel: form.experienceRequired ? form.experienceLevel : null,
+      experienceRequired: Boolean(form.experienceRequired),
+      experienceLevel: form.experienceRequired ? form.experienceLevel || "1-3 Years" : null,
       hiringType: form.hiringType,
       deadline: deadlineValue,
-      aboutCompany: form.aboutCompany || null,
-      description: form.description,
-      requirements: form.requirements
-        .split("\n")
-        .map((s) => s.trim())
-        .filter(Boolean),
+      aboutCompany: form.aboutCompany.trim() || null,
+      description:
+        form.description.trim() ||
+        `Exciting job opportunity at ${form.company} for a qualified ${form.title}. Apply now on the IPAM Careers Network.`,
+      requirements:
+        rawReqs.length > 0
+          ? rawReqs
+          : ["Relevant qualifications or equivalent practical experience"],
       responsibilities: form.responsibilities
         ? form.responsibilities
             .split("\n")
@@ -166,7 +173,15 @@ export default function PostJobModal({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        {error && <div className="mt-4 rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</div>}
+        {error && (
+          <div className="mt-4 rounded-2xl bg-rose-50 border border-rose-200 p-4 text-xs font-semibold text-rose-800 flex items-start gap-2.5">
+            <Zap className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+            <div className="space-y-0.5">
+              <div className="font-bold">Unable to publish job opening:</div>
+              <div>{error}</div>
+            </div>
+          </div>
+        )}
 
         <div className="mt-5 space-y-4">
           {/* Title & Company */}

@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useMemo, useState, useEffect } from "react";
 import {
   Search,
   Briefcase,
@@ -19,6 +20,9 @@ import {
   GraduationCap,
   Calendar,
   Layers,
+  CheckCircle2,
+  Trophy,
+  ChevronRight,
 } from "lucide-react";
 import { useApp } from "@/lib/public/context";
 import { useToggleSaveJob } from "@/hooks/public/useJobActions";
@@ -81,8 +85,30 @@ const WORKPLACE_LABELS: Record<string, string> = {
   ON_SITE: "On-Site",
 };
 
-function JobCard({ job, initialSaved }: { job: JobListItem; initialSaved: boolean }) {
-  const { saved, loading, toggle } = useToggleSaveJob(job.id, initialSaved);
+export interface AppliedJobMeta {
+  id: string;
+  status: string;
+  applicationRef: string;
+  appliedDate: string;
+  interviewDate?: string | null;
+  offerSalary?: string | null;
+  decisionStatus?: string | null;
+}
+
+function JobCard({
+  job,
+  initialSaved,
+  appliedInfo,
+  onToggleSave,
+}: {
+  job: JobListItem;
+  initialSaved: boolean;
+  appliedInfo?: AppliedJobMeta;
+  onToggleSave?: (jobId: string, isSaved: boolean) => void;
+}) {
+  const { saved, loading, toggle } = useToggleSaveJob(job.id, initialSaved, (isSaved) => {
+    onToggleSave?.(job.id, isSaved);
+  });
 
   const isImmediate = job.hiringType === "IMMEDIATE";
   const positions = job.positionsOpen ?? 1;
@@ -92,6 +118,33 @@ function JobCard({ job, initialSaved }: { job: JobListItem; initialSaved: boolea
       <div className="space-y-3">
         {/* Top Badges Strip */}
         <div className="flex flex-wrap items-center gap-2">
+          {/* Applied Status Badge */}
+          {appliedInfo && (
+            <span
+              className={`text-[11px] font-black px-3 py-1 rounded-full border flex items-center gap-1.5 shadow-xs ${
+                appliedInfo.status === "SELECTED"
+                  ? "bg-emerald-100 text-emerald-950 border-emerald-400"
+                  : appliedInfo.status === "INTERVIEW_SCHEDULED"
+                  ? "bg-purple-100 text-purple-950 border-purple-400 animate-pulse"
+                  : appliedInfo.status === "SHORTLISTED"
+                  ? "bg-indigo-100 text-indigo-950 border-indigo-300"
+                  : appliedInfo.status === "REVIEWING"
+                  ? "bg-amber-100 text-amber-950 border-amber-300"
+                  : appliedInfo.status === "REJECTED"
+                  ? "bg-slate-100 text-slate-700 border-slate-300"
+                  : "bg-teal-100 text-teal-950 border-teal-300"
+              }`}
+            >
+              {appliedInfo.status === "SELECTED" ? (
+                <Trophy className="w-3.5 h-3.5 text-emerald-700" />
+              ) : appliedInfo.status === "INTERVIEW_SCHEDULED" ? (
+                <Calendar className="w-3.5 h-3.5 text-purple-700" />
+              ) : (
+                <CheckCircle2 className="w-3.5 h-3.5 text-teal-700" />
+              )}
+              <span>Applied: {(appliedInfo.status || "APPLIED").replace(/_/g, " ")}</span>
+            </span>
+          )}
           {/* Posted By Attribution (Admin vs Alumni) */}
           {job.postedByType === "ADMIN" || job.postedByAdmin ? (
             <span className="text-[11px] font-bold bg-amber-50 text-amber-900 px-3 py-1 rounded-full border border-amber-300 flex items-center gap-1.5 shadow-xs">
@@ -204,13 +257,23 @@ function JobCard({ job, initialSaved }: { job: JobListItem; initialSaved: boolea
             <Bookmark className={`w-4 h-4 ${saved ? "fill-emerald-600 text-emerald-600" : "text-slate-400"}`} />
           </button>
 
-          <Link
-            href={`/jobs/${job.id}`}
-            className="bg-emerald-600 text-white px-5 py-2.5 rounded-xl font-extrabold text-sm hover:bg-emerald-700 transition-all flex items-center justify-center gap-1.5 shadow-xs active:scale-98"
-          >
-            <span>View Job Details &amp; Apply</span>
-            <ArrowUpRight className="w-4 h-4" />
-          </Link>
+          {appliedInfo ? (
+            <Link
+              href={`/jobs/${job.id}#application-section`}
+              className="bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-300 px-4 py-2.5 rounded-xl font-extrabold text-xs sm:text-sm transition-all flex items-center justify-center gap-1.5 shadow-xs active:scale-98"
+            >
+              <span>Track Application Status</span>
+              <ChevronRight className="w-4 h-4 text-emerald-600" />
+            </Link>
+          ) : (
+            <Link
+              href={`/jobs/${job.id}`}
+              className="bg-emerald-600 text-white px-5 py-2.5 rounded-xl font-extrabold text-sm hover:bg-emerald-700 transition-all flex items-center justify-center gap-1.5 shadow-xs active:scale-98"
+            >
+              <span>View Job Details &amp; Apply</span>
+              <ArrowUpRight className="w-4 h-4" />
+            </Link>
+          )}
         </div>
       </div>
     </div>
@@ -220,11 +283,15 @@ function JobCard({ job, initialSaved }: { job: JobListItem; initialSaved: boolea
 export default function JobsView({
   jobs,
   savedJobIds,
+  initialSaved = false,
   myPostedJobsCount = 0,
+  myApplicationsMap = {},
 }: {
   jobs: JobListItem[];
   savedJobIds: string[];
+  initialSaved?: boolean;
   myPostedJobsCount?: number;
+  myApplicationsMap?: Record<string, AppliedJobMeta>;
 }) {
   const { session, isPostJobOpen, setIsPostJobOpen } = useApp();
   const [query, setQuery] = useState("");
@@ -234,8 +301,59 @@ export default function JobsView({
   const [expFilter, setExpFilter] = useState<string>("all");
   const [hiringFilter, setHiringFilter] = useState<string>("all");
   const [postedByFilter, setPostedByFilter] = useState<string>("all");
-  const [onlySaved, setOnlySaved] = useState(false);
-  const savedSet = useMemo(() => new Set(savedJobIds), [savedJobIds]);
+  const [onlySaved, setOnlySaved] = useState(Boolean(initialSaved));
+  const [onlyApplied, setOnlyApplied] = useState(false);
+  const [currentSavedIds, setCurrentSavedIds] = useState<string[]>(savedJobIds);
+
+  useEffect(() => {
+    setCurrentSavedIds(savedJobIds);
+  }, [savedJobIds]);
+
+  useEffect(() => {
+    if (initialSaved !== undefined) {
+      setOnlySaved(Boolean(initialSaved));
+      if (initialSaved) {
+        setOnlyApplied(false);
+      }
+    }
+  }, [initialSaved]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const isSaved = params.get("saved") === "true" || params.get("saved") === "1";
+        setOnlySaved(isSaved);
+        if (isSaved) setOnlyApplied(false);
+      } catch {
+        // ignore
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  const savedSet = useMemo(() => new Set(currentSavedIds), [currentSavedIds]);
+  const appliedCount = useMemo(() => Object.keys(myApplicationsMap).length, [myApplicationsMap]);
+
+  const handleToggleSaveJob = (jobId: string, isSaved: boolean) => {
+    setCurrentSavedIds((prev) =>
+      isSaved ? (prev.includes(jobId) ? prev : [...prev, jobId]) : prev.filter((id) => id !== jobId)
+    );
+  };
+
+  const router = useRouter();
+
+  const toggleSavedFilter = (targetState?: boolean) => {
+    const nextSaved = typeof targetState === "boolean" ? targetState : !onlySaved;
+    setOnlySaved(nextSaved);
+    if (nextSaved) {
+      setOnlyApplied(false);
+      router.push("/jobs?saved=true");
+    } else {
+      router.push("/jobs");
+    }
+  };
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -263,6 +381,7 @@ export default function JobsView({
         (postedByFilter === "admin" && (j.postedByType === "ADMIN" || !!j.postedByAdmin)) ||
         (postedByFilter === "alumni" && (j.postedByType === "ALUMNI" || !!j.postedByAlumni));
       const matchesSaved = !onlySaved || savedSet.has(j.id);
+      const matchesApplied = !onlyApplied || !!myApplicationsMap[j.id];
 
       return (
         matchesKeyword &&
@@ -272,10 +391,11 @@ export default function JobsView({
         matchesExp &&
         matchesHiring &&
         matchesPostedBy &&
-        matchesSaved
+        matchesSaved &&
+        matchesApplied
       );
     });
-  }, [jobs, query, category, workplaceType, countryFilter, expFilter, hiringFilter, postedByFilter, onlySaved, savedSet]);
+  }, [jobs, query, category, workplaceType, countryFilter, expFilter, hiringFilter, postedByFilter, onlySaved, onlyApplied, savedSet, myApplicationsMap]);
 
   const employerCount = useMemo(() => new Set(jobs.map((j) => j.company)).size, [jobs]);
 
@@ -311,6 +431,44 @@ export default function JobsView({
             </div>
 
             <div className="flex flex-wrap items-center gap-3 shrink-0">
+              {session && appliedCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOnlyApplied(true);
+                    setOnlySaved(false);
+                    const el = document.getElementById("job-listings-section");
+                    if (el) el.scrollIntoView({ behavior: "smooth" });
+                  }}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-teal-500/40 bg-teal-950/80 px-4 py-3.5 text-sm font-bold text-teal-300 shadow-lg backdrop-blur-md transition-all hover:bg-teal-900/80 hover:text-white"
+                >
+                  <CheckCircle2 className="h-4 w-4 text-teal-400" />
+                  <span>My Applications</span>
+                  <span className="rounded-full bg-teal-400 px-2 py-0.5 text-xs font-black text-slate-950">
+                    {appliedCount}
+                  </span>
+                </button>
+              )}
+
+              {session && (
+                <Link
+                  href="/jobs?saved=true"
+                  className={`inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-3.5 text-sm font-bold shadow-lg backdrop-blur-md transition-all ${
+                    onlySaved
+                      ? "border-emerald-400 bg-emerald-600 text-white shadow-emerald-900/40"
+                      : "border-emerald-500/40 bg-emerald-950/80 text-emerald-300 hover:bg-emerald-900/80 hover:text-white"
+                  }`}
+                >
+                  <Bookmark className="h-4 w-4 text-emerald-400" />
+                  <span>Saved Jobs</span>
+                  {currentSavedIds.length > 0 && (
+                    <span className="rounded-full bg-emerald-400 px-2 py-0.5 text-xs font-black text-slate-950">
+                      {currentSavedIds.length}
+                    </span>
+                  )}
+                </Link>
+              )}
+
               {session && (
                 <Link
                   href="/jobs/manage"
@@ -463,18 +621,38 @@ export default function JobsView({
           </div>
 
           {session && (
-            <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-              <button
-                onClick={() => setOnlySaved(!onlySaved)}
-                className={`py-1.5 px-3 rounded-lg text-xs font-bold flex items-center gap-2 border transition-all ${
-                  onlySaved
-                    ? "bg-emerald-50 border-emerald-500 text-emerald-800"
-                    : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
-                }`}
-              >
-                <Bookmark className={`w-3.5 h-3.5 ${onlySaved ? "fill-emerald-600 text-emerald-600" : "text-slate-500"}`} />
-                <span>Show Saved Jobs ({savedJobIds.length})</span>
-              </button>
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-100">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOnlyApplied(!onlyApplied);
+                    if (!onlyApplied) setOnlySaved(false);
+                  }}
+                  className={`py-1.5 px-3 rounded-lg text-xs font-bold flex items-center gap-2 border transition-all ${
+                    onlyApplied
+                      ? "bg-teal-600 border-teal-600 text-white shadow-xs"
+                      : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
+                  }`}
+                >
+                  <CheckCircle2 className={`w-3.5 h-3.5 ${onlyApplied ? "text-white" : "text-teal-600"}`} />
+                  <span>My Applied Jobs ({appliedCount})</span>
+                </button>
+
+                <button
+                  type="button"
+                  id="toggle-saved-jobs-button"
+                  onClick={() => toggleSavedFilter()}
+                  className={`py-1.5 px-3 rounded-lg text-xs font-bold flex items-center gap-2 border transition-all ${
+                    onlySaved
+                      ? "bg-emerald-600 border-emerald-600 text-white shadow-xs"
+                      : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
+                  }`}
+                >
+                  <Bookmark className={`w-3.5 h-3.5 ${onlySaved ? "fill-white text-white" : "text-slate-500"}`} />
+                  <span>Show Saved Jobs ({currentSavedIds.length})</span>
+                </button>
+              </div>
 
               <div className="text-xs text-slate-500">
                 Showing <span className="font-bold text-slate-900">{filtered.length}</span> of {jobs.length} listings
@@ -483,16 +661,70 @@ export default function JobsView({
           )}
         </div>
 
+        {/* Saved Jobs Active Filter Banner */}
+        {onlySaved && (
+          <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl shadow-xs">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                <Bookmark className="w-4 h-4 fill-white" />
+              </div>
+              <div>
+                <p className="text-sm font-extrabold text-emerald-950">
+                  Showing Saved Jobs ({currentSavedIds.length})
+                </p>
+                <p className="text-xs text-emerald-700 font-medium">
+                  Viewing opportunities bookmarked for your application review
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => toggleSavedFilter(false)}
+              className="text-xs font-bold px-3 py-1.5 bg-white border border-emerald-200 text-emerald-800 rounded-lg hover:bg-emerald-100 transition-colors shadow-xs"
+            >
+              Show All Listings
+            </button>
+          </div>
+        )}
+
         {/* Listings Cards */}
-        <div className="space-y-4">
+        <div id="job-listings-section" className="space-y-4">
           {filtered.length === 0 ? (
-            <div className="bg-white rounded-2xl p-12 text-center border border-slate-200">
+            <div className="bg-white rounded-2xl p-12 text-center border border-slate-200 shadow-xs">
               <Briefcase className="w-12 h-12 text-slate-400 mx-auto mb-3" />
-              <p className="text-lg font-bold text-slate-900">No job opportunities matched your criteria</p>
-              <p className="text-sm text-slate-500 mt-1">Try relaxing filters or search terms.</p>
+              <p className="text-lg font-bold text-slate-900">
+                {onlySaved
+                  ? "No saved job opportunities yet"
+                  : "No job opportunities matched your criteria"}
+              </p>
+              <p className="text-sm text-slate-500 mt-1 max-w-md mx-auto">
+                {onlySaved
+                  ? "You haven't saved any job listings yet. Click the bookmark icon on any job card to save it for quick access."
+                  : onlyApplied
+                  ? "You haven't applied to any job listings matching this filter yet."
+                  : "Try relaxing filters or search terms."}
+              </p>
+              {onlySaved && (
+                <button
+                  type="button"
+                  onClick={() => toggleSavedFilter(false)}
+                  className="mt-4 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition-colors shadow-xs"
+                >
+                  <Briefcase className="w-4 h-4" />
+                  <span>Browse All Active Openings</span>
+                </button>
+              )}
             </div>
           ) : (
-            filtered.map((j) => <JobCard key={j.id} job={j} initialSaved={savedSet.has(j.id)} />)
+            filtered.map((j) => (
+              <JobCard
+                key={j.id}
+                job={j}
+                initialSaved={savedSet.has(j.id)}
+                appliedInfo={myApplicationsMap[j.id]}
+                onToggleSave={handleToggleSaveJob}
+              />
+            ))
           )}
         </div>
       </div>

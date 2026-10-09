@@ -110,6 +110,27 @@ export default function CandidateDossierModal({
           </div>
         )}
 
+        {application.cvUrl && (
+          <div className="mt-3 p-3.5 bg-secondary/10 border border-secondary/20 rounded-xl flex items-center justify-between gap-3 text-xs">
+            <div className="min-w-0">
+              <span className="font-bold text-on-surface block">Attached Curriculum Vitae (CV)</span>
+              <span className="text-on-surface-variant text-[11px] font-mono truncate block">
+                {application.cvFileName || "Curriculum_Vitae.pdf"}
+              </span>
+            </div>
+            <a
+              href={application.cvUrl}
+              download={application.cvFileName || `${application.candidateName}_CV.pdf`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-on-secondary font-bold text-xs hover:opacity-90 transition-opacity shrink-0"
+            >
+              <span className="material-symbols-outlined text-[16px]">download</span>
+              <span>Download CV</span>
+            </a>
+          </div>
+        )}
+
         {canWrite && (
           <label className="block mt-4 font-body-compact text-on-surface-variant text-xs font-bold">
             Pipeline Status

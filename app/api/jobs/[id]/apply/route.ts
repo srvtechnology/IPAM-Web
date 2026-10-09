@@ -48,12 +48,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const avatarUrl = profile?.avatar || null;
   const linkedinUrl = parsed.data.linkedinUrl || profile?.linkedin || null;
   const coverNote = parsed.data.coverNote || null;
+  const cvUrl = parsed.data.cvUrl || null;
+  const cvFileName = parsed.data.cvFileName || null;
   const experienceYears = parsed.data.experienceYears ?? 1;
 
   // Compute a realistic match score based on experience and requirements
   let matchScore = 80;
   if (job.experienceRequired && experienceYears >= 3) matchScore += 10;
   if (parsed.data.skills && parsed.data.skills.length > 0) matchScore += 5;
+  if (cvUrl) matchScore += 5; // Extra bonus for attached CV
   matchScore = Math.min(98, Math.max(75, matchScore));
 
   const application = await db.jobOpeningApplication.create({
@@ -67,6 +70,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       faculty,
       gradYear,
       avatarUrl,
+      cvUrl,
+      cvFileName,
       experienceYears,
       skills: parsed.data.skills || [],
       matchScore,

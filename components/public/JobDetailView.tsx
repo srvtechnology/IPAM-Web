@@ -27,6 +27,15 @@ import {
   Briefcase,
   AlertCircle,
   ExternalLink,
+  RefreshCw,
+  Copy,
+  Mail,
+  Phone,
+  Trophy,
+  UploadCloud,
+  Download,
+  Trash2,
+  Paperclip,
 } from "lucide-react";
 import { useToggleSaveJob } from "@/hooks/public/useJobActions";
 import { useApplyToJob, type JobApplicationRecord } from "@/hooks/public/useApplyToJob";
@@ -89,18 +98,95 @@ export default function JobDetailView({
 }) {
   const { session } = useApp();
   const { saved, loading: saving, toggle } = useToggleSaveJob(job.id, job.saved);
-  const { application: currentApplication, loading: applying, error, apply } = useApplyToJob(job.id, application);
+  const {
+    application: currentApplication,
+    loading: applying,
+    refreshing: refreshingStatus,
+    error,
+    apply,
+    refreshStatus,
+  } = useApplyToJob(job.id, application);
   const [linkedinUrl, setLinkedinUrl] = useState(
     session?.profile ? `linkedin.com/in/${session.profile.name.toLowerCase().replace(/\s+/g, "")}` : ""
   );
   const [phone, setPhone] = useState("");
   const [experienceYears, setExperienceYears] = useState(2);
   const [coverNote, setCoverNote] = useState("");
+  const [cvUrl, setCvUrl] = useState("");
+  const [cvFileName, setCvFileName] = useState("");
+  const [cvFileSize, setCvFileSize] = useState(0);
+  const [cvUploading, setCvUploading] = useState(false);
+  const [cvError, setCvError] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedRef, setCopiedRef] = useState(false);
+  const [lastSyncedTime, setLastSyncedTime] = useState<string | null>(null);
+
+  const handleCvFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setCvError(null);
+    const maxBytes = 8 * 1024 * 1024; // 8MB limit
+    if (file.size > maxBytes) {
+      setCvError("CV file size exceeds 8MB. Please upload a smaller document.");
+      return;
+    }
+
+    const allowedExtensions = [".pdf", ".docx", ".doc", ".txt", ".rtf"];
+    const ext = "." + file.name.split(".").pop()?.toLowerCase();
+    if (!allowedExtensions.includes(ext)) {
+      setCvError("Unsupported file type. Please upload a PDF or DOCX file.");
+      return;
+    }
+
+    setCvUploading(true);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      setCvUrl(result);
+      setCvFileName(file.name);
+      setCvFileSize(file.size);
+      setCvUploading(false);
+    };
+    reader.onerror = () => {
+      setCvError("Failed to read CV file. Please try again.");
+      setCvUploading(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveCv = () => {
+    setCvUrl("");
+    setCvFileName("");
+    setCvFileSize(0);
+    setCvError(null);
+  };
+
+  const handleCopyRef = async (ref: string) => {
+    try {
+      await navigator.clipboard.writeText(ref);
+      setCopiedRef(true);
+      setTimeout(() => setCopiedRef(false), 2000);
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleRefreshStatus = async () => {
+    await refreshStatus();
+    setLastSyncedTime(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
+  };
 
   const handleApply = (e: React.FormEvent) => {
     e.preventDefault();
-    apply({ linkedinUrl, coverNote, phone, experienceYears });
+    apply({
+      linkedinUrl,
+      coverNote,
+      phone,
+      experienceYears,
+      cvUrl: cvUrl || undefined,
+      cvFileName: cvFileName || undefined,
+    });
   };
 
   const handleShare = async () => {
@@ -260,7 +346,11 @@ export default function JobDetailView({
                 className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3.5 rounded-2xl font-extrabold text-sm text-center shadow-md transition-all flex items-center justify-center gap-2 active:scale-98"
               >
                 <Send className="w-4 h-4" />
-                <span>{currentApplication ? "View Submitted Application" : "Apply for this Position"}</span>
+                <span>
+                  {currentApplication
+                    ? `Status: ${(currentApplication.status || "APPLIED").replace(/_/g, " ")}`
+                    : "Apply for this Position"}
+                </span>
               </a>
 
               {session && (
@@ -470,29 +560,426 @@ export default function JobDetailView({
               </div>
 
               {currentApplication ? (
-                <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-6 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-600 text-white text-xs font-bold">
-                      <CheckCircle2 className="w-4 h-4" />
-                      <span>Application Submitted</span>
-                    </span>
-                    <span className="text-xs font-mono font-bold text-slate-600">
-                      Ref: {currentApplication.applicationRef}
-                    </span>
-                  </div>
+                <div className="space-y-6">
+                  {/* Status Card Header */}
+                  <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-6 sm:p-7 shadow-xs space-y-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                      <div className="space-y-1.5">
+                        <div className="flex flex-wrap items-center gap-2">
+                          {/* Live Status Pill */}
+                          {currentApplication.status === "SELECTED" ? (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-600 text-white text-xs font-black shadow-xs">
+                              <Trophy className="w-3.5 h-3.5" />
+                              <span>OFFER EXTENDED / SELECTED</span>
+                            </span>
+                          ) : currentApplication.status === "INTERVIEW_SCHEDULED" ? (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-600 text-white text-xs font-black shadow-xs animate-pulse">
+                              <Calendar className="w-3.5 h-3.5" />
+                              <span>INTERVIEW SCHEDULED</span>
+                            </span>
+                          ) : currentApplication.status === "SHORTLISTED" ? (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-600 text-white text-xs font-black shadow-xs">
+                              <Sparkles className="w-3.5 h-3.5" />
+                              <span>SHORTLISTED FOR ROLE</span>
+                            </span>
+                          ) : currentApplication.status === "REVIEWING" ? (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500 text-white text-xs font-black shadow-xs">
+                              <Clock className="w-3.5 h-3.5" />
+                              <span>UNDER ACTIVE REVIEW</span>
+                            </span>
+                          ) : currentApplication.status === "REJECTED" ? (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-600 text-white text-xs font-black shadow-xs">
+                              <AlertCircle className="w-3.5 h-3.5" />
+                              <span>APPLICATION CLOSED</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-600 text-white text-xs font-black shadow-xs">
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span>APPLICATION SUBMITTED</span>
+                            </span>
+                          )}
 
-                  <div className="text-sm font-semibold text-emerald-950 pt-2">
-                    Current Status: <strong className="font-extrabold text-emerald-800">{currentApplication.status || "APPLIED"}</strong>
-                  </div>
+                          <span className="text-xs text-slate-500 font-medium">
+                            Submitted on {new Date(currentApplication.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
 
-                  {currentApplication.coverNote && (
-                    <p className="text-xs text-slate-600 italic bg-white/80 p-3 rounded-xl border border-emerald-100">
-                      &ldquo;{currentApplication.coverNote}&rdquo;
-                    </p>
-                  )}
+                        <h4 className="text-lg font-black text-slate-900">
+                          {currentApplication.status === "SELECTED"
+                            ? "Congratulations! Candidate Selected & Offer Available"
+                            : currentApplication.status === "INTERVIEW_SCHEDULED"
+                            ? "Interview Session Arranged with Hiring Manager"
+                            : currentApplication.status === "SHORTLISTED"
+                            ? "Your Dossier has been Shortlisted"
+                            : currentApplication.status === "REVIEWING"
+                            ? "Recruitment Committee Review in Progress"
+                            : currentApplication.status === "REJECTED"
+                            ? "Candidate Selection Concluded for this Cycle"
+                            : "Application Successfully Received & Logged"}
+                        </h4>
+                      </div>
 
-                  <div className="text-[11px] text-slate-500 pt-1">
-                    Submitted on {new Date(currentApplication.createdAt).toLocaleDateString()}
+                      {/* Right controls: Ref and Refresh button */}
+                      <div className="flex items-center gap-2 self-start sm:self-auto">
+                        <button
+                          type="button"
+                          onClick={() => handleCopyRef(currentApplication.applicationRef)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-mono font-bold text-slate-700 transition-colors shadow-2xs"
+                          title="Click to copy Application Reference"
+                        >
+                          <span>{currentApplication.applicationRef}</span>
+                          {copiedRef ? (
+                            <Check className="w-3.5 h-3.5 text-emerald-600" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5 text-slate-400" />
+                          )}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleRefreshStatus}
+                          disabled={refreshingStatus}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold transition-all shadow-2xs disabled:opacity-60"
+                          title="Refresh status from server"
+                        >
+                          <RefreshCw className={`w-3.5 h-3.5 ${refreshingStatus ? "animate-spin" : ""}`} />
+                          <span className="hidden sm:inline">Refresh</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {lastSyncedTime && (
+                      <p className="text-[11px] text-slate-400 italic text-right">
+                        Last synced with recruiter portal at {lastSyncedTime}
+                      </p>
+                    )}
+
+                    {/* Milestone Progress Stepper */}
+                    <div className="space-y-2">
+                      <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                        Recruitment Pipeline Progress
+                      </div>
+                      <div className="relative">
+                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-2">
+                          {[
+                            { key: "APPLIED", label: "1. Submitted", desc: "Dossier Logged" },
+                            { key: "REVIEWING", label: "2. In Review", desc: "Screening" },
+                            { key: "SHORTLISTED", label: "3. Shortlisted", desc: "Evaluated" },
+                            { key: "INTERVIEW_SCHEDULED", label: "4. Interview", desc: "Interaction" },
+                            { key: "SELECTED", label: "5. Selected", desc: "Offer Issued" },
+                          ].map((step, idx) => {
+                            const order = ["APPLIED", "REVIEWING", "SHORTLISTED", "INTERVIEW_SCHEDULED", "SELECTED"];
+                            const currentIdx = order.indexOf(currentApplication.status || "APPLIED");
+                            const isPast = currentApplication.status !== "REJECTED" && currentIdx > idx;
+                            const isCurrent = currentApplication.status !== "REJECTED" && currentIdx === idx;
+                            const isRejected = currentApplication.status === "REJECTED";
+
+                            return (
+                              <div
+                                key={step.key}
+                                className={`rounded-2xl p-3 border text-left transition-all ${
+                                  isCurrent
+                                    ? "bg-emerald-50 border-emerald-400 ring-2 ring-emerald-400/30 shadow-xs"
+                                    : isPast
+                                    ? "bg-slate-50 border-emerald-300/80"
+                                    : isRejected && idx === currentIdx
+                                    ? "bg-rose-50 border-rose-300 text-rose-800"
+                                    : "bg-white/60 border-slate-200/60 opacity-60"
+                                }`}
+                              >
+                                <div className="flex items-center gap-1.5 mb-1">
+                                  {isPast ? (
+                                    <div className="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center">
+                                      <Check className="w-3 h-3 stroke-[3]" />
+                                    </div>
+                                  ) : isCurrent ? (
+                                    <div className="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center ring-2 ring-emerald-300">
+                                      <div className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                                    </div>
+                                  ) : isRejected && idx === currentIdx ? (
+                                    <div className="w-4 h-4 rounded-full bg-rose-600 text-white flex items-center justify-center">
+                                      <AlertCircle className="w-3 h-3" />
+                                    </div>
+                                  ) : (
+                                    <div className="w-4 h-4 rounded-full border border-slate-300 bg-slate-100 flex items-center justify-center text-[10px] text-slate-500 font-bold">
+                                      {idx + 1}
+                                    </div>
+                                  )}
+                                  <span
+                                    className={`text-xs font-extrabold truncate ${
+                                      isCurrent
+                                        ? "text-emerald-900"
+                                        : isPast
+                                        ? "text-slate-800"
+                                        : isRejected && idx === currentIdx
+                                        ? "text-rose-900"
+                                        : "text-slate-400"
+                                    }`}
+                                  >
+                                    {step.label}
+                                  </span>
+                                </div>
+                                <p className="text-[10px] text-slate-500 truncate">{step.desc}</p>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Spotlight Alert Details by Status */}
+                    {currentApplication.status === "INTERVIEW_SCHEDULED" && (
+                      <div className="rounded-2xl border-2 border-purple-300 bg-purple-50/80 p-5 sm:p-6 space-y-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                            <Calendar className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <h5 className="text-base font-extrabold text-purple-950">
+                              Interview Session Scheduled
+                            </h5>
+                            <p className="text-xs text-purple-700">
+                              The recruitment panel has scheduled an official evaluation interview with you.
+                            </p>
+                          </div>
+                        </div>
+
+                        {currentApplication.interviewDate && (
+                          <div className="bg-white/90 rounded-xl p-3.5 border border-purple-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div className="flex items-center gap-2 text-sm font-black text-purple-900">
+                              <Clock className="w-4 h-4 text-purple-600" />
+                              <span>
+                                {new Date(currentApplication.interviewDate).toLocaleDateString(undefined, {
+                                  weekday: "long",
+                                  year: "numeric",
+                                  month: "long",
+                                  day: "numeric",
+                                })}{" "}
+                                at{" "}
+                                {new Date(currentApplication.interviewDate).toLocaleTimeString(undefined, {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </span>
+                            </div>
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-purple-700 bg-purple-100 px-2.5 py-1 rounded-md">
+                              Confirmed by Hiring Team
+                            </span>
+                          </div>
+                        )}
+
+                        {currentApplication.notes && (
+                          <div className="space-y-1">
+                            <div className="text-[11px] font-bold uppercase tracking-wider text-purple-800">
+                              Recruiter Instructions &amp; Venue / Link:
+                            </div>
+                            <p className="text-xs text-slate-700 bg-white/90 p-3 rounded-xl border border-purple-100 whitespace-pre-wrap">
+                              {currentApplication.notes}
+                            </p>
+                          </div>
+                        )}
+
+                        <div className="text-[11px] text-purple-800 bg-purple-100/60 p-3 rounded-xl border border-purple-200/50 flex items-start gap-2">
+                          <Sparkles className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
+                          <span>
+                            Tip for Candidates: Prepare to discuss your academic projects at IPAM, relevant career
+                            milestones, and keep your contact devices accessible during this window.
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {currentApplication.status === "SELECTED" && (
+                      <div className="rounded-2xl border-2 border-emerald-400 bg-emerald-50/90 p-5 sm:p-6 space-y-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                            <Trophy className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <h5 className="text-base font-extrabold text-emerald-950">
+                              Official Candidate Selection &amp; Offer
+                            </h5>
+                            <p className="text-xs text-emerald-700">
+                              Status:{" "}
+                              <strong className="font-extrabold">
+                                {(currentApplication.decisionStatus || "OFFER_EXTENDED").replace(/_/g, " ")}
+                              </strong>
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div className="bg-white/90 rounded-xl p-3.5 border border-emerald-200">
+                            <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                              Offered Compensation
+                            </div>
+                            <div className="text-base font-black text-emerald-800 mt-0.5">
+                              {currentApplication.offerSalary || job.salary}
+                            </div>
+                          </div>
+
+                          <div className="bg-white/90 rounded-xl p-3.5 border border-emerald-200">
+                            <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                              Anticipated Start Date
+                            </div>
+                            <div className="text-base font-black text-slate-900 mt-0.5">
+                              {currentApplication.startDate
+                                ? new Date(currentApplication.startDate).toLocaleDateString()
+                                : "To be confirmed with Recruiter"}
+                            </div>
+                          </div>
+                        </div>
+
+                        {currentApplication.recruiterRemarks && (
+                          <div className="space-y-1">
+                            <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-800">
+                              Hiring Committee Welcome Remarks:
+                            </div>
+                            <p className="text-xs text-slate-700 bg-white/90 p-3.5 rounded-xl border border-emerald-100 whitespace-pre-wrap italic">
+                              &ldquo;{currentApplication.recruiterRemarks}&rdquo;
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {currentApplication.status === "SHORTLISTED" && (
+                      <div className="rounded-2xl border border-indigo-200 bg-indigo-50/70 p-4 sm:p-5 flex items-start gap-3">
+                        <Sparkles className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />
+                        <div className="space-y-1 text-xs text-indigo-950">
+                          <p className="font-extrabold text-sm text-indigo-900">
+                            You are in the Shortlisted Candidate Pool
+                          </p>
+                          <p>
+                            Your application was highly rated by the hiring team. You will be contacted directly as
+                            interview appointments are coordinated.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {currentApplication.status === "REVIEWING" && (
+                      <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 sm:p-5 flex items-start gap-3">
+                        <Clock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                        <div className="space-y-1 text-xs text-amber-950">
+                          <p className="font-extrabold text-sm text-amber-900">
+                            Dossier Actively Under Review
+                          </p>
+                          <p>
+                            Recruiters and hiring coordinators are evaluating applicant profiles against opening
+                            specifications. Updates will reflect on this page automatically.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {currentApplication.status === "REJECTED" && (
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5 flex items-start gap-3">
+                        <AlertCircle className="w-5 h-5 text-slate-500 shrink-0 mt-0.5" />
+                        <div className="space-y-1 text-xs text-slate-700">
+                          <p className="font-extrabold text-sm text-slate-900">
+                            Application Cycle Concluded
+                          </p>
+                          <p>
+                            The hiring team has closed this opening or decided to proceed with other applicants for this
+                            term. We encourage you to review other listings in the IPAM Careers portal.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Submitted Dossier Details Card */}
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-4 sm:p-5 space-y-3">
+                      <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+                        <span>Submitted Application Dossier</span>
+                        <span className="font-mono text-[11px] text-slate-500">
+                          Ref: {currentApplication.applicationRef}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                        <div>
+                          <span className="text-slate-400 text-[11px]">Candidate:</span>{" "}
+                          <strong className="text-slate-800">
+                            {currentApplication.candidateName || session?.profile?.name || "Verified Alumni"}
+                          </strong>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 text-[11px]">Degree / Major:</span>{" "}
+                          <strong className="text-slate-800">
+                            {currentApplication.degree || session?.profile?.degree || "IPAM Graduate"}
+                          </strong>
+                        </div>
+                        {currentApplication.email && (
+                          <div className="flex items-center gap-1.5 text-slate-700">
+                            <Mail className="w-3.5 h-3.5 text-slate-400" />
+                            <span>{currentApplication.email}</span>
+                          </div>
+                        )}
+                        {currentApplication.phone && (
+                          <div className="flex items-center gap-1.5 text-slate-700">
+                            <Phone className="w-3.5 h-3.5 text-slate-400" />
+                            <span>{currentApplication.phone}</span>
+                          </div>
+                        )}
+                        {currentApplication.linkedinUrl && (
+                          <div className="sm:col-span-2">
+                            <a
+                              href={
+                                currentApplication.linkedinUrl.startsWith("http")
+                                  ? currentApplication.linkedinUrl
+                                  : `https://${currentApplication.linkedinUrl}`
+                              }
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 text-emerald-700 hover:underline font-bold"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                              <span>{currentApplication.linkedinUrl}</span>
+                            </a>
+                          </div>
+                        )}
+                      </div>
+
+                      {currentApplication.coverNote && (
+                        <div className="pt-2 border-t border-slate-200/60">
+                          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                            Your Intro / Cover Note:
+                          </span>
+                          <p className="text-xs text-slate-600 italic bg-white p-3 rounded-xl border border-slate-200 whitespace-pre-wrap">
+                            &ldquo;{currentApplication.coverNote}&rdquo;
+                          </p>
+                        </div>
+                      )}
+
+                      {currentApplication.cvUrl && (
+                        <div className="pt-2 border-t border-slate-200/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-emerald-50/60 p-3 rounded-xl border border-emerald-200">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                              <FileText className="w-4 h-4" />
+                            </div>
+                            <div className="min-w-0">
+                              <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider block">
+                                Attached Curriculum Vitae (CV)
+                              </span>
+                              <span className="text-xs font-bold text-slate-800 truncate block">
+                                {currentApplication.cvFileName || "Candidate_CV.pdf"}
+                              </span>
+                            </div>
+                          </div>
+                          <a
+                            href={currentApplication.cvUrl}
+                            download={currentApplication.cvFileName || "Curriculum_Vitae.pdf"}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-2xs shrink-0 self-start sm:self-auto"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            <span>Download / View CV</span>
+                          </a>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               ) : session ? (
@@ -544,6 +1031,88 @@ export default function JobDetailView({
                       className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-900 outline-none focus:border-emerald-500 focus:bg-white"
                     />
                   </label>
+
+                  {/* CV / Resume Upload Section */}
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                        <FileText className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Curriculum Vitae / Resume (CV)</span>
+                      </label>
+                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                        Higher Match Score Bonus
+                      </span>
+                    </div>
+
+                    {cvError && (
+                      <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-700 flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                        <span>{cvError}</span>
+                      </div>
+                    )}
+
+                    {cvUrl ? (
+                      <div className="p-3.5 rounded-2xl border-2 border-emerald-300 bg-emerald-50/70 flex items-center justify-between gap-3 shadow-xs">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                            <FileText className="w-5 h-5" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-slate-900 truncate">{cvFileName}</p>
+                            <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                              <span>{Math.round(cvFileSize / 1024)} KB</span>
+                              <span>&bull;</span>
+                              <span className="text-emerald-700 font-bold">Ready to attach</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <a
+                            href={cvUrl}
+                            download={cvFileName || "Candidate_CV.pdf"}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="p-2 rounded-xl text-emerald-700 hover:bg-emerald-100 transition-colors"
+                            title="Preview file"
+                          >
+                            <Download className="w-4 h-4" />
+                          </a>
+                          <button
+                            type="button"
+                            onClick={handleRemoveCv}
+                            className="p-2 rounded-xl text-rose-600 hover:bg-rose-100 transition-colors"
+                            title="Remove file"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <label className="relative flex flex-col items-center justify-center p-5 border-2 border-dashed border-emerald-300/80 rounded-2xl bg-emerald-50/30 hover:bg-emerald-50/80 hover:border-emerald-500 cursor-pointer transition-all group">
+                        <input
+                          type="file"
+                          accept=".pdf,.docx,.doc,.txt"
+                          onChange={handleCvFileChange}
+                          disabled={cvUploading}
+                          className="sr-only"
+                        />
+                        <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center group-hover:scale-110 transition-transform mb-2">
+                          {cvUploading ? (
+                            <RefreshCw className="w-5 h-5 animate-spin" />
+                          ) : (
+                            <UploadCloud className="w-5 h-5" />
+                          )}
+                        </div>
+                        <p className="text-xs font-bold text-slate-800">
+                          <span className="text-emerald-700 underline underline-offset-2">Click to browse CV</span> or drag file here
+                        </p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          PDF or DOCX document (maximum 8MB)
+                        </p>
+                      </label>
+                    )}
+                  </div>
 
                   <button
                     type="submit"

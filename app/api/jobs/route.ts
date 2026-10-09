@@ -12,9 +12,24 @@ export async function GET(req: NextRequest) {
   const workplaceType = searchParams.get("workplaceType");
   const country = searchParams.get("country");
   const q = searchParams.get("q")?.trim();
+  const savedOnly = searchParams.get("saved") === "true" || searchParams.get("saved") === "1";
+
+  let savedJobFilter: { in: string[] } | undefined = undefined;
+  if (savedOnly) {
+    const session = await getAlumniSession();
+    if (!session) {
+      return fail(401, "You must be signed in to view saved jobs");
+    }
+    const saved = await db.savedJob.findMany({
+      where: { userId: session.sub },
+      select: { jobId: true },
+    });
+    savedJobFilter = { in: saved.map((s) => s.jobId) };
+  }
 
   const jobs = await db.jobOpening.findMany({
     where: {
+      ...(savedJobFilter ? { id: savedJobFilter } : {}),
       ...(category && category !== "all" ? { category: category as never } : {}),
       ...(type && type !== "all" ? { type: type as never } : {}),
       ...(workplaceType && workplaceType !== "all" ? { workplaceType: workplaceType as never } : {}),
@@ -84,12 +99,16 @@ export async function POST(req: NextRequest) {
     postedByName = admin.name;
     postedByTitle = admin.title ? `${admin.title} (Admin)` : "Administrator";
   } else if (alumniSession) {
-    const profile = await db.alumniMember.findUnique({ where: { userId: alumniSession.sub } });
-    if (!profile) return fail(404, "Alumni profile not found");
+    const [profile, alumniUser] = await Promise.all([
+      db.alumniMember.findUnique({ where: { userId: alumniSession.sub } }),
+      db.alumniUser.findUnique({ where: { id: alumniSession.sub } }),
+    ]);
     postedByType = "ALUMNI";
-    postedByAlumniId = profile.id;
-    postedByName = profile.name;
-    postedByTitle = `${profile.currentRole} (Class of '${String(profile.classYear).slice(-2)})`;
+    postedByAlumniId = profile?.id || null;
+    postedByName = profile?.name || alumniUser?.email.split("@")[0] || "Alumnus";
+    const rolePart = profile?.currentRole || "Alumnus";
+    const yearPart = profile?.classYear ? ` (Class of '${String(profile.classYear).slice(-2)})` : "";
+    postedByTitle = `${rolePart}${yearPart}`;
   }
 
   const job = await db.jobOpening.create({

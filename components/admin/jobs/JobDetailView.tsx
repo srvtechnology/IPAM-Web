@@ -20,6 +20,8 @@ export interface JobApplicationRow {
   experienceYears: number;
   coverNote: string | null;
   linkedinUrl?: string | null;
+  cvUrl?: string | null;
+  cvFileName?: string | null;
   interviewDate?: string | null;
   notes?: string | null;
   selectedDate?: string | null;
@@ -263,6 +265,12 @@ export default function JobDetailView({ job }: { job: JobDetailRow }) {
                         <span className="font-body-medium text-on-surface font-bold block">{app.candidateName}</span>
                         {app.gradYear && (
                           <span className="text-[11px] text-on-surface-variant">Class of {app.gradYear}</span>
+                        )}
+                        {app.cvUrl && (
+                          <span className="inline-flex items-center gap-0.5 text-[10px] text-secondary font-bold font-code-compact">
+                            <span className="material-symbols-outlined text-[12px]">description</span>
+                            <span>CV Attached</span>
+                          </span>
                         )}
                       </div>
                     </div>

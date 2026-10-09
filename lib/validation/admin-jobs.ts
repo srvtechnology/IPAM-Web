@@ -29,12 +29,12 @@ export const createAdminJobSchema = z.object({
   title: z.string().min(1, "Job title is required"),
   company: z.string().min(1, "Company / Employer name is required"),
   employerId: z.string().optional(),
-  country: z.string().optional(),
-  state: z.string().optional(),
-  city: z.string().optional(),
-  location: z.string().optional(),
-  workMode: z.enum(["ON_SITE", "HYBRID", "REMOTE"]).optional(),
-  workplaceType: z.enum(["ON_SITE", "HYBRID", "REMOTE"]).optional(),
+  country: z.string().nullable().optional(),
+  state: z.string().nullable().optional(),
+  city: z.string().nullable().optional(),
+  location: z.string().nullable().optional(),
+  workMode: z.enum(["ON_SITE", "HYBRID", "REMOTE"]).nullable().optional(),
+  workplaceType: z.enum(["ON_SITE", "HYBRID", "REMOTE"]).nullable().optional(),
   type: z.enum(["FULL_TIME", "PART_TIME", "CONTRACT", "REMOTE", "EXECUTIVE", "INTERNSHIP"]).default("FULL_TIME"),
   category: z
     .enum([
@@ -46,14 +46,14 @@ export const createAdminJobSchema = z.object({
       "LEGAL_PUBLIC_POLICY",
     ])
     .default("ENGINEERING"),
-  department: z.string().optional(),
+  department: z.string().nullable().optional(),
   experienceRequired: z.boolean().default(false),
-  experienceLevel: z.string().optional(),
-  salaryRange: z.string().optional(),
-  salary: z.string().optional(),
-  salaryMin: z.coerce.number().optional(),
-  salaryMax: z.coerce.number().optional(),
-  currency: z.string().optional(),
+  experienceLevel: z.string().nullable().optional(),
+  salaryRange: z.string().nullable().optional(),
+  salary: z.string().nullable().optional(),
+  salaryMin: z.coerce.number().nullable().optional(),
+  salaryMax: z.coerce.number().nullable().optional(),
+  currency: z.string().nullable().optional(),
   hiringType: z.enum(["IMMEDIATE", "TILL_DATE"]).default("TILL_DATE"),
   positionsOpen: z.coerce.number().int().min(1).default(1),
   status: z
@@ -62,11 +62,11 @@ export const createAdminJobSchema = z.object({
   closingDate: z.coerce.date().nullable().optional(),
   deadline: z.coerce.date().nullable().optional(),
   verifiedOnly: z.boolean().default(false),
-  aboutCompany: z.string().optional(),
-  description: z.string().optional(),
-  requirements: z.array(z.string()).optional(),
-  skillsRequired: z.array(z.string()).optional(),
-  benefits: z.array(z.string()).optional(),
+  aboutCompany: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
+  requirements: z.array(z.string()).nullable().optional(),
+  skillsRequired: z.array(z.string()).nullable().optional(),
+  benefits: z.array(z.string()).nullable().optional(),
 });
 
 export const updateAdminJobSchema = createAdminJobSchema.partial();
@@ -83,6 +83,8 @@ export const createJobApplicationSchema = z.object({
   coverNote: z.string().optional(),
   experienceYears: z.coerce.number().int().default(0),
   skills: z.array(z.string()).optional(),
+  cvUrl: z.string().optional(),
+  cvFileName: z.string().optional(),
   verifiedAlumnus: z.boolean().default(false),
 });
 

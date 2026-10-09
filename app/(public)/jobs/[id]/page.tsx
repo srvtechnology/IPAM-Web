@@ -57,10 +57,28 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
           ? {
               id: application.id,
               applicationRef: application.applicationRef,
+              candidateName: application.candidateName,
+              email: application.email,
+              phone: application.phone,
+              degree: application.degree,
+              faculty: application.faculty,
+              gradYear: application.gradYear,
+              experienceYears: application.experienceYears,
               linkedinUrl: application.linkedinUrl,
               coverNote: application.coverNote,
+              cvUrl: application.cvUrl,
+              cvFileName: application.cvFileName,
               status: application.status,
+              interviewDate: application.interviewDate ? application.interviewDate.toISOString() : null,
+              notes: application.notes,
+              selectedDate: application.selectedDate ? application.selectedDate.toISOString() : null,
+              offerSalary: application.offerSalary,
+              startDate: application.startDate ? application.startDate.toISOString() : null,
+              decisionStatus: application.decisionStatus,
+              recruiterRemarks: application.recruiterRemarks,
+              matchScore: application.matchScore,
               createdAt: application.createdAt.toISOString(),
+              updatedAt: application.updatedAt ? application.updatedAt.toISOString() : application.createdAt.toISOString(),
             }
           : null
       }

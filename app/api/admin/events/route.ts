@@ -68,6 +68,10 @@ export async function GET(req: NextRequest) {
       faqs: ev.faqs,
       status: ev.status,
       featured: ev.featured,
+      bannerImage: ev.bannerImage || "/images/alumni_gala_event_1788454750646.jpg",
+      bannerImages: Array.isArray(ev.bannerImages) && (ev.bannerImages as string[]).length > 0
+        ? (ev.bannerImages as string[])
+        : [ev.bannerImage || "/images/alumni_gala_event_1788454750646.jpg"],
       createdAt: ev.createdAt.toISOString(),
       updatedAt: ev.updatedAt.toISOString(),
       bookingsCount: ev.registrations.length,
@@ -105,6 +109,8 @@ export async function POST(req: NextRequest) {
     capacity,
     dressCode,
     description,
+    bannerImage,
+    bannerImages,
     agenda,
     speakers,
     highlights,
@@ -112,6 +118,26 @@ export async function POST(req: NextRequest) {
     status,
     featured,
   } = parsed.data;
+
+  const DEFAULT_BANNER = "/images/alumni_gala_event_1788454750646.jpg";
+
+  let finalBannerImages: string[] = [];
+  if (Array.isArray(bannerImages) && bannerImages.length > 0) {
+    finalBannerImages = bannerImages.filter(
+      (img): img is string => typeof img === "string" && img.trim().length > 0
+    );
+  }
+
+  let finalDefaultBanner = bannerImage?.trim() || "";
+  if (!finalDefaultBanner && finalBannerImages.length > 0) {
+    finalDefaultBanner = finalBannerImages[0];
+  }
+  if (!finalDefaultBanner) {
+    finalDefaultBanner = DEFAULT_BANNER;
+  }
+  if (!finalBannerImages.includes(finalDefaultBanner)) {
+    finalBannerImages = [finalDefaultBanner, ...finalBannerImages];
+  }
 
   const event = await db.alumniEvent.create({
     data: {
@@ -131,6 +157,8 @@ export async function POST(req: NextRequest) {
       registeredCount: 0,
       dressCode: dressCode || null,
       description,
+      bannerImage: finalDefaultBanner,
+      bannerImages: finalBannerImages,
       agenda: agenda || undefined,
       speakers: speakers || undefined,
       highlights: highlights || undefined,
@@ -146,24 +174,28 @@ export async function POST(req: NextRequest) {
   });
   const { ipAddress, location: loc, deviceInfo } = requestMeta(req);
 
-  await writeAuditLog({
-    actorAdminId: session.sub,
-    actorName: admin?.name ?? "Admin",
-    actorEmail: admin?.email ?? "admin@ipam.edu",
-    actorRole: admin?.role.name ?? "Administrator",
-    action: "EVENT_CREATED",
-    actionLabel: "Event Created",
-    category: "COMMERCIAL_FINANCE",
-    target: event.title,
-    targetType: "AlumniEvent",
-    status: "SUCCESS",
-    severity: "INFO",
-    ipAddress,
-    location: loc,
-    deviceInfo,
-    details: `Created new event "${event.title}" (${event.category}) - ${isPaid ? `Paid ($${ticketPrice})` : "Free/Unpaid"}. Capacity: ${capacity}.`,
-    afterState: event as unknown as Prisma.InputJsonValue,
-  });
+  try {
+    await writeAuditLog({
+      actorAdminId: session.sub,
+      actorName: admin?.name ?? "Admin",
+      actorEmail: admin?.email ?? "admin@ipam.edu",
+      actorRole: admin?.role.name ?? "Administrator",
+      action: "EVENT_CREATED",
+      actionLabel: "Event Created",
+      category: "COMMERCIAL_FINANCE",
+      target: event.title,
+      targetType: "AlumniEvent",
+      status: "SUCCESS",
+      severity: "INFO",
+      ipAddress,
+      location: loc,
+      deviceInfo,
+      details: `Created new event "${event.title}" (${event.category}) - ${isPaid ? `Paid ($${ticketPrice})` : "Free/Unpaid"}. Capacity: ${capacity}.`,
+      afterState: event as unknown as Prisma.InputJsonValue,
+    });
+  } catch (auditErr) {
+    console.error("Non-fatal: Failed to write audit log for event creation:", auditErr);
+  }
 
   return ok(event, 201);
 }

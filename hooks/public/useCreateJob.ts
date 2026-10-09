@@ -19,7 +19,15 @@ export function useCreateJob() {
       });
       const json = await res.json();
       if (!res.ok) {
-        setError(json.error ?? "Could not post job");
+        let msg = json.error ?? "Could not post job";
+        const issues = json.data?.issues || json.issues;
+        if (issues?.fieldErrors && Object.keys(issues.fieldErrors).length > 0) {
+          const fieldMsgs = Object.entries(issues.fieldErrors)
+            .map(([field, errs]) => `${field}: ${(errs as string[]).join(", ")}`)
+            .join(" • ");
+          msg = `Validation failed: ${fieldMsgs}`;
+        }
+        setError(msg);
         return false;
       }
       router.refresh();

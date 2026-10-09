@@ -23,6 +23,8 @@ export interface AdminEventItem {
   pendingRevenue: number;
   dressCode: string | null;
   description: string;
+  bannerImage?: string | null;
+  bannerImages?: string[] | null;
   agenda?: Array<{ time: string; activity: string; speaker?: string }> | null;
   speakers?: Array<{ name: string; title: string; image?: string; company?: string }> | null;
   highlights?: string[] | null;
@@ -135,13 +137,23 @@ export function useAdminEvents() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Failed to create event");
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        let msg = json.error || "Failed to create event";
+        if (json.issues?.fieldErrors) {
+          const fieldMsgs = Object.entries(json.issues.fieldErrors)
+            .map(([field, errs]) => `${field}: ${Array.isArray(errs) ? errs.join(", ") : errs}`)
+            .join("; ");
+          if (fieldMsgs) msg = `${msg} (${fieldMsgs})`;
+        }
+        throw new Error(msg);
+      }
       await refreshAll();
       return json.data;
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Creation error");
-      return null;
+      const msg = err instanceof Error ? err.message : "Creation error";
+      setError(msg);
+      throw err;
     }
   }
 
@@ -153,13 +165,23 @@ export function useAdminEvents() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Failed to update event");
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        let msg = json.error || "Failed to update event";
+        if (json.issues?.fieldErrors) {
+          const fieldMsgs = Object.entries(json.issues.fieldErrors)
+            .map(([field, errs]) => `${field}: ${Array.isArray(errs) ? errs.join(", ") : errs}`)
+            .join("; ");
+          if (fieldMsgs) msg = `${msg} (${fieldMsgs})`;
+        }
+        throw new Error(msg);
+      }
       await refreshAll();
       return json.data;
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Update error");
-      return null;
+      const msg = err instanceof Error ? err.message : "Update error";
+      setError(msg);
+      throw err;
     }
   }
 

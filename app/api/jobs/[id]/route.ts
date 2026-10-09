@@ -61,7 +61,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   const updated = await db.jobOpening.update({
     where: { id },
-    data: parsed.data,
+    data: parsed.data as never,
     include: {
       postedByAlumni: true,
       postedByAdmin: true,

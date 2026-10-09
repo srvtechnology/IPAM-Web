@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   ArrowLeft,
   Calendar,
@@ -15,6 +15,9 @@ import {
   Share2,
   Sparkles,
   ChevronRight,
+  ChevronLeft,
+  Maximize2,
+  Images,
   ShieldCheck,
   Users,
   Check,
@@ -52,6 +55,8 @@ export interface EventDetail {
   capacity: number;
   registeredCount: number;
   registered: boolean;
+  bannerImage?: string | null;
+  bannerImages?: string[] | null;
 }
 
 export interface RelatedEvent {
@@ -89,6 +94,23 @@ export default function EventDetailView({ event, relatedEvents }: { event: Event
   const [copiedLink, setCopiedLink] = useState(false);
   const [downloadedCalendar, setDownloadedCalendar] = useState(false);
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+
+  const allBanners: string[] = useMemo(() => {
+    const list: string[] = [];
+    if (event.bannerImage) list.push(event.bannerImage);
+    if (Array.isArray(event.bannerImages)) {
+      event.bannerImages.forEach((img) => {
+        if (img && !list.includes(img)) list.push(img);
+      });
+    }
+    if (list.length === 0) {
+      list.push("/images/alumni_gala_event_1788454750646.jpg");
+    }
+    return list;
+  }, [event.bannerImage, event.bannerImages]);
+
+  const [activeBannerIdx, setActiveBannerIdx] = useState(0);
+  const [showLightbox, setShowLightbox] = useState(false);
 
   const full = event.registeredCount >= event.capacity;
   const percentageFilled = Math.min(100, Math.round((event.registeredCount / event.capacity) * 100));
@@ -175,6 +197,151 @@ export default function EventDetailView({ event, relatedEvents }: { event: Event
       </div>
 
       <div className="mx-auto max-w-7xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
+        {/* Event Banners & Media Showcase */}
+        <div className="space-y-3">
+          <div className="relative group overflow-hidden rounded-3xl border border-slate-200/90 bg-slate-950 shadow-md">
+            {/* Active Banner Image */}
+            <div className="relative h-64 sm:h-80 md:h-96 lg:h-[420px] w-full overflow-hidden bg-slate-900">
+              <img
+                src={allBanners[activeBannerIdx] || "/images/alumni_gala_event_1788454750646.jpg"}
+                alt={`${event.title} Banner ${activeBannerIdx + 1}`}
+                className="h-full w-full object-cover transition-all duration-700 ease-out"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = "/images/alumni_gala_event_1788454750646.jpg";
+                }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-black/30 pointer-events-none" />
+
+              {/* Navigation controls if multiple banners */}
+              {allBanners.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setActiveBannerIdx((prev) => (prev > 0 ? prev - 1 : allBanners.length - 1))}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 backdrop-blur-md text-white border border-white/20 shadow-lg hover:bg-black/80 transition-all opacity-80 group-hover:opacity-100 hover:scale-105"
+                    title="Previous Banner Image"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveBannerIdx((prev) => (prev < allBanners.length - 1 ? prev + 1 : 0))}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 backdrop-blur-md text-white border border-white/20 shadow-lg hover:bg-black/80 transition-all opacity-80 group-hover:opacity-100 hover:scale-105"
+                    title="Next Banner Image"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                </>
+              )}
+
+              {/* Top Controls Overlay */}
+              <div className="absolute top-4 inset-x-4 flex items-center justify-between pointer-events-none">
+                <div className="flex items-center gap-2 pointer-events-auto">
+                  {activeBannerIdx === 0 && (
+                    <span className="rounded-full bg-emerald-600/90 backdrop-blur-md px-3 py-1 text-xs font-bold text-white shadow-md flex items-center gap-1.5 border border-emerald-400/30">
+                      <Sparkles className="h-3 w-3" />
+                      Official Event Cover
+                    </span>
+                  )}
+                  {allBanners.length > 1 && (
+                    <span className="rounded-full bg-black/60 backdrop-blur-md px-3 py-1 text-xs font-bold text-white shadow-md flex items-center gap-1.5 border border-white/20">
+                      <Images className="h-3 w-3 text-emerald-400" />
+                      {activeBannerIdx + 1} of {allBanners.length} Photos
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 pointer-events-auto">
+                  <button
+                    type="button"
+                    onClick={() => setShowLightbox(true)}
+                    className="flex items-center gap-1.5 rounded-full bg-black/60 backdrop-blur-md px-3 py-1 text-xs font-semibold text-white shadow-md hover:bg-black/80 transition-colors border border-white/20"
+                    title="View Fullscreen"
+                  >
+                    <Maximize2 className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Enlarge</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Bottom Caption Pill */}
+              <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between pointer-events-none">
+                <div className="rounded-2xl bg-slate-950/80 backdrop-blur-md px-4 py-2 border border-white/10 max-w-xl pointer-events-auto">
+                  <p className="text-xs text-emerald-300 font-bold uppercase tracking-wider">
+                    {event.category.replace(/_/g, " ")} • {event.displayDate}
+                  </p>
+                  <p className="text-sm font-extrabold text-white truncate">{event.title}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Thumbnails Strip if multiple banners */}
+          {allBanners.length > 1 && (
+            <div className="flex items-center gap-3 overflow-x-auto pb-1 pt-1 scrollbar-thin">
+              {allBanners.map((bannerUrl, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setActiveBannerIdx(idx)}
+                  className={`relative shrink-0 overflow-hidden rounded-xl transition-all duration-200 h-16 w-28 sm:h-20 sm:w-36 border-2 ${
+                    activeBannerIdx === idx
+                      ? "border-emerald-500 ring-2 ring-emerald-500/30 scale-102 shadow-md"
+                      : "border-slate-200 opacity-70 hover:opacity-100 hover:border-slate-400"
+                  }`}
+                >
+                  <img
+                    src={bannerUrl}
+                    alt={`Thumbnail ${idx + 1}`}
+                    className="h-full w-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = "/images/alumni_gala_event_1788454750646.jpg";
+                    }}
+                  />
+                  {idx === 0 && (
+                    <span className="absolute bottom-1 left-1 rounded-xs bg-emerald-600 px-1 py-0.5 text-[8px] font-black text-white shadow-2xs">
+                      COVER
+                    </span>
+                  )}
+                  {activeBannerIdx === idx && (
+                    <div className="absolute inset-0 bg-emerald-500/10 pointer-events-none" />
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Lightbox Modal */}
+        {showLightbox && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-md p-4"
+            onClick={() => setShowLightbox(false)}
+          >
+            <button
+              type="button"
+              onClick={() => setShowLightbox(false)}
+              className="absolute top-4 right-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20 transition-colors"
+            >
+              <span className="text-2xl leading-none">✕</span>
+            </button>
+            <div
+              className="relative max-h-[90vh] max-w-5xl overflow-hidden rounded-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={allBanners[activeBannerIdx]}
+                alt="Enlarged Banner"
+                className="max-h-[85vh] w-auto rounded-2xl object-contain shadow-2xl"
+              />
+              <div className="absolute bottom-3 inset-x-3 flex items-center justify-between rounded-xl bg-black/70 px-4 py-2 text-white backdrop-blur-md text-xs font-semibold">
+                <span>{event.title}</span>
+                <span>Photo {activeBannerIdx + 1} of {allBanners.length}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Hero header card */}
         <div className="rounded-3xl border border-slate-200/90 bg-white p-6 shadow-xs sm:p-8 lg:p-10">
           <div className="flex flex-col items-start justify-between gap-6 lg:flex-row lg:items-center">

@@ -116,6 +116,29 @@ export async function PATCH(
       dataToUpdate.ticketPrice = 0;
     }
   }
+  if (parsed.data.bannerImages !== undefined || parsed.data.bannerImage !== undefined) {
+    const rawImages = parsed.data.bannerImages !== undefined
+      ? parsed.data.bannerImages
+      : (existing.bannerImages as string[]) || [];
+
+    let bannerImagesArr = Array.isArray(rawImages)
+      ? rawImages.filter((img): img is string => typeof img === "string" && img.trim().length > 0)
+      : [];
+
+    let defaultImg = parsed.data.bannerImage !== undefined
+      ? parsed.data.bannerImage?.trim()
+      : existing.bannerImage;
+
+    if (!defaultImg && bannerImagesArr.length > 0) {
+      defaultImg = bannerImagesArr[0];
+    }
+    if (defaultImg && !bannerImagesArr.includes(defaultImg)) {
+      bannerImagesArr = [defaultImg, ...bannerImagesArr];
+    }
+
+    dataToUpdate.bannerImage = defaultImg || "/images/alumni_gala_event_1788454750646.jpg";
+    dataToUpdate.bannerImages = bannerImagesArr.length > 0 ? bannerImagesArr : [dataToUpdate.bannerImage];
+  }
 
   const updated = await db.alumniEvent.update({
     where: { id },
@@ -128,25 +151,29 @@ export async function PATCH(
   });
   const { ipAddress, location: loc, deviceInfo } = requestMeta(req);
 
-  await writeAuditLog({
-    actorAdminId: session.sub,
-    actorName: admin?.name ?? "Admin",
-    actorEmail: admin?.email ?? "admin@ipam.edu",
-    actorRole: admin?.role.name ?? "Administrator",
-    action: "EVENT_UPDATED",
-    actionLabel: "Event Updated",
-    category: "COMMERCIAL_FINANCE",
-    target: updated.title,
-    targetType: "AlumniEvent",
-    status: "SUCCESS",
-    severity: "INFO",
-    ipAddress,
-    location: loc,
-    deviceInfo,
-    details: `Updated event "${updated.title}". Status: ${updated.status}. Price: ${updated.isPaid ? `$${updated.ticketPrice}` : "Free"}.`,
-    beforeState: existing as unknown as Prisma.InputJsonValue,
-    afterState: updated as unknown as Prisma.InputJsonValue,
-  });
+  try {
+    await writeAuditLog({
+      actorAdminId: session.sub,
+      actorName: admin?.name ?? "Admin",
+      actorEmail: admin?.email ?? "admin@ipam.edu",
+      actorRole: admin?.role.name ?? "Administrator",
+      action: "EVENT_UPDATED",
+      actionLabel: "Event Updated",
+      category: "COMMERCIAL_FINANCE",
+      target: updated.title,
+      targetType: "AlumniEvent",
+      status: "SUCCESS",
+      severity: "INFO",
+      ipAddress,
+      location: loc,
+      deviceInfo,
+      details: `Updated event "${updated.title}". Status: ${updated.status}. Price: ${updated.isPaid ? `$${updated.ticketPrice}` : "Free"}.`,
+      beforeState: existing as unknown as Prisma.InputJsonValue,
+      afterState: updated as unknown as Prisma.InputJsonValue,
+    });
+  } catch (auditErr) {
+    console.error("Non-fatal: Failed to write audit log for event update:", auditErr);
+  }
 
   return ok(updated);
 }
@@ -171,24 +198,28 @@ export async function DELETE(
   });
   const { ipAddress, location: loc, deviceInfo } = requestMeta(req);
 
-  await writeAuditLog({
-    actorAdminId: session.sub,
-    actorName: admin?.name ?? "Admin",
-    actorEmail: admin?.email ?? "admin@ipam.edu",
-    actorRole: admin?.role.name ?? "Administrator",
-    action: "EVENT_DELETED",
-    actionLabel: "Event Deleted",
-    category: "COMMERCIAL_FINANCE",
-    target: existing.title,
-    targetType: "AlumniEvent",
-    status: "SUCCESS",
-    severity: "WARNING",
-    ipAddress,
-    location: loc,
-    deviceInfo,
-    details: `Deleted event "${existing.title}".`,
-    beforeState: existing as unknown as Prisma.InputJsonValue,
-  });
+  try {
+    await writeAuditLog({
+      actorAdminId: session.sub,
+      actorName: admin?.name ?? "Admin",
+      actorEmail: admin?.email ?? "admin@ipam.edu",
+      actorRole: admin?.role.name ?? "Administrator",
+      action: "EVENT_DELETED",
+      actionLabel: "Event Deleted",
+      category: "COMMERCIAL_FINANCE",
+      target: existing.title,
+      targetType: "AlumniEvent",
+      status: "SUCCESS",
+      severity: "WARNING",
+      ipAddress,
+      location: loc,
+      deviceInfo,
+      details: `Deleted event "${existing.title}".`,
+      beforeState: existing as unknown as Prisma.InputJsonValue,
+    });
+  } catch (auditErr) {
+    console.error("Non-fatal: Failed to write audit log for event deletion:", auditErr);
+  }
 
   return ok({ deleted: true, id });
 }

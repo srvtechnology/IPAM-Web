@@ -20,6 +20,7 @@ export default async function EventsPage() {
       events={events.map((e) => ({
         id: e.id,
         title: e.title,
+        date: e.date.toISOString(),
         displayDate: e.displayDate,
         time: e.time,
         location: e.location,
@@ -34,6 +35,9 @@ export default async function EventsPage() {
         capacity: e.capacity,
         registeredCount: e._count.registrations,
         isRegistered: registeredIds.has(e.id),
+        bannerImage: e.bannerImage || null,
+        bannerImages: (e.bannerImages as string[] | null) || null,
+        featured: Boolean(e.featured),
       }))}
     />
   );

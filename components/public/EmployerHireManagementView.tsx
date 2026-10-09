@@ -27,6 +27,10 @@ import {
   ArrowUpRight,
   ExternalLink,
   FileText,
+  Trophy,
+  AlertCircle,
+  Send,
+  Download,
 } from "lucide-react";
 import PostJobModal from "./PostJobModal";
 
@@ -51,6 +55,8 @@ export interface CandidateApplication {
   recruiterRemarks: string | null;
   linkedinUrl: string | null;
   coverNote: string | null;
+  cvUrl?: string | null;
+  cvFileName?: string | null;
   applicationRef: string;
   createdAt: string;
 }
@@ -98,13 +104,71 @@ const STATUS_BADGE_STYLES: Record<string, string> = {
   REJECTED: "bg-red-50 text-red-700 border-red-200",
 };
 
+export interface UserAppliedJobItem {
+  id: string;
+  jobId: string;
+  applicationRef: string;
+  candidateName: string | null;
+  email: string | null;
+  phone: string | null;
+  degree: string | null;
+  faculty: string | null;
+  gradYear: number | null;
+  experienceYears: number;
+  matchScore: number;
+  status: string; // APPLIED, REVIEWING, SHORTLISTED, INTERVIEW_SCHEDULED, SELECTED, REJECTED
+  interviewDate: string | null;
+  notes: string | null;
+  selectedDate: string | null;
+  offerSalary: string | null;
+  startDate: string | null;
+  decisionStatus: string | null;
+  recruiterRemarks: string | null;
+  linkedinUrl: string | null;
+  coverNote: string | null;
+  cvUrl?: string | null;
+  cvFileName?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  job: {
+    id: string;
+    title: string;
+    company: string;
+    location: string;
+    country: string | null;
+    state: string | null;
+    city: string | null;
+    salary: string;
+    type: string;
+    workplaceType: string | null;
+    category: string;
+    experienceRequired: boolean;
+    experienceLevel: string | null;
+    hiringType: string;
+    positionsOpen: number;
+    deadline: string | null;
+    status: string;
+    postedDate: string;
+    postedByType: string;
+    postedByName: string | null;
+  };
+}
+
 export default function EmployerHireManagementView({
   initialJobs,
+  initialApplications = [],
   alumniProfileName,
+  defaultTab = "posted",
 }: {
   initialJobs: ManagedJob[];
+  initialApplications?: UserAppliedJobItem[];
   alumniProfileName: string;
+  defaultTab?: "posted" | "applications";
 }) {
+  const [mainTab, setMainTab] = useState<"applications" | "posted">(defaultTab);
+  const [applications, setApplications] = useState<UserAppliedJobItem[]>(initialApplications);
+  const [appSearch, setAppSearch] = useState("");
+  const [appStatusFilter, setAppStatusFilter] = useState("all");
   const [jobs, setJobs] = useState<ManagedJob[]>(initialJobs);
   const [selectedJobId, setSelectedJobId] = useState<string>(initialJobs[0]?.id || "");
   const [selectedCandidate, setSelectedCandidate] = useState<CandidateApplication | null>(null);
@@ -138,6 +202,24 @@ export default function EmployerHireManagementView({
     (acc, j) => acc + j.applications.filter((a) => a.status === "SELECTED").length,
     0
   );
+
+  // Aggregated Stats for applications
+  const appUnderReview = applications.filter((a) => a.status === "REVIEWING").length;
+  const appShortlisted = applications.filter((a) => a.status === "SHORTLISTED").length;
+  const appInterviews = applications.filter((a) => a.status === "INTERVIEW_SCHEDULED").length;
+  const appSelected = applications.filter((a) => a.status === "SELECTED").length;
+
+  const filteredApplications = applications.filter((app) => {
+    const matchesStatus = appStatusFilter === "all" || app.status === appStatusFilter;
+    const q = appSearch.trim().toLowerCase();
+    const matchesSearch =
+      !q ||
+      app.job.title.toLowerCase().includes(q) ||
+      app.job.company.toLowerCase().includes(q) ||
+      app.job.location.toLowerCase().includes(q) ||
+      app.applicationRef.toLowerCase().includes(q);
+    return matchesStatus && matchesSearch;
+  });
 
   const filteredCandidates = (selectedJob?.applications || []).filter((cand) => {
     const matchesStatus = candidateFilter === "all" || cand.status === candidateFilter;
@@ -272,14 +354,27 @@ export default function EmployerHireManagementView({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-950/80 px-3 py-1 text-xs font-bold text-emerald-300">
-                <Briefcase className="h-3.5 w-3.5 text-emerald-400" />
-                <span>Alumni Hiring Manager Portal</span>
+                {mainTab === "applications" ? (
+                  <>
+                    <Send className="h-3.5 w-3.5 text-teal-400" />
+                    <span>Candidate Application Tracker</span>
+                  </>
+                ) : (
+                  <>
+                    <Briefcase className="h-3.5 w-3.5 text-emerald-400" />
+                    <span>Alumni Hiring Manager Portal</span>
+                  </>
+                )}
               </div>
               <h1 className="mt-2 text-2xl sm:text-3xl font-black text-white">
-                Hire Management &amp; Candidate Pipeline
+                {mainTab === "applications"
+                  ? "My Applications & Status Tracker"
+                  : "Hire Management & Candidate Pipeline"}
               </h1>
               <p className="text-xs sm:text-sm text-slate-300 mt-1">
-                Welcome back, {alumniProfileName}. Manage your posted job listings, evaluate applicants, shortlist, and extend offers.
+                {mainTab === "applications"
+                  ? `Welcome back, ${alumniProfileName}. Track the real-time status of jobs you applied for, review upcoming interviews, and evaluate offer packages.`
+                  : `Welcome back, ${alumniProfileName}. Manage your posted job listings, evaluate applicants, shortlist, and extend offers.`}
               </p>
             </div>
 
@@ -301,35 +396,312 @@ export default function EmployerHireManagementView({
             </div>
           </div>
 
-          {/* Metrics */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-4 border-t border-slate-800/80">
-            <div className="bg-slate-900/80 rounded-2xl p-4 border border-slate-800">
-              <div className="text-[11px] font-bold text-slate-400 uppercase">My Posted Jobs</div>
-              <div className="text-2xl font-black text-white mt-1">{totalJobsCount}</div>
-            </div>
-            <div className="bg-slate-900/80 rounded-2xl p-4 border border-slate-800">
-              <div className="text-[11px] font-bold text-slate-400 uppercase">Open Positions</div>
-              <div className="text-2xl font-black text-emerald-400 mt-1">{totalOpenings}</div>
-            </div>
-            <div className="bg-slate-900/80 rounded-2xl p-4 border border-slate-800">
-              <div className="text-[11px] font-bold text-slate-400 uppercase">Total Candidates</div>
-              <div className="text-2xl font-black text-white mt-1">{totalCandidates}</div>
-            </div>
-            <div className="bg-slate-900/80 rounded-2xl p-4 border border-slate-800">
-              <div className="text-[11px] font-bold text-slate-400 uppercase">Shortlisted</div>
-              <div className="text-2xl font-black text-purple-400 mt-1">{totalShortlisted}</div>
-            </div>
-            <div className="bg-slate-900/80 rounded-2xl p-4 border border-slate-800 col-span-2 sm:col-span-1">
-              <div className="text-[11px] font-bold text-slate-400 uppercase">Selected / Placed</div>
-              <div className="text-2xl font-black text-emerald-400 mt-1">{totalSelected}</div>
-            </div>
+          {/* Main Mode Tabs Switcher */}
+          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-800">
+            <button
+              onClick={() => setMainTab("applications")}
+              className={`flex items-center gap-2 px-5 py-3 rounded-xl font-black text-xs transition-all ${
+                mainTab === "applications"
+                  ? "bg-teal-500 text-slate-950 shadow-md"
+                  : "bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white"
+              }`}
+            >
+              <Send className="w-4 h-4" />
+              <span>My Submitted Applications</span>
+              <span
+                className={`px-2 py-0.5 rounded-full text-[11px] font-black ${
+                  mainTab === "applications" ? "bg-slate-950 text-teal-300" : "bg-slate-800 text-slate-300"
+                }`}
+              >
+                {applications.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setMainTab("posted")}
+              className={`flex items-center gap-2 px-5 py-3 rounded-xl font-black text-xs transition-all ${
+                mainTab === "posted"
+                  ? "bg-emerald-500 text-slate-950 shadow-md"
+                  : "bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white"
+              }`}
+            >
+              <Briefcase className="w-4 h-4" />
+              <span>Hire Management &amp; Posted Jobs</span>
+              <span
+                className={`px-2 py-0.5 rounded-full text-[11px] font-black ${
+                  mainTab === "posted" ? "bg-slate-950 text-emerald-300" : "bg-slate-800 text-slate-300"
+                }`}
+              >
+                {jobs.length}
+              </span>
+            </button>
           </div>
+
+          {/* Metrics */}
+          {mainTab === "applications" ? (
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-4 border-t border-slate-800/80">
+              <div className="bg-slate-900/80 rounded-2xl p-4 border border-slate-800">
+                <div className="text-[11px] font-bold text-slate-400 uppercase">Total Applied</div>
+                <div className="text-2xl font-black text-white mt-1">{applications.length}</div>
+              </div>
+              <div className="bg-slate-900/80 rounded-2xl p-4 border border-slate-800">
+                <div className="text-[11px] font-bold text-slate-400 uppercase">Under Review</div>
+                <div className="text-2xl font-black text-amber-400 mt-1">{appUnderReview}</div>
+              </div>
+              <div className="bg-slate-900/80 rounded-2xl p-4 border border-slate-800">
+                <div className="text-[11px] font-bold text-slate-400 uppercase">Shortlisted</div>
+                <div className="text-2xl font-black text-indigo-400 mt-1">{appShortlisted}</div>
+              </div>
+              <div className="bg-slate-900/80 rounded-2xl p-4 border border-slate-800">
+                <div className="text-[11px] font-bold text-slate-400 uppercase">Interviews</div>
+                <div className="text-2xl font-black text-purple-400 mt-1">{appInterviews}</div>
+              </div>
+              <div className="bg-slate-900/80 rounded-2xl p-4 border border-slate-800 col-span-2 sm:col-span-1">
+                <div className="text-[11px] font-bold text-slate-400 uppercase">Offers / Selected</div>
+                <div className="text-2xl font-black text-emerald-400 mt-1">{appSelected}</div>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-4 border-t border-slate-800/80">
+              <div className="bg-slate-900/80 rounded-2xl p-4 border border-slate-800">
+                <div className="text-[11px] font-bold text-slate-400 uppercase">My Posted Jobs</div>
+                <div className="text-2xl font-black text-white mt-1">{totalJobsCount}</div>
+              </div>
+              <div className="bg-slate-900/80 rounded-2xl p-4 border border-slate-800">
+                <div className="text-[11px] font-bold text-slate-400 uppercase">Open Positions</div>
+                <div className="text-2xl font-black text-emerald-400 mt-1">{totalOpenings}</div>
+              </div>
+              <div className="bg-slate-900/80 rounded-2xl p-4 border border-slate-800">
+                <div className="text-[11px] font-bold text-slate-400 uppercase">Total Candidates</div>
+                <div className="text-2xl font-black text-white mt-1">{totalCandidates}</div>
+              </div>
+              <div className="bg-slate-900/80 rounded-2xl p-4 border border-slate-800">
+                <div className="text-[11px] font-bold text-slate-400 uppercase">Shortlisted</div>
+                <div className="text-2xl font-black text-purple-400 mt-1">{totalShortlisted}</div>
+              </div>
+              <div className="bg-slate-900/80 rounded-2xl p-4 border border-slate-800 col-span-2 sm:col-span-1">
+                <div className="text-[11px] font-bold text-slate-400 uppercase">Selected / Placed</div>
+                <div className="text-2xl font-black text-emerald-400 mt-1">{totalSelected}</div>
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
       {/* Main Interactive Stage */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        {jobs.length === 0 ? (
+        {mainTab === "applications" ? (
+          <div className="space-y-6">
+            {/* Search and Status Filters */}
+            <div className="bg-white rounded-3xl p-5 md:p-6 border border-slate-200/90 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="relative flex-1">
+                <Search className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Search applications by job title, company, location, or ref code…"
+                  value={appSearch}
+                  onChange={(e) => setAppSearch(e.target.value)}
+                  className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-emerald-500 focus:bg-white transition-all"
+                />
+              </div>
+
+              <div className="flex items-center gap-3 shrink-0">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Status:</span>
+                <select
+                  value={appStatusFilter}
+                  onChange={(e) => setAppStatusFilter(e.target.value)}
+                  className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-800 outline-none focus:border-emerald-500"
+                >
+                  <option value="all">All Applications ({applications.length})</option>
+                  <option value="APPLIED">Applied / Received</option>
+                  <option value="REVIEWING">Under Review ({appUnderReview})</option>
+                  <option value="SHORTLISTED">Shortlisted ({appShortlisted})</option>
+                  <option value="INTERVIEW_SCHEDULED">Interview Scheduled ({appInterviews})</option>
+                  <option value="SELECTED">Selected / Offer Extended ({appSelected})</option>
+                  <option value="REJECTED">Closed / Not Selected</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Applications List */}
+            {filteredApplications.length === 0 ? (
+              <div className="rounded-3xl border border-slate-200 bg-white p-12 text-center shadow-xs">
+                <Send className="mx-auto h-12 w-12 text-slate-400 mb-3" />
+                <h2 className="text-xl font-bold text-slate-900">No Job Applications Found</h2>
+                <p className="text-sm text-slate-500 max-w-md mx-auto mt-1 mb-5">
+                  {applications.length === 0
+                    ? "You haven't submitted any job applications through the portal yet. Explore verified institutional and alumni openings now!"
+                    : "No applications matched your search or status filter criteria."}
+                </p>
+                <Link
+                  href="/jobs"
+                  className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-3 text-sm font-bold text-white shadow-md hover:bg-emerald-700 transition-colors"
+                >
+                  <Briefcase className="h-4 w-4" />
+                  <span>Browse Career Opportunities</span>
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredApplications.map((app) => (
+                  <div
+                    key={app.id}
+                    className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200 shadow-xs hover:shadow-md transition-all space-y-4"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {app.status === "SELECTED" ? (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-600 text-white text-xs font-black shadow-xs">
+                            <Trophy className="w-3.5 h-3.5" />
+                            <span>OFFER EXTENDED / SELECTED</span>
+                          </span>
+                        ) : app.status === "INTERVIEW_SCHEDULED" ? (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-600 text-white text-xs font-black shadow-xs animate-pulse">
+                            <Calendar className="w-3.5 h-3.5" />
+                            <span>INTERVIEW SCHEDULED</span>
+                          </span>
+                        ) : app.status === "SHORTLISTED" ? (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-600 text-white text-xs font-black shadow-xs">
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span>SHORTLISTED FOR ROLE</span>
+                          </span>
+                        ) : app.status === "REVIEWING" ? (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500 text-white text-xs font-black shadow-xs">
+                            <Clock className="w-3.5 h-3.5" />
+                            <span>UNDER ACTIVE REVIEW</span>
+                          </span>
+                        ) : app.status === "REJECTED" ? (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-600 text-white text-xs font-black shadow-xs">
+                            <AlertCircle className="w-3.5 h-3.5" />
+                            <span>APPLICATION CLOSED</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-600 text-white text-xs font-black shadow-xs">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>APPLICATION SUBMITTED</span>
+                          </span>
+                        )}
+
+                        <span className="text-xs text-slate-500 font-medium">
+                          Applied on {new Date(app.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+
+                      <div className="text-xs font-mono font-bold text-slate-600 bg-slate-50 px-3 py-1 rounded-lg border border-slate-200 self-start sm:self-auto">
+                        Ref: {app.applicationRef}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                      <div className="space-y-1.5">
+                        <Link
+                          href={`/jobs/${app.job.id}`}
+                          className="text-xl font-black text-slate-900 hover:text-emerald-700 transition-colors flex items-center gap-2 group"
+                        >
+                          <span>{app.job.title}</span>
+                          <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 transition-colors" />
+                        </Link>
+                        <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600 font-semibold">
+                          <span className="text-emerald-700 font-bold flex items-center gap-1">
+                            <Building2 className="w-3.5 h-3.5" />
+                            <span>{app.job.company}</span>
+                          </span>
+                          <span>•</span>
+                          <span className="flex items-center gap-1">
+                            <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                            <span>{app.job.location}</span>
+                          </span>
+                          <span>•</span>
+                          <span className="flex items-center gap-1">
+                            <DollarSign className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>{app.job.salary}</span>
+                          </span>
+                          <span>•</span>
+                          <span>{app.job.type.replace(/_/g, " ")}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Link
+                          href={`/jobs/${app.job.id}#application-section`}
+                          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-xs transition-all active:scale-98"
+                        >
+                          <span>View Live Status Tracker</span>
+                          <ChevronRight className="w-4 h-4" />
+                        </Link>
+                      </div>
+                    </div>
+
+                    {/* Interview Alert Box if Scheduled */}
+                    {app.status === "INTERVIEW_SCHEDULED" && (
+                      <div className="rounded-2xl border border-purple-200 bg-purple-50/70 p-4 space-y-2">
+                        <div className="flex items-center gap-2 text-xs font-black text-purple-950">
+                          <Calendar className="w-4 h-4 text-purple-700" />
+                          <span>Interview Scheduled:</span>
+                          {app.interviewDate && (
+                            <span className="text-purple-800">
+                              {new Date(app.interviewDate).toLocaleString(undefined, {
+                                dateStyle: "full",
+                                timeStyle: "short",
+                              })}
+                            </span>
+                          )}
+                        </div>
+                        {app.notes && (
+                          <p className="text-xs text-slate-700 bg-white p-2.5 rounded-xl border border-purple-100">
+                            <strong>Recruiter Notes:</strong> {app.notes}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Selection / Offer Alert Box */}
+                    {app.status === "SELECTED" && (
+                      <div className="rounded-2xl border border-emerald-300 bg-emerald-50/80 p-4 space-y-2">
+                        <div className="flex items-center gap-2 text-xs font-black text-emerald-950">
+                          <Trophy className="w-4 h-4 text-emerald-700" />
+                          <span>Job Offer Extended:</span>
+                          <span className="text-emerald-800">
+                            Offered Package: {app.offerSalary || app.job.salary}
+                          </span>
+                          {app.startDate && (
+                            <span>• Target Start: {new Date(app.startDate).toLocaleDateString()}</span>
+                          )}
+                        </div>
+                        {app.recruiterRemarks && (
+                          <p className="text-xs text-slate-700 bg-white p-2.5 rounded-xl border border-emerald-100 italic">
+                            &ldquo;{app.recruiterRemarks}&rdquo;
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Attached CV Preview & Download */}
+                    {app.cvUrl && (
+                      <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 text-xs">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <FileText className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                          <span className="text-slate-500 font-medium">Submitted CV:</span>
+                          <span className="font-bold text-slate-800 truncate">{app.cvFileName || "Curriculum_Vitae.pdf"}</span>
+                        </div>
+                        <a
+                          href={app.cvUrl}
+                          download={app.cvFileName || "My_Resume.pdf"}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-bold border border-emerald-200 transition-colors shrink-0"
+                        >
+                          <Download className="w-3 h-3" />
+                          <span>Download CV</span>
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : jobs.length === 0 ? (
           <div className="rounded-3xl border border-slate-200 bg-white p-12 text-center shadow-xs">
             <Briefcase className="mx-auto h-12 w-12 text-slate-400 mb-3" />
             <h2 className="text-xl font-bold text-slate-900">No Posted Jobs Yet</h2>
@@ -561,6 +933,13 @@ export default function EmployerHireManagementView({
                           </div>
 
                           <div className="flex items-center gap-3 shrink-0 self-end sm:self-auto">
+                            {cand.cvUrl && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                <FileText className="w-3 h-3 text-emerald-600" />
+                                <span>CV Attached</span>
+                              </span>
+                            )}
+
                             <span className="text-[11px] font-bold text-slate-500">
                               Match: <strong className="text-emerald-700">{cand.matchScore}%</strong>
                             </span>
@@ -674,6 +1053,28 @@ export default function EmployerHireManagementView({
                   >
                     <span>{selectedCandidate.linkedinUrl}</span>
                     <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+              )}
+
+              {selectedCandidate.cvUrl && (
+                <div className="col-span-2 pt-2 border-t border-slate-200/80 flex items-center justify-between gap-3 bg-emerald-50/80 -mx-4 -mb-4 p-3 rounded-b-2xl">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <FileText className="w-4 h-4 text-emerald-700 shrink-0" />
+                    <div className="min-w-0">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 block">Candidate CV Document</span>
+                      <span className="font-bold text-slate-800 text-xs truncate block">{selectedCandidate.cvFileName || "Curriculum_Vitae.pdf"}</span>
+                    </div>
+                  </div>
+                  <a
+                    href={selectedCandidate.cvUrl}
+                    download={selectedCandidate.cvFileName || `${selectedCandidate.candidateName || "Candidate"}_CV.pdf`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-xs shrink-0"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Download CV</span>
                   </a>
                 </div>
               )}

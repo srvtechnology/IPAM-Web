@@ -63,8 +63,9 @@ export interface WriteAuditLogInput {
 
 function formatDisplayId(timestamp: Date): string {
   const year = timestamp.getUTCFullYear();
-  const rand = Math.floor(Math.random() * 9000 + 1000);
-  return `AUD-${year}-${rand}`;
+  const timeHex = timestamp.getTime().toString(36).toUpperCase();
+  const rand = Math.floor(Math.random() * 90000 + 10000);
+  return `AUD-${year}-${timeHex}-${rand}`;
 }
 
 export async function writeAuditLog(input: WriteAuditLogInput) {
@@ -81,31 +82,40 @@ export async function writeAuditLog(input: WriteAuditLogInput) {
     afterState: input.afterState,
   });
 
-  return db.auditLogEntry.create({
-    data: {
-      displayId: formatDisplayId(timestamp),
-      timestamp,
-      actorAdminId: input.actorAdminId ?? null,
-      actorName: input.actorName,
-      actorEmail: input.actorEmail,
-      actorRole: input.actorRole,
-      actorAvatar: input.actorAvatar ?? null,
-      action: input.action,
-      actionLabel: input.actionLabel,
-      category: input.category,
-      target: input.target,
-      targetType: input.targetType ?? null,
-      status: input.status,
-      severity: input.severity,
-      ipAddress: input.ipAddress,
-      location: input.location,
-      deviceInfo: input.deviceInfo,
-      details: input.details,
-      beforeState: input.beforeState ?? undefined,
-      afterState: input.afterState ?? undefined,
-      tamperHash: hash,
-    },
-  });
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      return await db.auditLogEntry.create({
+        data: {
+          displayId: formatDisplayId(new Date()),
+          timestamp,
+          actorAdminId: input.actorAdminId ?? null,
+          actorName: input.actorName,
+          actorEmail: input.actorEmail,
+          actorRole: input.actorRole,
+          actorAvatar: input.actorAvatar ?? null,
+          action: input.action,
+          actionLabel: input.actionLabel,
+          category: input.category,
+          target: input.target,
+          targetType: input.targetType ?? null,
+          status: input.status,
+          severity: input.severity,
+          ipAddress: input.ipAddress,
+          location: input.location,
+          deviceInfo: input.deviceInfo,
+          details: input.details,
+          beforeState: input.beforeState ?? undefined,
+          afterState: input.afterState ?? undefined,
+          tamperHash: hash,
+        },
+      });
+    } catch (err) {
+      if (attempt === 2) {
+        console.error("Failed to write audit log entry after 3 attempts:", err);
+        return null;
+      }
+    }
+  }
 }
 
 /** Best-effort request metadata extraction for audit rows (no external geo-IP lookup). */

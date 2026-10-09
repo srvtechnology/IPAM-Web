@@ -1,9 +1,75 @@
+import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getAlumniSession } from "@/lib/auth/session";
 import JobsView from "@/components/public/JobsView";
 
-export default async function JobsPage() {
+export default async function JobsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ saved?: string; category?: string; type?: string; q?: string }>;
+}) {
+  const resolvedParams = searchParams ? await searchParams : {};
+  const isSavedFilter = resolvedParams.saved === "true" || resolvedParams.saved === "1";
+
+  const session = await getAlumniSession();
+  if (isSavedFilter && !session) {
+    redirect("/login?redirect=/jobs?saved=true");
+  }
+
+  let savedJobIds: string[] = [];
+  let myPostedJobsCount = 0;
+  let myApplicationsMap: Record<
+    string,
+    {
+      id: string;
+      status: string;
+      applicationRef: string;
+      appliedDate: string;
+      interviewDate?: string | null;
+      offerSalary?: string | null;
+      decisionStatus?: string | null;
+    }
+  > = {};
+
+  if (session) {
+    const [saved, profile, applications] = await Promise.all([
+      db.savedJob.findMany({ where: { userId: session.sub }, select: { jobId: true } }),
+      db.alumniMember.findUnique({ where: { userId: session.sub }, select: { id: true } }),
+      db.jobOpeningApplication.findMany({
+        where: { alumniUserId: session.sub },
+        select: {
+          id: true,
+          jobId: true,
+          status: true,
+          applicationRef: true,
+          createdAt: true,
+          interviewDate: true,
+          offerSalary: true,
+          decisionStatus: true,
+        },
+      }),
+    ]);
+    savedJobIds = saved.map((s) => s.jobId);
+    if (profile) {
+      myPostedJobsCount = await db.jobOpening.count({
+        where: { postedByAlumniId: profile.id },
+      });
+    }
+    for (const app of applications) {
+      myApplicationsMap[app.jobId] = {
+        id: app.id,
+        status: app.status,
+        applicationRef: app.applicationRef,
+        appliedDate: app.createdAt.toISOString(),
+        interviewDate: app.interviewDate ? app.interviewDate.toISOString() : null,
+        offerSalary: app.offerSalary,
+        decisionStatus: app.decisionStatus,
+      };
+    }
+  }
+
   const jobs = await db.jobOpening.findMany({
+    where: isSavedFilter ? { id: { in: savedJobIds } } : undefined,
     orderBy: { postedDate: "desc" },
     include: {
       postedByAlumni: {
@@ -16,27 +82,12 @@ export default async function JobsPage() {
     },
   });
 
-  const session = await getAlumniSession();
-  let savedJobIds: string[] = [];
-  let myPostedJobsCount = 0;
-
-  if (session) {
-    const [saved, profile] = await Promise.all([
-      db.savedJob.findMany({ where: { userId: session.sub }, select: { jobId: true } }),
-      db.alumniMember.findUnique({ where: { userId: session.sub }, select: { id: true } }),
-    ]);
-    savedJobIds = saved.map((s) => s.jobId);
-    if (profile) {
-      myPostedJobsCount = await db.jobOpening.count({
-        where: { postedByAlumniId: profile.id },
-      });
-    }
-  }
-
   return (
     <JobsView
       savedJobIds={savedJobIds}
+      initialSaved={isSavedFilter}
       myPostedJobsCount={myPostedJobsCount}
+      myApplicationsMap={myApplicationsMap}
       jobs={jobs.map((j) => ({
         id: j.id,
         title: j.title,

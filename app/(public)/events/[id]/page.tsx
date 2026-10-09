@@ -59,6 +59,8 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
         capacity: event.capacity,
         registeredCount: event._count.registrations,
         registered,
+        bannerImage: event.bannerImage || null,
+        bannerImages: (event.bannerImages as string[] | null) || null,
       }}
     />
   );

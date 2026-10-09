@@ -38,6 +38,7 @@ export default function EventsManagementView() {
   // Event Tab Filters
   const [eventCategoryFilter, setEventCategoryFilter] = useState<string>("ALL");
   const [eventPricingFilter, setEventPricingFilter] = useState<"ALL" | "PAID" | "FREE">("ALL");
+  const [eventFeaturedFilter, setEventFeaturedFilter] = useState<"ALL" | "FEATURED" | "STANDARD">("ALL");
   const [eventSearch, setEventSearch] = useState("");
 
   // Bookings Tab Filters
@@ -73,6 +74,7 @@ export default function EventsManagementView() {
 
   const paidEventsCount = events.filter((e) => e.isPaid).length;
   const freeEventsCount = events.filter((e) => !e.isPaid).length;
+  const featuredEventsCount = events.filter((e) => e.featured).length;
 
   // Filtered Events
   const filteredEvents = useMemo(() => {
@@ -80,6 +82,8 @@ export default function EventsManagementView() {
       if (eventCategoryFilter !== "ALL" && e.category !== eventCategoryFilter) return false;
       if (eventPricingFilter === "PAID" && !e.isPaid) return false;
       if (eventPricingFilter === "FREE" && e.isPaid) return false;
+      if (eventFeaturedFilter === "FEATURED" && !e.featured) return false;
+      if (eventFeaturedFilter === "STANDARD" && e.featured) return false;
       if (eventSearch) {
         const query = eventSearch.toLowerCase();
         const matchesTitle = e.title.toLowerCase().includes(query);
@@ -89,7 +93,7 @@ export default function EventsManagementView() {
       }
       return true;
     });
-  }, [events, eventCategoryFilter, eventPricingFilter, eventSearch]);
+  }, [events, eventCategoryFilter, eventPricingFilter, eventFeaturedFilter, eventSearch]);
 
   // Filtered Bookings
   const filteredBookings = useMemo(() => {
@@ -263,7 +267,7 @@ export default function EventsManagementView() {
           <div className="mt-2 flex items-baseline gap-2">
             <span className="font-headline-lg text-2xl font-bold text-on-surface">{events.length}</span>
             <span className="text-xs text-on-surface-variant">
-              ({paidEventsCount} Paid, {freeEventsCount} Free)
+              ({paidEventsCount} Paid, {freeEventsCount} Free • {featuredEventsCount} Featured)
             </span>
           </div>
           <div className="mt-2 text-[11px] text-on-surface-variant">
@@ -420,6 +424,17 @@ export default function EventsManagementView() {
                 <option value="PAID">Paid Events ($)</option>
                 <option value="FREE">Free Events ($0)</option>
               </select>
+
+              {/* Featured Filter */}
+              <select
+                value={eventFeaturedFilter}
+                onChange={(e) => setEventFeaturedFilter(e.target.value as "ALL" | "FEATURED" | "STANDARD")}
+                className="rounded-lg bg-surface-container-high border border-outline-variant/20 px-3 py-2 text-xs font-semibold text-on-surface focus:outline-hidden focus:ring-2 focus:ring-primary"
+              >
+                <option value="ALL">All Spotlight Statuses</option>
+                <option value="FEATURED">★ Featured on Banner ({featuredEventsCount})</option>
+                <option value="STANDARD">Standard Events ({events.length - featuredEventsCount})</option>
+              </select>
             </div>
 
             <span className="text-xs text-on-surface-variant font-mono">
@@ -436,40 +451,86 @@ export default function EventsManagementView() {
               return (
                 <div
                   key={ev.id}
-                  className="rounded-2xl border border-outline-variant/20 bg-surface-container overflow-hidden flex flex-col justify-between hover:border-outline-variant/40 transition-all shadow-xs"
+                  className="rounded-2xl border border-outline-variant/20 bg-surface-container overflow-hidden flex flex-col justify-between hover:border-outline-variant/40 transition-all shadow-xs group"
                 >
                   <div>
-                    {/* Header Badges */}
-                    <div className="p-4 pb-3 flex items-start justify-between gap-2 border-b border-outline-variant/15 bg-surface-container-lowest/50">
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-surface-container-highest text-on-surface-variant font-mono">
-                          {ev.category.replace("_", " ")}
-                        </span>
-                        {ev.isVirtual ? (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-500/15 text-cyan-400 flex items-center gap-0.5">
-                            <span className="material-symbols-outlined text-[12px]">videocam</span>
-                            Online
+                    {/* Event Banner Cover Image */}
+                    <div className="relative h-36 w-full overflow-hidden bg-surface-container-highest">
+                      <img
+                        src={ev.bannerImage || "/images/alumni_gala_event_1788454750646.jpg"}
+                        alt={ev.title}
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = "/images/alumni_gala_event_1788454750646.jpg";
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/30" />
+
+                      {/* Top Badges */}
+                      <div className="absolute top-2.5 inset-x-2.5 flex items-center justify-between gap-1.5">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-black/60 backdrop-blur-xs text-white border border-white/20 font-mono">
+                            {ev.category.replace("_", " ")}
+                          </span>
+                          {ev.isVirtual ? (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-950/80 backdrop-blur-xs text-cyan-300 border border-cyan-500/30 flex items-center gap-0.5">
+                              <span className="material-symbols-outlined text-[12px]">videocam</span>
+                              Online
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-900/80 backdrop-blur-xs text-emerald-300 border border-emerald-500/30 flex items-center gap-0.5">
+                              <span className="material-symbols-outlined text-[12px]">pin_drop</span>
+                              In-Person
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Pricing Tag */}
+                        {ev.isPaid ? (
+                          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary text-on-primary shadow-sm flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[13px]">payments</span>
+                            ${ev.ticketPrice} {ev.currency}
                           </span>
                         ) : (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-secondary/15 text-secondary flex items-center gap-0.5">
-                            <span className="material-symbols-outlined text-[12px]">pin_drop</span>
-                            In-Person
+                          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-600 text-white shadow-sm flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[13px]">check_circle</span>
+                            FREE
                           </span>
                         )}
                       </div>
 
-                      {/* Pricing Tag */}
-                      {ev.isPaid ? (
-                        <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary/20 text-primary border border-primary/30 flex items-center gap-1">
-                          <span className="material-symbols-outlined text-[14px]">payments</span>
-                          ${ev.ticketPrice} {ev.currency}
-                        </span>
-                      ) : (
-                        <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-                          <span className="material-symbols-outlined text-[14px]">check_circle</span>
-                          FREE
-                        </span>
-                      )}
+                      {/* Bottom Banner Indicators */}
+                      <div className="absolute bottom-2 inset-x-2.5 flex items-center justify-between text-[11px] text-white">
+                        <button
+                          type="button"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            try {
+                              await updateEvent(ev.id, { featured: !ev.featured });
+                            } catch (err) {
+                              console.error("Failed to toggle featured status:", err);
+                            }
+                          }}
+                          title={ev.featured ? "Featured on Banner (Click to unfeature)" : "Click to feature this event on banner"}
+                          className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-xs transition-all cursor-pointer ${
+                            ev.featured
+                              ? "bg-amber-400 text-slate-950 hover:bg-amber-300 ring-1 ring-amber-300 font-bold"
+                              : "bg-black/60 hover:bg-amber-400 hover:text-slate-950 text-slate-200 backdrop-blur-xs border border-white/20"
+                          }`}
+                        >
+                          <span className="material-symbols-outlined text-[14px]">
+                            {ev.featured ? "star" : "star_border"}
+                          </span>
+                          <span>{ev.featured ? "Featured" : "Set Featured"}</span>
+                        </button>
+
+                        {ev.bannerImages && ev.bannerImages.length > 1 && (
+                          <span className="px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-xs text-white text-[10px] font-bold flex items-center gap-1 border border-white/20">
+                            <span className="material-symbols-outlined text-[12px]">photo_library</span>
+                            {ev.bannerImages.length} Photos
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     {/* Content */}
@@ -559,6 +620,27 @@ export default function EventsManagementView() {
                         className="p-1.5 rounded-lg bg-secondary/15 text-secondary hover:bg-secondary/25 transition-colors"
                       >
                         <span className="material-symbols-outlined text-[18px]">person_add</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await updateEvent(ev.id, { featured: !ev.featured });
+                          } catch (err) {
+                            console.error("Failed to toggle featured status:", err);
+                          }
+                        }}
+                        title={ev.featured ? "Remove from Featured Banner" : "Mark as Featured Banner Event"}
+                        className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                          ev.featured
+                            ? "bg-amber-400/20 text-amber-400 hover:bg-amber-400/30"
+                            : "border border-outline-variant/30 text-on-surface-variant hover:bg-surface-container-high"
+                        }`}
+                      >
+                        <span className="material-symbols-outlined text-[18px]">
+                          {ev.featured ? "star" : "star_border"}
+                        </span>
                       </button>
 
                       <button

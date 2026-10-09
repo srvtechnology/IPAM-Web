@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
+import { useMemo, useState, useEffect, type FormEvent } from "react";
 import Link from "next/link";
 import {
   Calendar,
@@ -18,6 +18,9 @@ import {
   X,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
+  Star,
   ShieldCheck,
   Send,
   Check,
@@ -29,6 +32,7 @@ import { useCreateEventProposal } from "@/hooks/public/useCreateEventProposal";
 export interface EventListItem {
   id: string;
   title: string;
+  date?: string;
   displayDate: string;
   time: string;
   location: string;
@@ -43,6 +47,9 @@ export interface EventListItem {
   capacity: number;
   registeredCount: number;
   isRegistered: boolean;
+  bannerImage?: string | null;
+  bannerImages?: string[] | null;
+  featured?: boolean;
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -133,7 +140,65 @@ export default function EventsView({ events }: { events: EventListItem[] }) {
     });
   }, [events, searchQuery, selectedCategory, filterType, showMyRsvpsOnly]);
 
-  const spotlightEvent = useMemo(() => events.find((e) => e.category === "GALA") ?? events[0], [events]);
+  // Featured events showcase or nearest event fallback
+  const spotlightEvents = useMemo(() => {
+    if (!events || events.length === 0) return [];
+
+    const now = Date.now();
+    const featuredList = events.filter((e) => Boolean(e.featured));
+
+    if (featuredList.length > 0) {
+      // Sort featured events: upcoming events first by date, then past ones
+      return [...featuredList].sort((a, b) => {
+        const timeA = a.date ? new Date(a.date).getTime() : 0;
+        const timeB = b.date ? new Date(b.date).getTime() : 0;
+        const isUpA = timeA >= now;
+        const isUpB = timeB >= now;
+        if (isUpA && !isUpB) return -1;
+        if (!isUpA && isUpB) return 1;
+        if (isUpA && isUpB) return timeA - timeB;
+        return timeB - timeA;
+      });
+    }
+
+    // Fallback: If no featured event exists, select the nearest event
+    const sortedByNearest = [...events].sort((a, b) => {
+      const timeA = a.date ? new Date(a.date).getTime() : 0;
+      const timeB = b.date ? new Date(b.date).getTime() : 0;
+      const isUpA = timeA >= now;
+      const isUpB = timeB >= now;
+      if (isUpA && !isUpB) return -1;
+      if (!isUpA && isUpB) return 1;
+      if (isUpA && isUpB) return timeA - timeB;
+      return timeB - timeA;
+    });
+
+    return sortedByNearest.slice(0, 1);
+  }, [events]);
+
+  const [spotlightIndex, setSpotlightIndex] = useState(0);
+  const [isBannerHovered, setIsBannerHovered] = useState(false);
+
+  useEffect(() => {
+    if (spotlightEvents.length > 0 && spotlightIndex >= spotlightEvents.length) {
+      setSpotlightIndex(0);
+    }
+  }, [spotlightEvents.length, spotlightIndex]);
+
+  // Auto-rotate every 6.5s when multiple featured events are available
+  useEffect(() => {
+    if (spotlightEvents.length <= 1 || isBannerHovered) return;
+    const interval = setInterval(() => {
+      setSpotlightIndex((prev) => (prev + 1) % spotlightEvents.length);
+    }, 6500);
+    return () => clearInterval(interval);
+  }, [spotlightEvents.length, isBannerHovered]);
+
+  const activeSpotlight = spotlightEvents.length > 0
+    ? spotlightEvents[spotlightIndex % spotlightEvents.length]
+    : null;
+  const isMultiSpotlight = spotlightEvents.length > 1;
+  const isFeaturedActive = Boolean(activeSpotlight?.featured);
 
   const hasActiveFilters = searchQuery !== "" || selectedCategory !== "all" || filterType !== "all" || showMyRsvpsOnly;
 
@@ -219,77 +284,150 @@ export default function EventsView({ events }: { events: EventListItem[] }) {
       </section>
 
       <div className="mx-auto mt-10 max-w-7xl space-y-10 px-4 sm:mt-12 sm:space-y-12 sm:px-6 lg:px-8">
-        {/* Spotlight flagship event */}
-        {spotlightEvent && (
-          <section className="group relative overflow-hidden rounded-3xl border border-slate-800/90 bg-slate-950 text-white shadow-xl">
+        {/* Spotlight flagship / nearest event banner */}
+        {activeSpotlight && (
+          <section
+            onMouseEnter={() => setIsBannerHovered(true)}
+            onMouseLeave={() => setIsBannerHovered(false)}
+            className="group relative overflow-hidden rounded-3xl border border-slate-800/90 bg-slate-950 text-white shadow-xl transition-all"
+          >
+            {/* Background image & gradient overlay */}
             <div className="absolute inset-0 z-0 overflow-hidden">
               <img
-                src="/images/alumni_gala_event_1788454750646.jpg"
-                alt={spotlightEvent.title}
-                className="h-full w-full transform object-cover object-center opacity-35 transition-transform duration-700 ease-out group-hover:scale-105"
+                key={activeSpotlight.id}
+                src={activeSpotlight.bannerImage || "/images/alumni_gala_event_1788454750646.jpg"}
+                alt={activeSpotlight.title}
+                className="h-full w-full transform object-cover object-center opacity-35 transition-all duration-700 ease-out group-hover:scale-105"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/92 to-slate-950/75 lg:bg-gradient-to-r lg:from-slate-950/95 lg:via-slate-950/90 lg:to-slate-950/50" />
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(#10b981_1px,transparent_1px)] opacity-10 [background-size:24px_24px]" />
             </div>
 
+            {/* Top Bar with Badge, Status, and Multi-Featured Carousel Controls */}
             <div className="relative z-10 flex flex-col justify-between gap-3 border-b border-slate-800/80 px-6 pb-4 pt-6 sm:flex-row sm:items-center sm:px-10 sm:pt-8">
-              <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-950/80 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-emerald-300 shadow-xs backdrop-blur-md">
-                <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
-                <span>Featured Flagship Gathering</span>
+              <div className="flex flex-wrap items-center gap-2">
+                {isFeaturedActive ? (
+                  <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/40 bg-amber-950/80 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-amber-300 shadow-xs backdrop-blur-md">
+                    <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                    <span>Featured Flagship Gathering</span>
+                  </div>
+                ) : (
+                  <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/40 bg-emerald-950/80 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-emerald-300 shadow-xs backdrop-blur-md">
+                    <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
+                    <span>Nearest Upcoming Event</span>
+                  </div>
+                )}
+
+                {isMultiSpotlight && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-700/80 bg-slate-900/90 px-3 py-1 text-xs font-bold text-slate-300 backdrop-blur-xs">
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+                    {`Featured ${spotlightIndex + 1} of ${spotlightEvents.length}`}
+                  </span>
+                )}
               </div>
-              <div className="flex items-center gap-2 text-xs font-semibold text-slate-400">
-                <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
-                <span className="tracking-wide">Priority Alumni Registration • Official Gala</span>
+
+              {/* Right side: Carousel buttons and dots if multiple, else priority registration badge */}
+              <div className="flex items-center gap-3">
+                {isMultiSpotlight ? (
+                  <div className="flex items-center gap-2">
+                    {/* Dots indicator */}
+                    <div className="hidden sm:flex items-center gap-1.5 mr-2">
+                      {spotlightEvents.map((item, idx) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => setSpotlightIndex(idx)}
+                          title={`Switch to ${item.title}`}
+                          className={`h-2 transition-all rounded-full cursor-pointer ${
+                            idx === spotlightIndex % spotlightEvents.length
+                              ? "w-6 bg-emerald-400"
+                              : "w-2 bg-slate-600 hover:bg-slate-400"
+                          }`}
+                        />
+                      ))}
+                    </div>
+
+                    {/* Navigation Buttons */}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSpotlightIndex((prev) => (prev - 1 + spotlightEvents.length) % spotlightEvents.length)
+                      }
+                      title="Previous featured event"
+                      className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-700 bg-slate-900/90 text-slate-300 hover:border-slate-500 hover:bg-slate-800 hover:text-white transition-colors cursor-pointer"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSpotlightIndex((prev) => (prev + 1) % spotlightEvents.length)}
+                      title="Next featured event"
+                      className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-700 bg-slate-900/90 text-slate-300 hover:border-slate-500 hover:bg-slate-800 hover:text-white transition-colors cursor-pointer"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-xs font-semibold text-slate-400">
+                    <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
+                    <span className="tracking-wide">
+                      {isFeaturedActive
+                        ? "Priority Alumni Registration • Official Gala"
+                        : "Next on Alumni Calendar • Official Event"}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 
+            {/* Banner Main Content */}
             <div className="relative z-10 flex flex-col items-start justify-between gap-8 p-6 sm:p-10 lg:flex-row lg:items-center lg:gap-10">
               <div className="max-w-2xl space-y-4">
                 <div className="flex flex-wrap items-center gap-2.5">
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-slate-900/90 px-3.5 py-1.5 text-xs font-bold text-emerald-300 shadow-xs backdrop-blur-md">
                     <Calendar className="h-3.5 w-3.5 text-emerald-400" />
-                    {spotlightEvent.displayDate}
+                    {activeSpotlight.displayDate}
                   </span>
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-700/80 bg-slate-900/90 px-3.5 py-1.5 text-xs font-bold text-slate-300 shadow-xs backdrop-blur-md">
                     <Clock className="h-3.5 w-3.5 text-slate-400" />
-                    {spotlightEvent.time}
+                    {activeSpotlight.time}
                   </span>
-                  {Number(spotlightEvent.ticketPrice) > 0 ? (
+                  {Number(activeSpotlight.ticketPrice) > 0 ? (
                     <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500 px-3.5 py-1.5 text-xs font-black text-slate-950 shadow-xs">
-                      {spotlightEvent.ticketPrice} {spotlightEvent.currency}
+                      {activeSpotlight.ticketPrice} {activeSpotlight.currency}
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500 px-3.5 py-1.5 text-xs font-black text-slate-950 shadow-xs">
                       Free Registration
                     </span>
                   )}
-                  {spotlightEvent.dressCode && (
+                  {activeSpotlight.dressCode && (
                     <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/20 px-3.5 py-1.5 text-xs font-semibold text-amber-300 backdrop-blur-md">
                       <Sparkles className="h-3 w-3 text-amber-400" />
-                      {spotlightEvent.dressCode}
+                      {activeSpotlight.dressCode}
                     </span>
                   )}
                 </div>
 
                 <h2 className="text-2xl font-black leading-tight tracking-tight text-white sm:text-3xl lg:text-4xl">
-                  {spotlightEvent.title}
+                  {activeSpotlight.title}
                 </h2>
 
-                <p className="text-sm leading-relaxed text-slate-300 sm:text-base">{spotlightEvent.description}</p>
+                <p className="text-sm leading-relaxed text-slate-300 sm:text-base">{activeSpotlight.description}</p>
 
                 <div className="flex items-start gap-2.5 text-xs text-slate-300 sm:text-sm">
                   <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
                   <div>
-                    <span className="font-bold text-white">{spotlightEvent.location}</span>
-                    {spotlightEvent.venueDetails && (
-                      <p className="mt-0.5 text-xs font-normal text-slate-400">{spotlightEvent.venueDetails}</p>
+                    <span className="font-bold text-white">{activeSpotlight.location}</span>
+                    {activeSpotlight.venueDetails && (
+                      <p className="mt-0.5 text-xs font-normal text-slate-400">{activeSpotlight.venueDetails}</p>
                     )}
                   </div>
                 </div>
 
-                {spotlightEvent.highlights && spotlightEvent.highlights.length > 0 && (
+                {activeSpotlight.highlights && activeSpotlight.highlights.length > 0 && (
                   <div className="flex flex-wrap gap-2 pt-1">
-                    {spotlightEvent.highlights.slice(0, 4).map((hl, idx) => (
+                    {activeSpotlight.highlights.slice(0, 4).map((hl, idx) => (
                       <span
                         key={idx}
                         className="inline-flex items-center gap-1.5 rounded-full border border-slate-700/80 bg-slate-900/80 px-3 py-1 text-xs text-slate-200 backdrop-blur-xs"
@@ -305,10 +443,10 @@ export default function EventsView({ events }: { events: EventListItem[] }) {
                   <div className="flex justify-between text-xs font-bold text-slate-300">
                     <span>RSVP Capacity</span>
                     <span className="text-emerald-300">
-                      {spotlightEvent.registeredCount} / {spotlightEvent.capacity} Confirmed
-                      {spotlightEvent.capacity - spotlightEvent.registeredCount > 0 && (
+                      {activeSpotlight.registeredCount} / {activeSpotlight.capacity} Confirmed
+                      {activeSpotlight.capacity - activeSpotlight.registeredCount > 0 && (
                         <span className="ml-1 font-normal text-slate-400">
-                          ({spotlightEvent.capacity - spotlightEvent.registeredCount} remaining)
+                          ({activeSpotlight.capacity - activeSpotlight.registeredCount} remaining)
                         </span>
                       )}
                     </span>
@@ -317,7 +455,7 @@ export default function EventsView({ events }: { events: EventListItem[] }) {
                     <div
                       className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-500"
                       style={{
-                        width: `${Math.min(100, Math.round((spotlightEvent.registeredCount / spotlightEvent.capacity) * 100))}%`,
+                        width: `${Math.min(100, Math.round((activeSpotlight.registeredCount / activeSpotlight.capacity) * 100))}%`,
                       }}
                     />
                   </div>
@@ -328,10 +466,10 @@ export default function EventsView({ events }: { events: EventListItem[] }) {
                 <div className="space-y-2 border-b border-slate-800 pb-3">
                   <div className="text-xs font-bold uppercase tracking-wider text-emerald-400">Alumni Reservation</div>
                   <div className="text-2xl font-black text-white">
-                    {Number(spotlightEvent.ticketPrice) > 0 ? (
+                    {Number(activeSpotlight.ticketPrice) > 0 ? (
                       <span>
-                        {spotlightEvent.ticketPrice}{" "}
-                        <span className="text-xs font-normal text-slate-400">/ {spotlightEvent.currency} per seat</span>
+                        {activeSpotlight.ticketPrice}{" "}
+                        <span className="text-xs font-normal text-slate-400">/ {activeSpotlight.currency} per seat</span>
                       </span>
                     ) : (
                       <span>Free RSVP</span>
@@ -344,15 +482,15 @@ export default function EventsView({ events }: { events: EventListItem[] }) {
 
                 <div className="space-y-2.5">
                   <Link
-                    href={`/events/${spotlightEvent.id}`}
+                    href={`/events/${activeSpotlight.id}`}
                     className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-5 py-3.5 text-sm font-black text-slate-950 shadow-md transition-all hover:bg-emerald-400 active:scale-98"
                   >
                     <Ticket className="h-4 w-4 text-slate-950" />
-                    <span>{spotlightEvent.isRegistered ? "View Your Event Pass" : "RSVP & Get Tickets"}</span>
+                    <span>{activeSpotlight.isRegistered ? "View Your Event Pass" : "RSVP & Get Tickets"}</span>
                     <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </Link>
                   <Link
-                    href={`/events/${spotlightEvent.id}`}
+                    href={`/events/${activeSpotlight.id}`}
                     className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-800/90 px-5 py-3 text-xs font-bold text-slate-200 transition-all hover:bg-slate-700 sm:text-sm"
                   >
                     <span>Agenda & Speaker Bios</span>
@@ -365,6 +503,41 @@ export default function EventsView({ events }: { events: EventListItem[] }) {
                 </div>
               </div>
             </div>
+
+            {/* Bottom thumbnail selector bar if multiple featured events */}
+            {isMultiSpotlight && (
+              <div className="relative z-10 border-t border-slate-800/80 bg-slate-950/80 px-6 py-3 backdrop-blur-md sm:px-10">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    Featured Events Showcase:
+                  </span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {spotlightEvents.map((item, idx) => {
+                      const isActive = idx === spotlightIndex % spotlightEvents.length;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => setSpotlightIndex(idx)}
+                          className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                            isActive
+                              ? "bg-emerald-500 text-slate-950 shadow-xs"
+                              : "bg-slate-900/90 text-slate-300 hover:bg-slate-800 hover:text-white border border-slate-800"
+                          }`}
+                        >
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full ${
+                              isActive ? "bg-slate-950" : "bg-emerald-400"
+                            }`}
+                          />
+                          <span className="max-w-[140px] truncate sm:max-w-[200px]">{item.title}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
           </section>
         )}
 
@@ -501,11 +674,33 @@ export default function EventsView({ events }: { events: EventListItem[] }) {
                   className="group flex flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-50 shadow-xs transition-all duration-300 hover:border-emerald-300 hover:bg-white hover:shadow-md"
                 >
                   <div
-                    className={`relative flex h-40 items-center justify-center text-slate-900 transition-transform duration-300 group-hover:scale-101 sm:h-44 ${getHeaderBg(index)}`}
+                    className={`relative flex h-40 overflow-hidden items-center justify-center text-slate-900 transition-transform duration-300 group-hover:scale-101 sm:h-44 ${
+                      event.bannerImage ? "bg-slate-900" : getHeaderBg(index)
+                    }`}
                   >
-                    <div className="rounded-2xl border border-slate-200/60 bg-white p-3.5 shadow-xs">
-                      {getEventIcon(event.category)}
-                    </div>
+                    {event.bannerImage ? (
+                      <>
+                        <img
+                          src={event.bannerImage}
+                          alt={event.title}
+                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = "/images/alumni_gala_event_1788454750646.jpg";
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-black/20 to-black/30" />
+                        {event.bannerImages && event.bannerImages.length > 1 && (
+                          <span className="absolute bottom-2.5 right-2.5 flex items-center gap-1 rounded-full bg-slate-900/80 px-2 py-0.5 text-[10px] font-bold text-white shadow-xs backdrop-blur-xs border border-white/20">
+                            <Sparkles className="h-2.5 w-2.5 text-emerald-400" />
+                            <span>{event.bannerImages.length} Photos</span>
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <div className="rounded-2xl border border-slate-200/60 bg-white p-3.5 shadow-xs">
+                        {getEventIcon(event.category)}
+                      </div>
+                    )}
 
                     {Number(event.ticketPrice) > 0 ? (
                       <span className="absolute right-3 top-3 rounded-full border border-slate-200 bg-white/95 px-3 py-1 text-xs font-extrabold text-slate-900 shadow-xs">

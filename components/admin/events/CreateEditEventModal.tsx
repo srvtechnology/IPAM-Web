@@ -44,6 +44,164 @@ export default function CreateEditEventModal({
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
+  // Preset Curated Banners
+  const BANNER_PRESETS = [
+    {
+      name: "Annual Gala & Banquet",
+      url: "/images/alumni_gala_event_1788454750646.jpg",
+      tag: "Formal Gala",
+    },
+    {
+      name: "IPAM University Campus",
+      url: "/images/ipam_university_campus_1788350001937.jpg",
+      tag: "Campus Grounds",
+    },
+    {
+      name: "Alumni Networking Mixer",
+      url: "/images/alumni_networking_mixer.jpg",
+      tag: "Networking & Mixer",
+    },
+    {
+      name: "Tech & Innovation Summit",
+      url: "/images/alumni_tech_summit.jpg",
+      tag: "Webinar & Keynote",
+    },
+  ];
+
+  // Banner Images state (supports multiple banners + 1 default banner)
+  const [bannerImages, setBannerImages] = useState<string[]>(() => {
+    if (Array.isArray(event?.bannerImages) && event.bannerImages.length > 0) {
+      return (event.bannerImages as string[]).filter(Boolean);
+    }
+    if (event?.bannerImage) {
+      return [event.bannerImage];
+    }
+    return [];
+  });
+
+  const [defaultBannerImage, setDefaultBannerImage] = useState<string>(() => {
+    if (event?.bannerImage) return event.bannerImage;
+    if (Array.isArray(event?.bannerImages) && event.bannerImages.length > 0) {
+      return (event.bannerImages as string[])[0] || "";
+    }
+    return "";
+  });
+
+  const [newBannerUrl, setNewBannerUrl] = useState("");
+  const [isUploadingBanner, setIsUploadingBanner] = useState(false);
+
+  function addBannerImage(url: string) {
+    const trimmed = url.trim();
+    if (!trimmed) return;
+    setBannerImages((prev) => {
+      if (prev.includes(trimmed)) return prev;
+      const updated = [...prev, trimmed];
+      if (!defaultBannerImage) {
+        setDefaultBannerImage(trimmed);
+      }
+      return updated;
+    });
+    if (!defaultBannerImage) {
+      setDefaultBannerImage(trimmed);
+    }
+    setNewBannerUrl("");
+  }
+
+  function handleSetDefaultBanner(url: string) {
+    setDefaultBannerImage(url);
+    if (!bannerImages.includes(url)) {
+      setBannerImages((prev) => [url, ...prev]);
+    }
+  }
+
+  function handleRemoveBanner(index: number) {
+    const target = bannerImages[index];
+    const nextList = bannerImages.filter((_, i) => i !== index);
+    setBannerImages(nextList);
+    if (defaultBannerImage === target) {
+      setDefaultBannerImage(nextList[0] || "");
+    }
+  }
+
+  function handleMoveBanner(index: number, direction: "left" | "right") {
+    const targetIdx = direction === "left" ? index - 1 : index + 1;
+    if (targetIdx < 0 || targetIdx >= bannerImages.length) return;
+    setBannerImages((prev) => {
+      const copy = [...prev];
+      const temp = copy[index];
+      copy[index] = copy[targetIdx];
+      copy[targetIdx] = temp;
+      return copy;
+    });
+  }
+
+  function compressImageFile(file: File, maxDim = 1920, quality = 0.85): Promise<string> {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onerror = () => resolve("");
+      reader.onload = () => {
+        const resultStr = reader.result as string;
+        const img = new Image();
+        img.onerror = () => resolve(resultStr);
+        img.onload = () => {
+          try {
+            let { width, height } = img;
+            if (width > maxDim || height > maxDim) {
+              if (width > height) {
+                height = Math.round((height * maxDim) / width);
+                width = maxDim;
+              } else {
+                width = Math.round((width * maxDim) / height);
+                height = maxDim;
+              }
+            }
+            const canvas = document.createElement("canvas");
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext("2d");
+            if (!ctx) return resolve(resultStr);
+            ctx.drawImage(img, 0, 0, width, height);
+            const compressed = canvas.toDataURL("image/jpeg", quality);
+            resolve(compressed);
+          } catch {
+            resolve(resultStr);
+          }
+        };
+        img.src = resultStr;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function handleBannerFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setIsUploadingBanner(true);
+
+    try {
+      const promises = Array.from(files).map((file) => compressImageFile(file));
+      const validUrls = (await Promise.all(promises)).filter(Boolean);
+
+      if (validUrls.length > 0) {
+        setBannerImages((prev) => {
+          const combined = [...prev, ...validUrls.filter((u) => !prev.includes(u))];
+          if (!defaultBannerImage && combined.length > 0) {
+            setDefaultBannerImage(combined[0]);
+          }
+          return combined;
+        });
+        if (!defaultBannerImage) {
+          setDefaultBannerImage(validUrls[0]);
+        }
+      }
+    } catch {
+      setFormError("Failed to process uploaded image file");
+    } finally {
+      setIsUploadingBanner(false);
+      e.target.value = "";
+    }
+  }
+
   // Official Event Program & Timeline (Agenda)
   interface AgendaItem {
     time: string;
@@ -143,6 +301,9 @@ export default function CreateEditEventModal({
 
     if (!title.trim()) return setFormError("Event title is required");
     if (!date) return setFormError("Event date is required");
+    const parsedDate = new Date(date.includes("T") ? date : date + "T12:00:00Z");
+    if (isNaN(parsedDate.getTime())) return setFormError("Invalid event date format");
+    if (!description.trim()) return setFormError("Event description is required");
     if (!location.trim() && !isVirtual) return setFormError("Physical location is required");
     if (isVirtual && !virtualLink.trim()) return setFormError("Virtual link is required for online events");
     if (capacity <= 0) return setFormError("Capacity must be at least 1");
@@ -171,7 +332,7 @@ export default function CreateEditEventModal({
       const payload: Record<string, unknown> = {
         title: title.trim(),
         category,
-        date: new Date(date + "T" + (time.includes(":") ? "12:00:00Z" : "12:00:00Z")).toISOString(),
+        date: parsedDate.toISOString(),
         displayDate: displayDate.trim() || date,
         time: time.trim(),
         location: isVirtual ? "Online / Virtual" : location.trim(),
@@ -187,6 +348,10 @@ export default function CreateEditEventModal({
         status,
         featured,
         agenda: cleanedAgenda.length > 0 ? cleanedAgenda : null,
+        bannerImage: defaultBannerImage || (bannerImages.length > 0 ? bannerImages[0] : null),
+        bannerImages: bannerImages.length > 0
+          ? Array.from(new Set([defaultBannerImage || bannerImages[0], ...bannerImages].filter(Boolean)))
+          : null,
       };
 
       const result = await onSave(payload);
@@ -508,6 +673,251 @@ export default function CreateEditEventModal({
             />
           </div>
 
+          {/* Event Banner Images & Media (Multiple + Default Selection) */}
+          <div className="rounded-xl border border-outline-variant/30 bg-surface-container-high/40 p-4 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-outline-variant/20 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <span className="material-symbols-outlined text-[20px]">photo_library</span>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-on-surface">Event Banner Images &amp; Media</h3>
+                    <span className="rounded-full bg-primary/10 border border-primary/20 px-2 py-0.5 text-[11px] font-bold text-primary font-mono">
+                      {bannerImages.length} {bannerImages.length === 1 ? "Banner" : "Banners"}
+                    </span>
+                    {defaultBannerImage && (
+                      <span className="rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[12px]">star</span>
+                        Default Set
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-on-surface-variant">
+                    Add multiple high-resolution banners. Designate one as the Default Cover Banner displayed across the portal.
+                  </p>
+                </div>
+              </div>
+
+              {/* Upload from Local Device */}
+              <label className="flex items-center gap-1.5 rounded-lg bg-primary text-on-primary px-3 py-1.5 text-xs font-bold hover:bg-primary/90 transition-colors shadow-2xs cursor-pointer self-start sm:self-auto">
+                <span className="material-symbols-outlined text-[16px]">upload_file</span>
+                <span>{isUploadingBanner ? "Uploading..." : "Upload from Device"}</span>
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleBannerFileUpload}
+                  disabled={isUploadingBanner}
+                  className="hidden"
+                />
+              </label>
+            </div>
+
+            {/* Quick Preset Banners Selector */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
+                  1-Click IPAM Curated Presets:
+                </span>
+                <span className="text-[10px] text-on-surface-variant/70">Click to add preset banner</span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {BANNER_PRESETS.map((preset) => {
+                  const isAdded = bannerImages.includes(preset.url);
+                  const isDefault = defaultBannerImage === preset.url;
+                  return (
+                    <button
+                      key={preset.url}
+                      type="button"
+                      onClick={() => addBannerImage(preset.url)}
+                      className={`group relative overflow-hidden rounded-lg border text-left transition-all p-1.5 flex flex-col gap-1 ${
+                        isDefault
+                          ? "border-emerald-500 ring-2 ring-emerald-500/30 bg-emerald-500/5"
+                          : isAdded
+                          ? "border-primary/50 bg-primary/5"
+                          : "border-outline-variant/30 hover:border-outline-variant/60 bg-surface-container"
+                      }`}
+                    >
+                      <div className="relative h-16 w-full rounded overflow-hidden bg-surface-container-highest">
+                        <img
+                          src={preset.url}
+                          alt={preset.name}
+                          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
+                        {isDefault && (
+                          <div className="absolute top-1 right-1 rounded-sm bg-emerald-600 px-1 py-0.5 text-[9px] font-black text-white shadow-xs">
+                            ★ DEFAULT
+                          </div>
+                        )}
+                        {!isDefault && isAdded && (
+                          <div className="absolute top-1 right-1 rounded-sm bg-primary/90 px-1 py-0.5 text-[9px] font-bold text-white shadow-xs">
+                            ADDED
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[11px] font-bold text-on-surface line-clamp-1">{preset.name}</span>
+                        <span className="text-[10px] text-on-surface-variant">{preset.tag}</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Custom URL Input Bar */}
+            <div className="flex items-center gap-2 pt-1">
+              <div className="relative flex-1">
+                <span className="material-symbols-outlined absolute left-2.5 top-2 text-[16px] text-on-surface-variant">
+                  link
+                </span>
+                <input
+                  type="url"
+                  value={newBannerUrl}
+                  onChange={(e) => setNewBannerUrl(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addBannerImage(newBannerUrl);
+                    }
+                  }}
+                  placeholder="Or enter image URL (https://... or /images/...)"
+                  className="w-full rounded-lg bg-surface-container border border-outline-variant/30 pl-8 pr-3 py-1.5 text-xs text-on-surface placeholder:text-on-surface-variant/50 focus:outline-hidden focus:ring-1 focus:ring-primary"
+                />
+              </div>
+              <button
+                type="button"
+                disabled={!newBannerUrl.trim()}
+                onClick={() => addBannerImage(newBannerUrl)}
+                className="flex items-center gap-1 rounded-lg bg-surface-container border border-outline-variant/40 px-3 py-1.5 text-xs font-bold text-on-surface hover:bg-surface-container-highest disabled:opacity-40 transition-colors"
+              >
+                <span className="material-symbols-outlined text-[16px]">add</span>
+                <span>Add Image</span>
+              </button>
+            </div>
+
+            {/* Added Banners Gallery & Default Selector */}
+            {bannerImages.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-outline-variant/40 p-4 text-center">
+                <span className="material-symbols-outlined text-[28px] text-on-surface-variant/40 mb-1">
+                  hide_image
+                </span>
+                <p className="text-xs font-semibold text-on-surface">No custom banner images configured</p>
+                <p className="text-[11px] text-on-surface-variant mt-0.5">
+                  Click any of the curated presets above, upload an image from your computer, or paste a URL. If omitted, the standard IPAM Gala banner will be used as default cover.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2 pt-1">
+                <div className="flex items-center justify-between text-[11px] font-bold text-on-surface-variant">
+                  <span>Current Banner Collection ({bannerImages.length})</span>
+                  <span>Click &quot;Set as Default&quot; to pick cover image</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {bannerImages.map((url, idx) => {
+                    const isDefault = (defaultBannerImage === url) || (!defaultBannerImage && idx === 0);
+                    return (
+                      <div
+                        key={idx}
+                        className={`group relative overflow-hidden rounded-xl border transition-all ${
+                          isDefault
+                            ? "border-emerald-500 bg-emerald-500/10 shadow-sm ring-2 ring-emerald-500/30"
+                            : "border-outline-variant/30 bg-surface-container hover:border-outline-variant/60"
+                        }`}
+                      >
+                        {/* Banner Image Preview */}
+                        <div className="relative aspect-video w-full overflow-hidden bg-black/10">
+                          <img
+                            src={url}
+                            alt={`Banner ${idx + 1}`}
+                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-102"
+                            onError={(e) => {
+                              // fallback on image error
+                              (e.target as HTMLImageElement).src = "/images/alumni_gala_event_1788454750646.jpg";
+                            }}
+                          />
+                          {/* Default indicator badge */}
+                          {isDefault ? (
+                            <div className="absolute top-2 left-2 rounded-md bg-emerald-600 px-2 py-0.5 text-[10px] font-black text-white shadow-md flex items-center gap-1">
+                              <span className="material-symbols-outlined text-[13px]">star</span>
+                              <span>DEFAULT BANNER</span>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleSetDefaultBanner(url)}
+                              className="absolute top-2 left-2 rounded-md bg-black/70 backdrop-blur-xs px-2 py-0.5 text-[10px] font-bold text-white shadow-md hover:bg-emerald-600 transition-colors flex items-center gap-1 opacity-90 group-hover:opacity-100"
+                              title="Set as the default event cover banner"
+                            >
+                              <span className="material-symbols-outlined text-[13px]">star_border</span>
+                              <span>Set as Default</span>
+                            </button>
+                          )}
+
+                          {/* Order Indicator */}
+                          <div className="absolute bottom-2 left-2 rounded-md bg-black/60 px-1.5 py-0.5 text-[10px] font-mono font-bold text-white backdrop-blur-xs">
+                            #{idx + 1}
+                          </div>
+                        </div>
+
+                        {/* Banner Action Bar */}
+                        <div className="flex items-center justify-between p-2 bg-surface-container">
+                          <div className="flex items-center gap-1">
+                            {isDefault ? (
+                              <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                                <span className="material-symbols-outlined text-[14px]">check_circle</span>
+                                Primary Cover
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleSetDefaultBanner(url)}
+                                className="text-[11px] font-bold text-primary hover:underline flex items-center gap-0.5"
+                              >
+                                Set as Default
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              disabled={idx === 0}
+                              onClick={() => handleMoveBanner(idx, "left")}
+                              title="Move Banner Left"
+                              className="rounded p-1 text-on-surface-variant hover:bg-surface-container-high disabled:opacity-20 transition-colors"
+                            >
+                              <span className="material-symbols-outlined text-[16px]">chevron_left</span>
+                            </button>
+                            <button
+                              type="button"
+                              disabled={idx === bannerImages.length - 1}
+                              onClick={() => handleMoveBanner(idx, "right")}
+                              title="Move Banner Right"
+                              className="rounded p-1 text-on-surface-variant hover:bg-surface-container-high disabled:opacity-20 transition-colors"
+                            >
+                              <span className="material-symbols-outlined text-[16px]">chevron_right</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveBanner(idx)}
+                              title="Remove Banner"
+                              className="rounded p-1 text-error hover:bg-error-container/20 transition-colors"
+                            >
+                              <span className="material-symbols-outlined text-[16px]">delete</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Official Event Program & Timeline Builder */}
           <div className="rounded-xl border border-outline-variant/30 bg-surface-container-high/40 p-4 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-outline-variant/20 pb-3">
@@ -689,7 +1099,7 @@ export default function CreateEditEventModal({
               className="rounded border-outline-variant text-primary focus:ring-primary h-4 w-4"
             />
             <label htmlFor="event-featured" className="text-xs font-semibold text-on-surface cursor-pointer">
-              Feature this event prominently on portal homepage and alumni dashboard
+              Feature this event prominently on events top banner showcase, portal homepage, and alumni dashboard
             </label>
           </div>
 

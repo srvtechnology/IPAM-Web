@@ -3,7 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-export function useToggleSaveJob(jobId: string, initialSaved: boolean) {
+export function useToggleSaveJob(
+  jobId: string,
+  initialSaved: boolean,
+  onToggle?: (isSaved: boolean) => void
+) {
   const router = useRouter();
   const [saved, setSaved] = useState(initialSaved);
   const [loading, setLoading] = useState(false);
@@ -17,7 +21,10 @@ export function useToggleSaveJob(jobId: string, initialSaved: boolean) {
         return;
       }
       const json = await res.json();
-      if (res.ok) setSaved(json.data.saved);
+      if (res.ok) {
+        setSaved(json.data.saved);
+        onToggle?.(json.data.saved);
+      }
       router.refresh();
     } finally {
       setLoading(false);

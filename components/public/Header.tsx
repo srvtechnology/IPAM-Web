@@ -23,6 +23,7 @@ import {
   ArrowRight,
   User,
   Sparkles,
+  CheckCircle2,
 } from "lucide-react";
 import { useApp } from "@/lib/public/context";
 
@@ -274,6 +275,14 @@ export default function Header() {
                           <span>Full Virtual Card Page</span>
                         </Link>
                         <Link
+                          href="/jobs/manage?tab=applied"
+                          onClick={() => setShowUserDropdown(false)}
+                          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-colors hover:bg-emerald-950/60 hover:text-emerald-300"
+                        >
+                          <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                          <span>My Applied Jobs</span>
+                        </Link>
+                        <Link
                           href="/jobs/manage"
                           onClick={() => setShowUserDropdown(false)}
                           className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-colors hover:bg-emerald-950/60 hover:text-emerald-300"
@@ -282,7 +291,7 @@ export default function Header() {
                           <span>Hire Management &amp; My Jobs</span>
                         </Link>
                         <Link
-                          href="/jobs"
+                          href="/jobs?saved=true"
                           onClick={() => setShowUserDropdown(false)}
                           className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left transition-colors hover:bg-emerald-950/60 hover:text-emerald-300"
                         >
@@ -413,6 +422,14 @@ export default function Header() {
                 >
                   <CreditCard className="h-4 w-4 text-emerald-400" />
                   <span>Virtual Alumni Card</span>
+                </Link>
+                <Link
+                  href="/jobs?saved=true"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-700 bg-slate-800 py-2.5 text-sm font-bold text-slate-200 hover:bg-slate-700"
+                >
+                  <BookmarkCheck className="h-4 w-4 text-emerald-400" />
+                  <span>Saved Job Openings ({session.savedJobsCount})</span>
                 </Link>
                 <button
                   onClick={handleLogout}
