@@ -5,6 +5,8 @@ import Header from "@/components/public/Header";
 import Footer from "@/components/public/Footer";
 import InfoModals from "@/components/public/InfoModals";
 import GlobalVirtualIdModal from "@/components/public/GlobalVirtualIdModal";
+import GlobalProfileModal from "@/components/public/GlobalProfileModal";
+import GlobalSubscriptionModal from "@/components/public/GlobalSubscriptionModal";
 
 async function loadSession(): Promise<PublicSessionUser | null> {
   const token = await getAlumniSession();
@@ -47,6 +49,8 @@ export default async function PublicLayout({ children }: { children: React.React
         <Footer />
         <InfoModals />
         <GlobalVirtualIdModal />
+        <GlobalProfileModal />
+        <GlobalSubscriptionModal />
       </div>
     </AppProvider>
   );

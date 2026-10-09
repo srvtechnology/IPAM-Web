@@ -21,6 +21,8 @@ import {
   Building2,
   Info,
   ArrowRight,
+  User,
+  Sparkles,
 } from "lucide-react";
 import { useApp } from "@/lib/public/context";
 
@@ -45,7 +47,7 @@ const MOBILE_NAV_LINKS: { href: string; label: string; icon: typeof HeartHandsha
 ];
 
 export default function Header() {
-  const { session, setIsPassModalOpen, setPassModalTab } = useApp();
+  const { session, setIsPassModalOpen, setPassModalTab, setIsProfileModalOpen, setIsSubscriptionModalOpen } = useApp();
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -215,10 +217,19 @@ export default function Header() {
                           </div>
                         </div>
                         <div className="mt-2.5 flex items-center justify-between border-t border-slate-800 pt-2 text-[11px]">
-                          <span className="flex items-center gap-1 rounded border border-emerald-500/30 bg-emerald-950/80 px-2 py-0.5 font-bold text-emerald-300">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowUserDropdown(false);
+                              setIsSubscriptionModalOpen(true);
+                            }}
+                            className="group flex items-center gap-1 rounded border border-emerald-500/30 bg-emerald-950/80 px-2 py-0.5 font-bold text-emerald-300 transition-colors hover:border-emerald-400 hover:bg-emerald-900/60"
+                            title="Manage Membership Tier"
+                          >
                             <ShieldCheck className="h-3 w-3 text-emerald-400" />
-                            {session.membershipTier.replace(/_/g, " ")}
-                          </span>
+                            <span>{session.membershipTier.replace(/_/g, " ")}</span>
+                            <span className="ml-1 text-[9px] text-emerald-400/70 group-hover:underline">Manage</span>
+                          </button>
                           <span className="font-medium text-slate-400">ID: {session.studentId}</span>
                         </div>
                       </div>
@@ -227,12 +238,32 @@ export default function Header() {
                         <button
                           onClick={() => {
                             setShowUserDropdown(false);
+                            setIsProfileModalOpen(true);
+                          }}
+                          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-colors hover:bg-emerald-950/60 hover:text-emerald-300"
+                        >
+                          <User className="h-4 w-4 text-emerald-400" />
+                          <span>Manage Profile &amp; Photo</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowUserDropdown(false);
+                            setIsSubscriptionModalOpen(true);
+                          }}
+                          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-colors hover:bg-emerald-950/60 hover:text-emerald-300"
+                        >
+                          <Sparkles className="h-4 w-4 text-amber-400" />
+                          <span>Membership &amp; Subscription</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowUserDropdown(false);
                             openPassModal();
                           }}
                           className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-colors hover:bg-emerald-950/60 hover:text-emerald-300"
                         >
                           <QrCode className="h-4 w-4 text-emerald-400" />
-                          <span>Show Digital Pass & QR</span>
+                          <span>Show Digital Pass &amp; QR</span>
                         </button>
                         <Link
                           href="/pass"
@@ -355,6 +386,26 @@ export default function Header() {
               </div>
             ) : (
               <div className="space-y-2">
+                <button
+                  onClick={() => {
+                    setMobileOpen(false);
+                    setIsProfileModalOpen(true);
+                  }}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-700 bg-slate-800 py-2.5 text-sm font-bold text-slate-200 hover:bg-slate-700"
+                >
+                  <User className="h-4 w-4 text-emerald-400" />
+                  <span>Profile &amp; Photo</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setMobileOpen(false);
+                    setIsSubscriptionModalOpen(true);
+                  }}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-amber-500/30 bg-amber-950/40 py-2.5 text-sm font-bold text-amber-200 hover:bg-amber-900/50"
+                >
+                  <Sparkles className="h-4 w-4 text-amber-400" />
+                  <span>Membership &amp; Subscription</span>
+                </button>
                 <Link
                   href="/pass"
                   onClick={() => setMobileOpen(false)}

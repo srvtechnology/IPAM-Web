@@ -279,22 +279,26 @@ model AlumniUser {
   isVerifiedAlumni     Boolean   @default(false)
   status               VerificationStatus @default(PENDING)
   rejectionReason      String?   @db.Text
-  membershipTier       MembershipTier @default(STANDARD)
-  membershipValidUntil DateTime?
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+  membershipTier           MembershipTier @default(STANDARD)
+  membershipValidUntil     DateTime?
+  subscriptionBillingCycle String?        @default("ANNUAL")
+  subscriptionAutoRenew    Boolean        @default(true)
+  subscriptionUpdatedAt    DateTime?
+  createdAt                DateTime       @default(now())
+  updatedAt                DateTime       @updatedAt
 
-  profile              AlumniMember?
-  savedJobs            SavedJob[]
-  eventRegistrations   EventRegistration[]
-  donations            Donation[]
-  jobApplications      JobApplication[]
-  jobOpeningApplications JobOpeningApplication[]
-  physicalCardOrders   PhysicalCardOrder[]
-  alumniRecord         AlumniRecord?
+  profile                  AlumniMember?
+  subscriptions            MembershipSubscription[]
+  savedJobs                SavedJob[]
+  eventRegistrations       EventRegistration[]
+  donations                Donation[]
+  jobApplications          JobApplication[]
+  jobOpeningApplications   JobOpeningApplication[]
+  physicalCardOrders       PhysicalCardOrder[]
+  alumniRecord             AlumniRecord?
 
-  bookmarksMade        AlumniBookmark[] @relation("BookmarkOwner")
-  bookmarkedBy         AlumniBookmark[] @relation("BookmarkTarget")
+  bookmarksMade            AlumniBookmark[] @relation("BookmarkOwner")
+  bookmarkedBy             AlumniBookmark[] @relation("BookmarkTarget")
 
   @@map("alumni_users")
 }
@@ -305,7 +309,7 @@ model AlumniMember {
   user        AlumniUser @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   name        String
-  avatar      String?  @db.Text
+  avatar      String?  @db.LongText
   classYear   Int
   degree      String
   major       String
@@ -335,6 +339,49 @@ model AlumniMemberSkill {
 
   @@index([alumniId])
   @@map("alumni_member_skills")
+}
+
+model MembershipSubscription {
+  id               String         @id @default(cuid())
+  userId           String
+  user             AlumniUser     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tier             MembershipTier
+  billingCycle     String         @default("ANNUAL") // "ANNUAL" | "LIFETIME" | "MONTHLY"
+  amountPaid       Float          @default(0)
+  currency         String         @default("USD")
+  status           String         @default("ACTIVE") // "ACTIVE" | "CANCELLED" | "EXPIRED"
+  paymentMethod    String         @default("CARD") // "CARD" | "STRIPE" | "COMPLIMENTARY"
+  paymentReference String?
+  autoRenew        Boolean        @default(true)
+  startDate        DateTime       @default(now())
+  validUntil       DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@index([userId])
+  @@map("membership_subscriptions")
+}
+
+model SubscriptionTierConfig {
+  id            String         @id @default(cuid())
+  tier          MembershipTier @unique
+  name          String
+  tagline       String
+  description   String         @db.Text
+  badgeText     String?
+  isFree        Boolean        @default(false)
+  annualPrice   Float          @default(0)
+  lifetimePrice Float          @default(0)
+  monthlyPrice  Float          @default(0)
+  currency      String         @default("USD")
+  isActive      Boolean        @default(true)
+  sortOrder     Int            @default(0)
+  perks         Json
+  accentColor   String?        @default("emerald")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@map("subscription_tier_configs")
 }
 
 model LeadershipMember {
@@ -424,7 +471,7 @@ model JobOpeningApplication {
   degree           String?
   faculty          String?
   gradYear         Int?
-  avatarUrl        String?     @db.Text
+  avatarUrl        String?     @db.LongText
   gpa              String?
   experienceYears  Int         @default(0)
   skills           Json?
