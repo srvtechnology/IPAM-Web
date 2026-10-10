@@ -1,6 +1,7 @@
 "use client";
 
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 
 export interface PublicSessionUser {
   id: string;
@@ -22,7 +23,11 @@ export interface PublicSessionUser {
 interface AppContextType {
   session: PublicSessionUser | null;
   setSession: (session: PublicSessionUser | null | ((prev: PublicSessionUser | null) => PublicSessionUser | null)) => void;
-  refreshSession: () => Promise<void>;
+  refreshSession: () => Promise<PublicSessionUser | null>;
+  loginWithSession: (userData: any) => void;
+  logout: () => Promise<void>;
+  updateSessionProfile: (profileData: Partial<NonNullable<PublicSessionUser["profile"]>>) => void;
+  updateSavedJobsCount: (updater: number | ((prev: number) => number)) => void;
 
   isPostJobOpen: boolean;
   setIsPostJobOpen: (open: boolean) => void;
@@ -45,10 +50,38 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+function normalizeSessionUser(u: any, prevSavedJobs?: number): PublicSessionUser | null {
+  if (!u || !u.id) return null;
+  return {
+    id: u.id,
+    email: u.email,
+    studentId: u.studentId,
+    isVerifiedAlumni: Boolean(u.isVerifiedAlumni),
+    membershipTier: u.membershipTier || "BASIC",
+    savedJobsCount:
+      typeof u.savedJobsCount === "number"
+        ? u.savedJobsCount
+        : typeof prevSavedJobs === "number"
+        ? prevSavedJobs
+        : 0,
+    profile: u.profile
+      ? {
+          id: u.profile.id,
+          name: u.profile.name,
+          avatar: u.profile.avatar ?? null,
+          classYear: u.profile.classYear,
+          degree: u.profile.degree,
+          major: u.profile.major,
+        }
+      : null,
+  };
+}
+
 export const AppProvider: React.FC<{
   children: React.ReactNode;
   initialSession: PublicSessionUser | null;
 }> = ({ children, initialSession }) => {
+  const router = useRouter();
   const [session, setSession] = useState<PublicSessionUser | null>(initialSession);
   const [isPostJobOpen, setIsPostJobOpen] = useState(false);
   const [isSubmitBusinessOpen, setIsSubmitBusinessOpen] = useState(false);
@@ -58,37 +91,103 @@ export const AppProvider: React.FC<{
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
 
-  const refreshSession = useCallback(async () => {
+  // Sync session with server layout changes (e.g. on server re-render / router.refresh())
+  useEffect(() => {
+    setSession(initialSession);
+  }, [initialSession]);
+
+  const refreshSession = useCallback(async (): Promise<PublicSessionUser | null> => {
     try {
       const res = await fetch("/api/auth/alumni/me");
       if (res.ok) {
         const json = await res.json();
         const u = json.data || json;
         if (u && u.id) {
-          setSession((prev) => ({
-            id: u.id,
-            email: u.email,
-            studentId: u.studentId,
-            isVerifiedAlumni: u.isVerifiedAlumni,
-            membershipTier: u.membershipTier,
-            savedJobsCount: prev?.savedJobsCount ?? 0,
-            profile: u.profile
-              ? {
-                  id: u.profile.id,
-                  name: u.profile.name,
-                  avatar: u.profile.avatar,
-                  classYear: u.profile.classYear,
-                  degree: u.profile.degree,
-                  major: u.profile.major,
-                }
-              : null,
-          }));
+          let updated: PublicSessionUser | null = null;
+          setSession((prev) => {
+            updated = normalizeSessionUser(u, prev?.savedJobsCount);
+            return updated;
+          });
+          return updated;
         }
+      } else if (res.status === 401 || res.status === 403) {
+        setSession(null);
+        return null;
       }
     } catch {
       // silently ignore network issues on refresh
     }
+    return null;
   }, []);
+
+  const loginWithSession = useCallback((u: any) => {
+    const normalized = normalizeSessionUser(u);
+    if (normalized) {
+      setSession(normalized);
+      try {
+        localStorage.setItem("ipam_auth_sync", Date.now().toString());
+        window.dispatchEvent(new CustomEvent("ipam-auth-changed"));
+      } catch {
+        // ignore
+      }
+    }
+  }, []);
+
+  const logout = useCallback(async () => {
+    try {
+      await fetch("/api/auth/alumni/logout", { method: "POST" });
+    } catch {
+      // ignore
+    }
+    setSession(null);
+    try {
+      localStorage.setItem("ipam_auth_sync", Date.now().toString());
+      window.dispatchEvent(new CustomEvent("ipam-auth-changed"));
+    } catch {
+      // ignore
+    }
+    router.push("/");
+    router.refresh();
+  }, [router]);
+
+  const updateSessionProfile = useCallback(
+    (profileData: Partial<NonNullable<PublicSessionUser["profile"]>>) => {
+      setSession((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          profile: prev.profile ? { ...prev.profile, ...profileData } : null,
+        };
+      });
+    },
+    []
+  );
+
+  const updateSavedJobsCount = useCallback((updater: number | ((prev: number) => number)) => {
+    setSession((prev) => {
+      if (!prev) return null;
+      const newCount = typeof updater === "function" ? updater(prev.savedJobsCount) : updater;
+      return { ...prev, savedJobsCount: Math.max(0, newCount) };
+    });
+  }, []);
+
+  // Multi-tab sync via storage & window events
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "ipam_auth_sync") {
+        refreshSession();
+      }
+    };
+    const handleCustom = () => {
+      refreshSession();
+    };
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener("ipam-auth-changed", handleCustom);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("ipam-auth-changed", handleCustom);
+    };
+  }, [refreshSession]);
 
   return (
     <AppContext.Provider
@@ -96,6 +195,10 @@ export const AppProvider: React.FC<{
         session,
         setSession,
         refreshSession,
+        loginWithSession,
+        logout,
+        updateSessionProfile,
+        updateSavedJobsCount,
         isPostJobOpen,
         setIsPostJobOpen,
         isSubmitBusinessOpen,

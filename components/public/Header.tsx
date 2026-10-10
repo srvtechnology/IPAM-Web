@@ -48,7 +48,14 @@ const MOBILE_NAV_LINKS: { href: string; label: string; icon: typeof HeartHandsha
 ];
 
 export default function Header() {
-  const { session, setIsPassModalOpen, setPassModalTab, setIsProfileModalOpen, setIsSubscriptionModalOpen } = useApp();
+  const {
+    session,
+    logout,
+    setIsPassModalOpen,
+    setPassModalTab,
+    setIsProfileModalOpen,
+    setIsSubscriptionModalOpen,
+  } = useApp();
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -78,9 +85,7 @@ export default function Header() {
   async function handleLogout() {
     setShowUserDropdown(false);
     setMobileOpen(false);
-    await fetch("/api/auth/alumni/logout", { method: "POST" });
-    router.push("/");
-    router.refresh();
+    await logout();
   }
 
   return (

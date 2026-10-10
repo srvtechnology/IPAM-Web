@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense, type FormEvent } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   KeyRound,
@@ -21,9 +21,13 @@ import {
   AlertTriangle,
   RefreshCw,
 } from "lucide-react";
+import { useApp } from "@/lib/public/context";
 
-export default function LoginPage() {
+function LoginFormContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { session, loginWithSession } = useApp();
+
   const [email, setEmail] = useState("demo.alumni@ipam.edu");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -36,6 +40,15 @@ export default function LoginPage() {
   const [statusType, setStatusType] = useState<"PENDING" | "REJECTED" | null>(null);
   const [rejectionReason, setRejectionReason] = useState<string | null>(null);
   const [rejectedEmail, setRejectedEmail] = useState<string | null>(null);
+
+  const redirectTarget = searchParams.get("redirect") || searchParams.get("next") || "/";
+
+  // If already authenticated, redirect to destination
+  useEffect(() => {
+    if (session) {
+      router.replace(redirectTarget);
+    }
+  }, [session, redirectTarget, router]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -63,8 +76,12 @@ export default function LoginPage() {
         setError(json.error ?? "Login failed");
         return;
       }
-      router.push("/");
+
+      // Update state management immediately
+      const userData = json.data || json;
+      loginWithSession(userData);
       router.refresh();
+      router.push(redirectTarget);
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
@@ -419,5 +436,19 @@ function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
         )}
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400">
+          Loading login portal…
+        </div>
+      }
+    >
+      <LoginFormContent />
+    </Suspense>
   );
 }

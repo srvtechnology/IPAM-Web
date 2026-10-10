@@ -53,6 +53,7 @@ export async function POST(req: NextRequest) {
 
   await setAlumniSessionCookie({ sub: user.id, email: user.email }, { persistent: rememberMe });
 
+  const savedJobsCount = await db.savedJob.count({ where: { userId: user.id } });
   const { passwordHash: _omit, ...safeUser } = user;
-  return ok(safeUser);
+  return ok({ ...safeUser, savedJobsCount });
 }

@@ -5,13 +5,13 @@ import VirtualPassView from "@/components/public/VirtualPassView";
 
 export default async function VirtualPassPage() {
   const session = await getAlumniSession();
-  if (!session) redirect("/login");
+  if (!session) redirect("/login?redirect=/pass");
 
   const user = await db.alumniUser.findUnique({
     where: { id: session.sub },
     include: { profile: true },
   });
-  if (!user || !user.profile) redirect("/login");
+  if (!user || !user.profile) redirect("/login?redirect=/pass");
 
   return (
     <VirtualPassView

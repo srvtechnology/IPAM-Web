@@ -485,7 +485,7 @@ export default function JobsView({
               )}
 
               <button
-                onClick={() => (session ? setIsPostJobOpen(true) : (window.location.href = "/login"))}
+                onClick={() => (session ? setIsPostJobOpen(true) : router.push("/login?redirect=/jobs"))}
                 className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-emerald-600 px-6 py-3.5 text-sm font-bold text-white shadow-lg transition-all hover:bg-emerald-500 hover:shadow-emerald-900/40 active:scale-98"
               >
                 <PlusCircle className="h-5 w-5" />

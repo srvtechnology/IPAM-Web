@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import {
   Plus,
@@ -54,6 +55,7 @@ export default function BusinessesView({
   myBusinesses?: BusinessListItem[];
   currentUserId?: string | null;
 }) {
+  const router = useRouter();
   const { session, isSubmitBusinessOpen, setIsSubmitBusinessOpen } = useApp();
 
   // Internal reactive state for immediate UI feedback after create / edit
@@ -203,7 +205,7 @@ export default function BusinessesView({
 
             <div className="flex flex-wrap items-center gap-3">
               <button
-                onClick={() => (session ? setIsSubmitBusinessOpen(true) : (window.location.href = "/login"))}
+                onClick={() => (session ? setIsSubmitBusinessOpen(true) : router.push("/login?redirect=/businesses"))}
                 className="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-emerald-600 px-6 py-3.5 text-sm font-bold text-white shadow-lg transition-all hover:bg-emerald-500 hover:shadow-emerald-900/40 active:scale-98"
               >
                 <Plus className="h-5 w-5" />
@@ -590,7 +592,7 @@ export default function BusinessesView({
                     Reset All Filters
                   </button>
                   <button
-                    onClick={() => (session ? setIsSubmitBusinessOpen(true) : (window.location.href = "/login"))}
+                    onClick={() => (session ? setIsSubmitBusinessOpen(true) : router.push("/login?redirect=/businesses"))}
                     className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-xs transition-colors hover:bg-emerald-700"
                   >
                     <Plus className="h-4 w-4" />

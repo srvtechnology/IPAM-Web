@@ -11,8 +11,7 @@ export default function Header() {
 
   async function handleLogout() {
     await fetch("/api/auth/admin/logout", { method: "POST" });
-    router.push("/admin/login");
-    router.refresh();
+    window.location.href = "/admin/login";
   }
 
   return (
