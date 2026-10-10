@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAdminSession } from "@/lib/admin/context";
@@ -55,8 +55,10 @@ const STATUS_BADGES: Record<string, { label: string; className: string }> = {
 
 export default function AdminBusinessesTable({
   businesses: initialBusinesses,
+  onBusinessesChange,
 }: {
   businesses: AdminBusinessRow[];
+  onBusinessesChange?: (businesses: AdminBusinessRow[]) => void;
 }) {
   const router = useRouter();
   const { can } = useAdminSession();
@@ -65,6 +67,26 @@ export default function AdminBusinessesTable({
   const [businesses, setBusinesses] = useState<AdminBusinessRow[]>(initialBusinesses);
   const [filterStatus, setFilterStatus] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
+  const [feedbackBanner, setFeedbackBanner] = useState<{
+    type: "success" | "info";
+    message: string;
+  } | null>(null);
+
+  // Sync state when props change from server layout / parent
+  useEffect(() => {
+    setBusinesses(initialBusinesses);
+  }, [initialBusinesses]);
+
+  const updateBusinesses = useCallback(
+    (updater: AdminBusinessRow[] | ((prev: AdminBusinessRow[]) => AdminBusinessRow[])) => {
+      setBusinesses((prev) => {
+        const next = typeof updater === "function" ? updater(prev) : updater;
+        onBusinessesChange?.(next);
+        return next;
+      });
+    },
+    [onBusinessesChange]
+  );
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editingBusiness, setEditingBusiness] = useState<AdminBusinessRow | null>(null);
@@ -88,12 +110,17 @@ export default function AdminBusinessesTable({
       if (filterStatus !== "ALL" && b.status !== filterStatus) return false;
       if (!q) return true;
       return (
-        b.name.toLowerCase().includes(q) ||
-        b.founders.toLowerCase().includes(q) ||
-        b.category.toLowerCase().includes(q) ||
-        b.industry.toLowerCase().includes(q) ||
-        b.location.toLowerCase().includes(q) ||
-        b.contactEmail.toLowerCase().includes(q)
+        (b.name?.toLowerCase() || "").includes(q) ||
+        (b.founders?.toLowerCase() || "").includes(q) ||
+        (b.category?.toLowerCase() || "").includes(q) ||
+        (b.industry?.toLowerCase() || "").includes(q) ||
+        (b.location?.toLowerCase() || "").includes(q) ||
+        (b.contactEmail?.toLowerCase() || "").includes(q) ||
+        (b.tagline?.toLowerCase() || "").includes(q) ||
+        (b.description?.toLowerCase() || "").includes(q) ||
+        (b.website?.toLowerCase() || "").includes(q) ||
+        (b.user?.email?.toLowerCase() || "").includes(q) ||
+        (b.user?.profile?.name?.toLowerCase() || "").includes(q)
       );
     });
   }, [businesses, filterStatus, searchQuery]);
@@ -107,9 +134,13 @@ export default function AdminBusinessesTable({
         body: JSON.stringify({ status: "APPROVED", rejectionReason: null }),
       });
       if (res.ok) {
-        setBusinesses((prev) =>
+        updateBusinesses((prev) =>
           prev.map((b) => (b.id === id ? { ...b, status: "APPROVED", rejectionReason: null } : b))
         );
+        setFeedbackBanner({
+          type: "success",
+          message: "Enterprise listing approved and published live.",
+        });
         router.refresh();
       }
     } finally {
@@ -127,7 +158,7 @@ export default function AdminBusinessesTable({
         body: JSON.stringify({ status: "REJECTED", rejectionReason: rejectReason.trim() }),
       });
       if (res.ok) {
-        setBusinesses((prev) =>
+        updateBusinesses((prev) =>
           prev.map((b) =>
             b.id === rejectingId
               ? { ...b, status: "REJECTED", rejectionReason: rejectReason.trim() }
@@ -136,6 +167,10 @@ export default function AdminBusinessesTable({
         );
         setRejectingId(null);
         setRejectReason("");
+        setFeedbackBanner({
+          type: "info",
+          message: "Enterprise listing rejected with feedback note.",
+        });
         router.refresh();
       }
     } finally {
@@ -149,7 +184,11 @@ export default function AdminBusinessesTable({
     try {
       const res = await fetch(`/api/admin/businesses/${id}`, { method: "DELETE" });
       if (res.ok) {
-        setBusinesses((prev) => prev.filter((b) => b.id !== id));
+        updateBusinesses((prev) => prev.filter((b) => b.id !== id));
+        setFeedbackBanner({
+          type: "info",
+          message: `Enterprise listing "${name}" deleted.`,
+        });
         router.refresh();
       }
     } finally {
@@ -159,6 +198,31 @@ export default function AdminBusinessesTable({
 
   return (
     <div className="space-y-4">
+      {/* Feedback Banner */}
+      {feedbackBanner && (
+        <div
+          className={`flex items-center justify-between rounded-xl border p-3.5 text-xs font-bold transition-all ${
+            feedbackBanner.type === "success"
+              ? "border-secondary/40 bg-secondary/10 text-secondary"
+              : "border-primary/40 bg-primary/10 text-primary"
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-[18px]">
+              {feedbackBanner.type === "success" ? "check_circle" : "info"}
+            </span>
+            <span>{feedbackBanner.message}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setFeedbackBanner(null)}
+            className="text-on-surface-variant hover:text-on-surface p-1 rounded-md"
+          >
+            <span className="material-symbols-outlined text-[16px]">close</span>
+          </button>
+        </div>
+      )}
+
       {/* Metrics Row */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div className="rounded-xl border border-outline-variant/20 bg-surface-container p-3.5">
@@ -209,8 +273,18 @@ export default function AdminBusinessesTable({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search enterprises..."
-              className="w-full rounded-lg border border-outline-variant/30 bg-surface-container py-1.5 pl-8 pr-3 text-xs text-on-surface focus:outline-primary"
+              className="w-full rounded-lg border border-outline-variant/30 bg-surface-container py-1.5 pl-8 pr-7 text-xs text-on-surface focus:outline-primary"
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface p-0.5"
+                title="Clear search"
+              >
+                <span className="material-symbols-outlined text-[16px]">close</span>
+              </button>
+            )}
           </div>
 
           {canWrite && (
@@ -394,9 +468,24 @@ export default function AdminBusinessesTable({
 
             {filteredBusinesses.length === 0 && (
               <tr>
-                <td colSpan={5} className="py-12 text-center text-on-surface-variant">
-                  <span className="material-symbols-outlined text-[36px] block mb-1">search_off</span>
-                  No alumni businesses found matching the selected filter.
+                <td colSpan={5} className="py-12 text-center text-on-surface-variant font-body-default">
+                  <span className="material-symbols-outlined text-[36px] block mb-2 opacity-60">search_off</span>
+                  <p className="font-bold text-on-surface">No alumni businesses found matching the selected filter.</p>
+                  {(searchQuery || filterStatus !== "ALL") && (
+                    <div className="mt-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchQuery("");
+                          setFilterStatus("ALL");
+                        }}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-surface-container-high px-3.5 py-1.5 text-xs font-bold text-primary hover:bg-surface-container-highest transition-colors shadow-xs"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">restart_alt</span>
+                        <span>Reset Filters &amp; Show All ({businesses.length})</span>
+                      </button>
+                    </div>
+                  )}
                 </td>
               </tr>
             )}
@@ -451,15 +540,56 @@ export default function AdminBusinessesTable({
           mode="create"
           onClose={() => setCreateModalOpen(false)}
           onSuccess={(created) => {
-            if (created) {
-              setBusinesses((prev) => [created, ...prev.filter((b) => b.id !== created.id)]);
+            // 1. Immediately reset search and filter to ALL so the user immediately sees the newly created business!
+            setSearchQuery("");
+            setFilterStatus("ALL");
+
+            // 2. Prepend created business immediately to state with normalized shape
+            if (created && created.id) {
+              const row: AdminBusinessRow = {
+                id: created.id,
+                name: created.name,
+                founders: created.founders,
+                classYear: String(created.classYear || ""),
+                category: created.category,
+                industry: created.industry,
+                tagline: created.tagline ?? null,
+                description: created.description,
+                website: created.website,
+                location: created.location,
+                contactEmail: created.contactEmail,
+                contactPhone: created.contactPhone ?? null,
+                image: created.image ?? null,
+                bannerImage: created.bannerImage ?? null,
+                logo: created.logo ?? null,
+                featured: Boolean(created.featured),
+                status: created.status ?? "APPROVED",
+                submittedByType: created.submittedByType ?? "ADMIN",
+                rejectionReason: created.rejectionReason ?? null,
+                userId: created.userId ?? null,
+                services: Array.isArray(created.services) ? created.services : null,
+                createdAt: typeof created.createdAt === "string" ? created.createdAt : new Date().toISOString(),
+                user: created.user ?? null,
+              };
+              updateBusinesses((prev) => [row, ...prev.filter((b) => b.id !== row.id)]);
             }
+
+            // 3. Sync from backend API
             fetch("/api/admin/businesses")
               .then((r) => r.json())
               .then((d) => {
-                if (d.data?.businesses) setBusinesses(d.data.businesses);
-              });
+                if (Array.isArray(d.data?.businesses)) {
+                  updateBusinesses(d.data.businesses);
+                }
+              })
+              .catch(() => {});
+
             router.refresh();
+
+            setFeedbackBanner({
+              type: "success",
+              message: `"${created?.name || "Enterprise"}" has been successfully added to Alumni Enterprises.`,
+            });
           }}
         />
       )}
@@ -471,17 +601,25 @@ export default function AdminBusinessesTable({
           initialData={editingBusiness}
           onClose={() => setEditingBusiness(null)}
           onSuccess={(updated) => {
-            if (updated) {
-              setBusinesses((prev) =>
+            if (updated && updated.id) {
+              updateBusinesses((prev) =>
                 prev.map((b) => (b.id === updated.id ? { ...b, ...updated } : b))
               );
             }
             fetch("/api/admin/businesses")
               .then((r) => r.json())
               .then((d) => {
-                if (d.data?.businesses) setBusinesses(d.data.businesses);
-              });
+                if (Array.isArray(d.data?.businesses)) {
+                  updateBusinesses(d.data.businesses);
+                }
+              })
+              .catch(() => {});
             router.refresh();
+
+            setFeedbackBanner({
+              type: "success",
+              message: `"${updated?.name || "Enterprise"}" was updated successfully.`,
+            });
           }}
         />
       )}

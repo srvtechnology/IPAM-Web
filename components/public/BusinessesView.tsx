@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   Plus,
   Building2,
@@ -65,6 +65,15 @@ export default function BusinessesView({
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All");
   const [editingBusiness, setEditingBusiness] = useState<BusinessListItem | null>(null);
+
+  // Sync state with incoming props from server component
+  useEffect(() => {
+    setBusinessesList(businesses);
+  }, [businesses]);
+
+  useEffect(() => {
+    setMyBusinessesList(myBusinesses);
+  }, [myBusinesses]);
 
   const [feedbackBanner, setFeedbackBanner] = useState<{
     type: "success" | "info";
@@ -144,7 +153,10 @@ export default function BusinessesView({
       setBusinessesList((prev) => [newListing, ...prev.filter((b) => b.id !== newListing.id)]);
     }
 
-    // 3. Immediately switch active tab to "mine" so user directly sees their new listing!
+    // 3. Clear any active search query and category filters so the item isn't masked
+    resetFilters();
+
+    // 4. Immediately switch active tab to "mine" so user directly sees their new listing!
     setActiveTab("mine");
 
     // 4. Show success banner

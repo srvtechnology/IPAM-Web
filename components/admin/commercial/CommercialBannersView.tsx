@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useBanners } from "@/hooks/admin/useBanners";
 import { useAdminSession } from "@/lib/admin/context";
 import AddBannerModal from "./AddBannerModal";
@@ -40,7 +40,14 @@ export default function CommercialBannersView({
   const [invoiceFor, setInvoiceFor] = useState<BannerRow | null>(null);
   const canWrite = can("COMMERCIAL", "canWrite");
 
-  const pendingBusinessCount = businesses.filter((b) => b.status === "PENDING_APPROVAL").length;
+  // Keep businessesList in responsive state so tab badge and table stay 100% in sync
+  const [businessesList, setBusinessesList] = useState<AdminBusinessRow[]>(businesses);
+
+  useEffect(() => {
+    setBusinessesList(businesses);
+  }, [businesses]);
+
+  const pendingBusinessCount = businessesList.filter((b) => b.status === "PENDING_APPROVAL").length;
 
   return (
     <div className="space-y-6">
@@ -65,7 +72,7 @@ export default function CommercialBannersView({
             }`}
           >
             <span className="material-symbols-outlined text-[16px]">storefront</span>
-            <span>Alumni Enterprises ({businesses.length})</span>
+            <span>Alumni Enterprises ({businessesList.length})</span>
             {pendingBusinessCount > 0 && (
               <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-tertiary px-1 text-[10px] font-extrabold text-on-tertiary animate-pulse">
                 {pendingBusinessCount}
@@ -90,7 +97,10 @@ export default function CommercialBannersView({
 
       {/* TAB 1: ALUMNI BUSINESSES & APPROVALS */}
       {activeTab === "businesses" && (
-        <AdminBusinessesTable businesses={businesses} />
+        <AdminBusinessesTable
+          businesses={businessesList}
+          onBusinessesChange={setBusinessesList}
+        />
       )}
 
       {/* TAB 2: SPONSOR BANNERS */}

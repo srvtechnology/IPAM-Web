@@ -97,6 +97,21 @@ export async function POST(req: NextRequest) {
       userId: null,
       featured: parsed.data.featured ?? false,
     },
+    include: {
+      user: {
+        select: {
+          email: true,
+          studentId: true,
+          profile: {
+            select: {
+              name: true,
+              avatar: true,
+              company: true,
+            },
+          },
+        },
+      },
+    },
   });
 
   const { ipAddress, location, deviceInfo } = requestMeta(req);
