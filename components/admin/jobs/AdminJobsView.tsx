@@ -263,10 +263,12 @@ export default function AdminJobsView({
                   <td className="px-4 py-3">
                     <Link
                       href={`/admin/jobs/${job.id}`}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface-container-high hover:bg-primary-container text-on-surface hover:text-on-primary-container text-xs font-bold transition-colors"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-high hover:bg-primary hover:text-on-primary text-on-surface text-xs font-bold transition-all shadow-xs group"
+                      title="See full job details, specifications & candidate pipeline"
                     >
-                      <span>Manage</span>
-                      <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+                      <span className="material-symbols-outlined text-[15px]">visibility</span>
+                      <span>See Job Details</span>
+                      <span className="material-symbols-outlined text-[13px] group-hover:translate-x-0.5 transition-transform">arrow_forward</span>
                     </Link>
                   </td>
                 </tr>

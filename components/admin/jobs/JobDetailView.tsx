@@ -50,6 +50,9 @@ export interface JobDetailRow {
   positionsOpen?: number;
   aboutCompany?: string | null;
   description: string | null;
+  requirements?: string[];
+  responsibilities?: string[];
+  benefits?: string[];
   postedByType?: string;
   postedByName?: string | null;
   postedByTitle?: string | null;
@@ -203,6 +206,67 @@ export default function JobDetailView({ job }: { job: JobDetailRow }) {
             <p className="font-body-default text-on-surface-variant text-sm whitespace-pre-line leading-relaxed">
               {job.description}
             </p>
+          </div>
+        )}
+
+        {/* Requirements, Responsibilities & Benefits */}
+        {((job.requirements && job.requirements.length > 0) ||
+          (job.responsibilities && job.responsibilities.length > 0) ||
+          (job.benefits && job.benefits.length > 0)) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-outline-variant/15 text-xs">
+            {job.requirements && job.requirements.length > 0 && (
+              <div className="p-3.5 rounded-xl bg-surface-container-low border border-outline-variant/15 space-y-2">
+                <div className="flex items-center gap-1.5 font-bold uppercase text-[11px] text-on-surface">
+                  <span className="material-symbols-outlined text-primary text-[16px]">verified</span>
+                  <span>Candidate Requirements</span>
+                </div>
+                <ul className="space-y-1.5 text-on-surface-variant pl-1">
+                  {job.requirements.map((req, idx) => (
+                    <li key={idx} className="flex items-start gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
+                      <span>{req}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {job.responsibilities && job.responsibilities.length > 0 && (
+              <div className="p-3.5 rounded-xl bg-surface-container-low border border-outline-variant/15 space-y-2">
+                <div className="flex items-center gap-1.5 font-bold uppercase text-[11px] text-on-surface">
+                  <span className="material-symbols-outlined text-secondary text-[16px]">task_alt</span>
+                  <span>Key Responsibilities</span>
+                </div>
+                <ul className="space-y-1.5 text-on-surface-variant pl-1">
+                  {job.responsibilities.map((resp, idx) => (
+                    <li key={idx} className="flex items-start gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-secondary mt-1.5 shrink-0" />
+                      <span>{resp}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {job.benefits && job.benefits.length > 0 && (
+              <div className="p-3.5 rounded-xl bg-surface-container-low border border-outline-variant/15 space-y-2 md:col-span-2">
+                <div className="flex items-center gap-1.5 font-bold uppercase text-[11px] text-on-surface">
+                  <span className="material-symbols-outlined text-tertiary text-[16px]">card_giftcard</span>
+                  <span>Benefits &amp; Perks</span>
+                </div>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {job.benefits.map((b, idx) => (
+                    <span
+                      key={idx}
+                      className="px-2.5 py-1 rounded-lg bg-surface-container border border-outline-variant/20 text-on-surface font-medium text-xs flex items-center gap-1"
+                    >
+                      <span className="material-symbols-outlined text-[13px] text-primary">check</span>
+                      <span>{b}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

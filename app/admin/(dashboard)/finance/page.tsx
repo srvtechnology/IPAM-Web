@@ -17,7 +17,7 @@ export default async function FinancePage() {
     });
   }
 
-  const [transactions, users] = await Promise.all([
+  const [transactions, users, donations] = await Promise.all([
     db.transaction.findMany({ orderBy: { date: "desc" }, take: 100 }),
     db.alumniUser.findMany({
       where: { status: "APPROVED" },
@@ -30,6 +30,34 @@ export default async function FinancePage() {
       },
       orderBy: { createdAt: "desc" },
       take: 100,
+    }),
+    db.donation.findMany({
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            studentId: true,
+            membershipTier: true,
+            profile: {
+              select: {
+                name: true,
+                avatar: true,
+                classYear: true,
+              },
+            },
+          },
+        },
+        transaction: {
+          select: {
+            id: true,
+            refId: true,
+            status: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 200,
     }),
   ]);
 
@@ -85,6 +113,38 @@ export default async function FinancePage() {
     };
   });
 
+  const formattedDonations = donations.map((d) => ({
+    id: d.id,
+    paymentRef: d.paymentRef,
+    donorName: d.donorName,
+    donorEmail: d.donorEmail,
+    donorPhone: d.donorPhone,
+    donorClass: d.donorClass,
+    amount: Number(d.amount),
+    currency: d.currency,
+    fund: d.fund,
+    frequency: d.frequency ?? "ONE_TIME",
+    paymentMethod: d.paymentMethod ?? "CARD",
+    isDedication: d.isDedication,
+    dedicationName: d.dedicationName,
+    isAnonymous: d.isAnonymous,
+    status: d.status,
+    createdAt: d.createdAt.toISOString(),
+    isGuest: !d.userId,
+    user: d.user
+      ? {
+          id: d.user.id,
+          email: d.user.email,
+          studentId: d.user.studentId,
+          tier: d.user.membershipTier,
+          name: d.user.profile?.name ?? d.donorName,
+          avatar: d.user.profile?.avatar ?? null,
+          classYear: d.user.profile?.classYear ?? null,
+        }
+      : null,
+    transactionRef: d.transaction?.refId ?? null,
+  }));
+
   return (
     <FinanceView
       transactions={transactions.map((t) => ({
@@ -100,6 +160,7 @@ export default async function FinancePage() {
       }))}
       initialPlans={formattedPlans}
       initialSubscribers={formattedSubscribers}
+      initialDonations={formattedDonations}
     />
   );
 }

@@ -1,8 +1,10 @@
 import { z } from "zod";
 
 export const createDonationSchema = z.object({
-  donorName: z.string().min(1),
-  donorEmail: z.string().email(),
+  donorName: z.string().min(1, "Donor name is required"),
+  donorEmail: z.string().email("Valid email is required"),
+  donorPhone: z.string().min(3, "Phone number is required"),
+  donorClass: z.string().optional().nullable(),
   amount: z.coerce.number().positive(),
   currency: z.string().default("USD"),
   fund: z.string().min(1),

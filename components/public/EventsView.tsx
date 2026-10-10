@@ -495,6 +495,14 @@ export default function EventsView({ events }: { events: EventListItem[] }) {
                   >
                     <span>Agenda & Speaker Bios</span>
                   </Link>
+
+                  <a
+                    href="#calendar"
+                    className="flex w-full items-center justify-center gap-1.5 py-1 text-xs font-semibold text-emerald-400 hover:text-emerald-300 transition-colors"
+                  >
+                    <span>Browse All {events.length} Upcoming Events</span>
+                    <ChevronDown className="h-3.5 w-3.5" />
+                  </a>
                 </div>
 
                 <div className="flex items-center justify-center gap-2 border-t border-slate-800/80 pt-2 text-[11px] text-slate-400">
@@ -542,7 +550,7 @@ export default function EventsView({ events }: { events: EventListItem[] }) {
         )}
 
         {/* Events calendar */}
-        <section className="space-y-8 rounded-3xl border border-slate-200/90 bg-white p-6 shadow-xs sm:p-10">
+        <section id="calendar" className="scroll-mt-8 space-y-8 rounded-3xl border border-slate-200/90 bg-white p-6 shadow-xs sm:p-10">
           <div className="flex flex-col items-start justify-between gap-4 border-b border-slate-100 pb-4 sm:flex-row sm:items-end">
             <div>
               <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-emerald-200/80 bg-emerald-50 px-3 py-1 text-xs font-bold uppercase tracking-wider text-emerald-800">

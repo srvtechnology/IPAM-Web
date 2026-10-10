@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import Link from "next/link";
 import { useAdminJobs } from "@/hooks/admin/useAdminJobs";
 import { COUNTRIES_DATA, getStatesForCountry, getCitiesForState, formatLocation } from "@/lib/locations-data";
 
@@ -20,6 +21,13 @@ export default function CreateJobModal({
   onClose: () => void;
 }) {
   const { createJob, loading, error } = useAdminJobs();
+  const [createdJob, setCreatedJob] = useState<{
+    id: string;
+    title: string;
+    company: string;
+    location?: string;
+    positionsOpen?: number;
+  } | null>(null);
 
   // Location cascading state
   const defaultCountry = "Sierra Leone";
@@ -106,7 +114,85 @@ export default function CreateJobModal({
         .filter(Boolean),
     });
 
-    if (result) onClose();
+    if (result && result.id) {
+      setCreatedJob({
+        id: result.id,
+        title: result.title || form.title,
+        company: result.company || form.company,
+        location: result.location || locationFormatted,
+        positionsOpen: result.positionsOpen || Number(form.positionsOpen) || 1,
+      });
+    }
+  }
+
+  if (createdJob) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-xs overflow-y-auto">
+        <div className="w-full max-w-lg rounded-2xl bg-surface-container p-6 sm:p-8 shadow-2xl border border-outline-variant/30 text-center animate-in fade-in zoom-in-95 duration-200">
+          <div className="w-16 h-16 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-500 flex items-center justify-center mx-auto mb-4">
+            <span className="material-symbols-outlined text-[36px]">check_circle</span>
+          </div>
+
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-primary-container text-on-primary-container mb-2">
+            <span className="material-symbols-outlined text-[14px]">work</span>
+            <span>Job Listing Published</span>
+          </div>
+
+          <h2 className="font-headline-md text-on-surface text-xl sm:text-2xl font-bold">
+            Job Created Successfully!
+          </h2>
+          <p className="font-body-default text-on-surface-variant text-xs sm:text-sm mt-1 mb-5">
+            The institutional vacancy is now live and accepting alumni applications.
+          </p>
+
+          {/* Job summary card */}
+          <div className="p-4 rounded-xl bg-surface-container-low border border-outline-variant/20 text-left mb-6 space-y-2">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="font-headline-sm text-on-surface font-bold text-base">{createdJob.title}</h3>
+                <p className="font-body-default text-primary font-semibold text-xs mt-0.5">{createdJob.company}</p>
+              </div>
+              <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 shrink-0">
+                ACTIVE
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-3 pt-2 text-xs text-on-surface-variant font-medium border-t border-outline-variant/15">
+              {createdJob.location && (
+                <span className="flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[14px]">location_on</span>
+                  <span>{createdJob.location}</span>
+                </span>
+              )}
+              <span className="flex items-center gap-1">
+                <span className="material-symbols-outlined text-[14px]">groups</span>
+                <span>
+                  {createdJob.positionsOpen} {createdJob.positionsOpen === 1 ? "opening" : "openings"}
+                </span>
+              </span>
+            </div>
+          </div>
+
+          {/* Action options */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link
+              href={`/admin/jobs/${createdJob.id}`}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-primary hover:opacity-90 text-on-primary font-bold shadow-md transition-all text-xs sm:text-sm"
+            >
+              <span className="material-symbols-outlined text-[18px]">visibility</span>
+              <span>See Job Details</span>
+            </Link>
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-bold transition-colors text-xs sm:text-sm border border-outline-variant/20"
+            >
+              <span>Done &amp; Return to List</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

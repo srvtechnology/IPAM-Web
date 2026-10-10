@@ -5,6 +5,7 @@ import { useTransactions } from "@/hooks/admin/useTransactions";
 import { useAdminSession } from "@/lib/admin/context";
 import EditTierModal, { type TierConfigData } from "./EditTierModal";
 import GrantTierModal, { type SubscriberRow } from "./GrantTierModal";
+import DonationDetailModal from "./DonationDetailModal";
 
 export interface TransactionRow {
   id: string;
@@ -16,6 +17,36 @@ export interface TransactionRow {
   status: string;
   date: string;
   alumniName: string;
+}
+
+export interface DonationRecordRow {
+  id: string;
+  paymentRef: string;
+  donorName: string;
+  donorEmail: string;
+  donorPhone: string | null;
+  donorClass: string | null;
+  amount: number;
+  currency: string;
+  fund: string;
+  frequency: string;
+  paymentMethod: string;
+  isDedication: boolean;
+  dedicationName: string | null;
+  isAnonymous: boolean;
+  status: string;
+  createdAt: string;
+  isGuest: boolean;
+  user: {
+    id: string;
+    email: string;
+    studentId: string;
+    tier: string;
+    name: string;
+    avatar: string | null;
+    classYear: number | null;
+  } | null;
+  transactionRef: string | null;
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -34,10 +65,12 @@ export default function FinanceView({
   transactions: initialTransactions,
   initialPlans,
   initialSubscribers,
+  initialDonations = [],
 }: {
   transactions: TransactionRow[];
   initialPlans: TierConfigData[];
   initialSubscribers: SubscriberRow[];
+  initialDonations?: DonationRecordRow[];
 }) {
   const { can } = useAdminSession();
   const { reconcile, loading: reconcileLoading } = useTransactions();
@@ -45,7 +78,7 @@ export default function FinanceView({
   const canApprove = can("FINANCE", "canApprove");
 
   // Tab State
-  const [activeTab, setActiveTab] = useState<"tiers" | "subscribers" | "transactions">("tiers");
+  const [activeTab, setActiveTab] = useState<"tiers" | "subscribers" | "transactions" | "donations">("tiers");
 
   // Plans State
   const [plans, setPlans] = useState<TierConfigData[]>(initialPlans);
@@ -62,6 +95,15 @@ export default function FinanceView({
   const [transactions] = useState<TransactionRow[]>(initialTransactions);
   const [statusFilter, setStatusFilter] = useState("ALL");
 
+  // Donations State
+  const [donations, setDonations] = useState<DonationRecordRow[]>(initialDonations);
+  const [selectedDonationForReceipt, setSelectedDonationForReceipt] = useState<DonationRecordRow | null>(null);
+  const [donationSearch, setDonationSearch] = useState("");
+  const [donationFundFilter, setDonationFundFilter] = useState("ALL");
+  const [donationMethodFilter, setDonationMethodFilter] = useState("ALL");
+  const [donationTypeFilter, setDonationTypeFilter] = useState<"ALL" | "GUEST" | "ALUMNI">("ALL");
+  const [donationsLoading, setDonationsLoading] = useState(false);
+
   async function reloadSubscribers() {
     setSubscribersLoading(true);
     try {
@@ -77,6 +119,70 @@ export default function FinanceView({
     }
   }
 
+  async function reloadDonations() {
+    setDonationsLoading(true);
+    try {
+      const res = await fetch(
+        `/api/admin/donations?q=${encodeURIComponent(donationSearch)}&fund=${donationFundFilter}&method=${donationMethodFilter}&donorType=${donationTypeFilter}`
+      );
+      const json = await res.json();
+      if (json.data?.donations) {
+        setDonations(json.data.donations);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setDonationsLoading(false);
+    }
+  }
+
+  function exportDonationsCSV() {
+    const headers = [
+      "Receipt Reference",
+      "Date",
+      "Donor Name",
+      "Email",
+      "Phone Number",
+      "Affiliation/Class",
+      "Donor Type",
+      "Fund Designation",
+      "Amount",
+      "Currency",
+      "Schedule",
+      "Payment Method",
+      "Dedication",
+      "Status",
+      "Transaction Ref",
+    ];
+
+    const rows = filteredDonations.map((d) => [
+      `"${d.paymentRef}"`,
+      `"${new Date(d.createdAt).toISOString()}"`,
+      `"${d.donorName.replace(/"/g, '""')}"`,
+      `"${d.donorEmail.replace(/"/g, '""')}"`,
+      `"${(d.donorPhone || "").replace(/"/g, '""')}"`,
+      `"${(d.donorClass || "").replace(/"/g, '""')}"`,
+      d.isGuest ? '"Guest"' : '"Registered Alumni"',
+      `"${d.fund.replace(/"/g, '""')}"`,
+      d.amount,
+      `"${d.currency}"`,
+      `"${d.frequency}"`,
+      `"${d.paymentMethod}"`,
+      `"${(d.dedicationName || "").replace(/"/g, '""')}"`,
+      `"${d.status}"`,
+      `"${d.transactionRef || ""}"`,
+    ]);
+
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `IPAM_Giving_Records_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
   const filteredSubscribers = subscribers.filter((s) => {
     if (subscriberTierFilter !== "ALL" && s.tier !== subscriberTierFilter) return false;
     if (subscriberSearch.trim()) {
@@ -90,6 +196,29 @@ export default function FinanceView({
     }
     return true;
   });
+
+  const filteredDonations = donations.filter((d) => {
+    if (donationFundFilter !== "ALL" && d.fund !== donationFundFilter) return false;
+    if (donationMethodFilter !== "ALL" && d.paymentMethod !== donationMethodFilter) return false;
+    if (donationTypeFilter === "GUEST" && !d.isGuest) return false;
+    if (donationTypeFilter === "ALUMNI" && d.isGuest) return false;
+    if (donationSearch.trim()) {
+      const q = donationSearch.toLowerCase();
+      return (
+        d.donorName.toLowerCase().includes(q) ||
+        d.donorEmail.toLowerCase().includes(q) ||
+        (d.donorPhone && d.donorPhone.toLowerCase().includes(q)) ||
+        d.paymentRef.toLowerCase().includes(q) ||
+        (d.dedicationName && d.dedicationName.toLowerCase().includes(q)) ||
+        d.fund.toLowerCase().includes(q)
+      );
+    }
+    return true;
+  });
+
+  const totalDonationAmountUSD = donations
+    .filter((d) => d.currency === "USD")
+    .reduce((sum, d) => sum + Number(d.amount), 0);
 
   const filteredTransactions = transactions.filter(
     (t) => statusFilter === "ALL" || t.status === statusFilter
@@ -107,13 +236,14 @@ export default function FinanceView({
         <div>
           <h1 className="font-headline-lg text-on-surface">Subscriptions &amp; Finance Management</h1>
           <p className="font-body-default text-on-surface-variant mt-1">
-            Dynamic alumni patronage plans, member subscribers, pricing rules, and transactions
+            Dynamic alumni patronage plans, member subscribers, institutional donations, and transactions
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => {
               if (activeTab === "subscribers") reloadSubscribers();
+              else if (activeTab === "donations") reloadDonations();
               else window.location.reload();
             }}
             className="flex items-center gap-1.5 rounded-lg border border-outline-variant/30 bg-surface-container px-3.5 py-2 font-body-compact text-on-surface hover:bg-surface-container-high transition-colors"
@@ -125,7 +255,7 @@ export default function FinanceView({
       </div>
 
       {/* Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3.5">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5">
         <div className="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/30 shadow-xs">
           <div className="w-9 h-9 rounded-lg bg-primary/15 flex items-center justify-center text-primary mb-2">
             <span className="material-symbols-outlined text-[20px]">layers</span>
@@ -150,6 +280,15 @@ export default function FinanceView({
           <p className="font-body-compact text-on-surface-variant mt-1">Total Alumni Subscribers</p>
         </div>
         <div className="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/30 shadow-xs">
+          <div className="w-9 h-9 rounded-lg bg-emerald-500/15 flex items-center justify-center text-emerald-600 mb-2">
+            <span className="material-symbols-outlined text-[20px]">volunteer_activism</span>
+          </div>
+          <div className="font-display-metric text-emerald-600">${totalDonationAmountUSD.toLocaleString()}</div>
+          <p className="font-body-compact text-on-surface-variant mt-1">
+            Total Giving Raised ({donations.length} {donations.length === 1 ? "Gift" : "Gifts"})
+          </p>
+        </div>
+        <div className="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/30 shadow-xs">
           <div className="w-9 h-9 rounded-lg bg-secondary/15 flex items-center justify-center text-secondary mb-2">
             <span className="material-symbols-outlined text-[20px]">payments</span>
           </div>
@@ -159,10 +298,10 @@ export default function FinanceView({
       </div>
 
       {/* Tabs navigation */}
-      <div className="flex items-center gap-2 border-b border-outline-variant/30 pb-px">
+      <div className="flex items-center gap-2 border-b border-outline-variant/30 pb-px overflow-x-auto">
         <button
           onClick={() => setActiveTab("tiers")}
-          className={`flex items-center gap-2 px-4 py-2.5 font-headline-sm text-xs rounded-t-xl transition-all border-b-2 ${
+          className={`flex items-center gap-2 px-4 py-2.5 font-headline-sm text-xs rounded-t-xl transition-all border-b-2 shrink-0 ${
             activeTab === "tiers"
               ? "border-primary text-primary bg-surface-container-low"
               : "border-transparent text-on-surface-variant hover:text-on-surface"
@@ -177,7 +316,7 @@ export default function FinanceView({
 
         <button
           onClick={() => setActiveTab("subscribers")}
-          className={`flex items-center gap-2 px-4 py-2.5 font-headline-sm text-xs rounded-t-xl transition-all border-b-2 ${
+          className={`flex items-center gap-2 px-4 py-2.5 font-headline-sm text-xs rounded-t-xl transition-all border-b-2 shrink-0 ${
             activeTab === "subscribers"
               ? "border-primary text-primary bg-surface-container-low"
               : "border-transparent text-on-surface-variant hover:text-on-surface"
@@ -192,7 +331,7 @@ export default function FinanceView({
 
         <button
           onClick={() => setActiveTab("transactions")}
-          className={`flex items-center gap-2 px-4 py-2.5 font-headline-sm text-xs rounded-t-xl transition-all border-b-2 ${
+          className={`flex items-center gap-2 px-4 py-2.5 font-headline-sm text-xs rounded-t-xl transition-all border-b-2 shrink-0 ${
             activeTab === "transactions"
               ? "border-primary text-primary bg-surface-container-low"
               : "border-transparent text-on-surface-variant hover:text-on-surface"
@@ -202,6 +341,21 @@ export default function FinanceView({
           <span>Transactions &amp; Settlement</span>
           <span className="ml-1 rounded-full bg-surface-container-highest text-on-surface-variant px-2 py-0.5 text-[10px] font-bold">
             {transactions.length}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("donations")}
+          className={`flex items-center gap-2 px-4 py-2.5 font-headline-sm text-xs rounded-t-xl transition-all border-b-2 shrink-0 ${
+            activeTab === "donations"
+              ? "border-primary text-primary bg-surface-container-low"
+              : "border-transparent text-on-surface-variant hover:text-on-surface"
+          }`}
+        >
+          <span className="material-symbols-outlined text-[18px]">volunteer_activism</span>
+          <span>Donations &amp; Giving Records</span>
+          <span className="ml-1 rounded-full bg-emerald-500/20 text-emerald-600 px-2 py-0.5 text-[10px] font-bold">
+            {donations.length}
           </span>
         </button>
       </div>
@@ -530,6 +684,227 @@ export default function FinanceView({
         </div>
       )}
 
+      {/* TAB 4: DONATIONS & GIVING REGISTRY */}
+      {activeTab === "donations" && (
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h2 className="font-headline-sm text-on-surface">Institutional Giving &amp; Donations Ledger</h2>
+              <p className="font-body-compact text-on-surface-variant">
+                Official real-time records of alumni and guest donations, contact phone numbers, and designated endowments.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={exportDonationsCSV}
+                className="flex items-center gap-1.5 rounded-lg border border-outline-variant/30 bg-surface-container px-3.5 py-2 font-body-compact text-xs font-bold text-on-surface hover:bg-surface-container-high transition-colors"
+              >
+                <span className="material-symbols-outlined text-[16px]">file_download</span>
+                <span>Export Audit CSV</span>
+              </button>
+              <button
+                type="button"
+                onClick={reloadDonations}
+                disabled={donationsLoading}
+                className="flex items-center gap-1.5 rounded-lg border border-outline-variant/30 bg-surface-container px-3 py-2 font-body-compact text-xs text-on-surface hover:bg-surface-container-high transition-colors disabled:opacity-50"
+              >
+                <span className={`material-symbols-outlined text-[16px] ${donationsLoading ? "animate-spin" : ""}`}>
+                  sync
+                </span>
+                <span>Sync</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Filters & Search */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 rounded-2xl border border-outline-variant/30 bg-surface-container-lowest p-3">
+            <div className="relative flex-1">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[18px]">
+                search
+              </span>
+              <input
+                type="text"
+                placeholder="Search by donor name, email, phone (+232...), reference, or dedication..."
+                value={donationSearch}
+                onChange={(e) => setDonationSearch(e.target.value)}
+                className="w-full rounded-xl border border-outline-variant/40 bg-surface-container-low pl-9 pr-4 py-2 text-xs font-medium text-on-surface placeholder:text-on-surface-variant focus:outline-primary"
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <select
+                value={donationTypeFilter}
+                onChange={(e) => setDonationTypeFilter(e.target.value as "ALL" | "GUEST" | "ALUMNI")}
+                className="rounded-xl border border-outline-variant/40 bg-surface-container-low px-3 py-2 text-xs font-semibold text-on-surface focus:outline-primary"
+              >
+                <option value="ALL">All Donors (Guests &amp; Alumni)</option>
+                <option value="GUEST">Guest Donors Only (Unauthenticated)</option>
+                <option value="ALUMNI">Registered Alumni Only</option>
+              </select>
+
+              <select
+                value={donationFundFilter}
+                onChange={(e) => setDonationFundFilter(e.target.value)}
+                className="rounded-xl border border-outline-variant/40 bg-surface-container-low px-3 py-2 text-xs font-semibold text-on-surface focus:outline-primary"
+              >
+                <option value="ALL">All Designation Funds</option>
+                <option value="Undergraduate & Merit Scholarship Endowment">Scholarship Endowment</option>
+                <option value="Campus AI, Computing & Innovation Labs">Campus AI &amp; Tech Labs</option>
+                <option value="Student Emergency Hardship Relief">Emergency Hardship Relief</option>
+                <option value="Faculty Excellence & Academic Research">Faculty &amp; Research</option>
+              </select>
+
+              <select
+                value={donationMethodFilter}
+                onChange={(e) => setDonationMethodFilter(e.target.value)}
+                className="rounded-xl border border-outline-variant/40 bg-surface-container-low px-3 py-2 text-xs font-semibold text-on-surface focus:outline-primary"
+              >
+                <option value="ALL">All Payment Methods</option>
+                <option value="CARD">Credit / Debit Card</option>
+                <option value="MOMO">Orange / AfriMoney (MOMO)</option>
+                <option value="BANK">Bank Wire (SWIFT)</option>
+                <option value="PAYPAL">PayPal / Digital</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Table */}
+          <div className="rounded-2xl border border-outline-variant/30 bg-surface-container-lowest overflow-hidden shadow-xs">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-surface-container-low text-on-surface-variant font-table-header uppercase tracking-wider text-[11px] border-b border-outline-variant/30">
+                  <tr>
+                    <th className="px-4 py-3">Receipt / Ref</th>
+                    <th className="px-4 py-3">Donor Name &amp; Contact</th>
+                    <th className="px-4 py-3">Phone Number</th>
+                    <th className="px-4 py-3">Affiliation / Class</th>
+                    <th className="px-4 py-3">Designation Fund</th>
+                    <th className="px-4 py-3">Amount &amp; Schedule</th>
+                    <th className="px-4 py-3">Method</th>
+                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-outline-variant/20 font-body-compact">
+                  {filteredDonations.map((d) => {
+                    const symbol = d.currency === "SLE" ? "NLe " : d.currency === "GBP" ? "£" : d.currency === "EUR" ? "€" : "$";
+                    return (
+                      <tr key={d.id} className="hover:bg-surface-container-low/50 transition-colors">
+                        <td className="px-4 py-3 font-mono">
+                          <div className="font-bold text-on-surface text-xs">{d.paymentRef}</div>
+                          <div className="text-[10px] text-on-surface-variant font-sans mt-0.5">
+                            {new Date(d.createdAt).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            })}
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-on-surface">{d.donorName}</span>
+                            {d.isGuest ? (
+                              <span className="rounded bg-slate-500/10 text-slate-400 px-1.5 py-0.2 text-[9px] font-bold border border-slate-500/20">
+                                Guest
+                              </span>
+                            ) : (
+                              <span className="rounded bg-primary/10 text-primary px-1.5 py-0.2 text-[9px] font-bold border border-primary/20">
+                                Alumni
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-on-surface-variant truncate max-w-[180px]">
+                            {d.donorEmail}
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-3">
+                          {d.donorPhone ? (
+                            <a
+                              href={`tel:${d.donorPhone}`}
+                              className="inline-flex items-center gap-1 font-bold text-on-surface hover:text-primary"
+                            >
+                              <span className="material-symbols-outlined text-[14px] text-emerald-600">call</span>
+                              <span>{d.donorPhone}</span>
+                            </a>
+                          ) : (
+                            <span className="text-on-surface-variant italic text-[11px]">None</span>
+                          )}
+                        </td>
+
+                        <td className="px-4 py-3 font-medium text-on-surface">
+                          {d.donorClass || (d.user?.classYear ? `Class of ${d.user.classYear}` : "Supporter")}
+                        </td>
+
+                        <td className="px-4 py-3">
+                          <span className="font-medium text-on-surface truncate block max-w-[200px]" title={d.fund}>
+                            {d.fund}
+                          </span>
+                          {d.isDedication && d.dedicationName && (
+                            <span className="inline-flex items-center gap-0.5 text-[10px] text-amber-500 font-medium">
+                              <span className="material-symbols-outlined text-[11px]">favorite</span>
+                              <span className="truncate max-w-[150px]">Honor: {d.dedicationName}</span>
+                            </span>
+                          )}
+                        </td>
+
+                        <td className="px-4 py-3">
+                          <div className="font-extrabold text-emerald-600 text-xs">
+                            {symbol}{d.amount.toLocaleString()} {d.currency}
+                          </div>
+                          <div className="text-[10px] text-on-surface-variant">
+                            {d.frequency === "MONTHLY" ? "Monthly" : "One-Time"}
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-3 font-semibold text-on-surface text-[11px]">
+                          {d.paymentMethod}
+                        </td>
+
+                        <td className="px-4 py-3">
+                          <span className="rounded-full bg-emerald-500/15 text-emerald-600 px-2 py-0.5 text-[10px] font-bold border border-emerald-500/30">
+                            {d.status}
+                          </span>
+                        </td>
+
+                        <td className="px-4 py-3 text-right">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedDonationForReceipt(d)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-outline-variant/30 bg-surface-container px-2.5 py-1 text-xs font-bold text-primary hover:bg-surface-container-high transition-colors"
+                          >
+                            <span className="material-symbols-outlined text-[14px]">visibility</span>
+                            <span>Record</span>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+
+                  {filteredDonations.length === 0 && (
+                    <tr>
+                      <td colSpan={9} className="px-4 py-12 text-center text-on-surface-variant">
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <span className="material-symbols-outlined text-[32px] text-on-surface-variant/60">
+                            volunteer_activism
+                          </span>
+                          <span className="font-bold text-xs">No donation records found</span>
+                          <span className="text-[11px] text-on-surface-variant/80">
+                            Donations made on the public giving portal will be instantly recorded here.
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Edit Tier Plan Modal */}
       {editingPlan && (
         <EditTierModal
@@ -549,6 +924,14 @@ export default function FinanceView({
           onSuccess={() => {
             reloadSubscribers();
           }}
+        />
+      )}
+
+      {/* Donation Detail Modal */}
+      {selectedDonationForReceipt && (
+        <DonationDetailModal
+          donation={selectedDonationForReceipt}
+          onClose={() => setSelectedDonationForReceipt(null)}
         />
       )}
     </div>

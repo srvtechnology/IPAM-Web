@@ -10,6 +10,7 @@ export default async function AdminOverviewPage() {
     idCardsInProgress,
     recentAuditLogs,
     transactionSnapshot,
+    totalDonations,
   ] = await Promise.all([
     db.alumniRecord.count(),
     db.alumniRecord.count({ where: { status: "PENDING" } }),
@@ -18,24 +19,38 @@ export default async function AdminOverviewPage() {
     db.idCardOrder.count({
       where: { status: { in: ["IN_PRINT_PRESS", "QUALITY_CHECK", "READY_COURIER"] } },
     }),
-    db.auditLogEntry.findMany({ orderBy: { timestamp: "desc" }, take: 6 }),
+    db.auditLogEntry.findMany({
+      select: {
+        id: true,
+        actionLabel: true,
+        actorName: true,
+        target: true,
+        status: true,
+        timestamp: true,
+      },
+      orderBy: { timestamp: "desc" },
+      take: 6,
+    }),
     db.transaction.aggregate({ _sum: { amount: true }, _count: true }).catch(() => null),
+    db.donation.count(),
   ]);
 
   // Alternating icon-chip accent per card, matching the original design's
   // color-coded KPI cards (primary/secondary/tertiary/error containers)
   // instead of one flat color repeated on every card.
   const kpis = [
-    { label: "Total Alumni Records", value: totalAlumni, icon: "groups", accent: "primary" as const },
-    { label: "Pending Verifications", value: pendingVerifications, icon: "pending_actions", accent: "tertiary" as const },
-    { label: "Active Job Listings", value: activeJobs, icon: "work_history", accent: "secondary" as const },
-    { label: "Upcoming Events", value: upcomingEvents, icon: "event", accent: "primary" as const },
-    { label: "ID Cards In Pipeline", value: idCardsInProgress, icon: "badge", accent: "tertiary" as const },
+    { label: "Total Alumni Records", value: totalAlumni, icon: "groups", accent: "primary" as const, href: "/admin/directory" },
+    { label: "Pending Verifications", value: pendingVerifications, icon: "pending_actions", accent: "tertiary" as const, href: "/admin/directory?status=PENDING" },
+    { label: "Active Job Listings", value: activeJobs, icon: "work_history", accent: "secondary" as const, href: "/admin/jobs" },
+    { label: "Upcoming Events", value: upcomingEvents, icon: "event", accent: "primary" as const, href: "/admin/events" },
+    { label: "Donations & Giving", value: totalDonations, icon: "volunteer_activism", accent: "secondary" as const, href: "/admin/giving" },
+    { label: "ID Cards In Pipeline", value: idCardsInProgress, icon: "badge", accent: "tertiary" as const, href: "/admin/id-cards" },
     {
       label: "Transactions Settled",
       value: transactionSnapshot?._count ?? 0,
       icon: "account_balance_wallet",
-      accent: "secondary" as const,
+      accent: "primary" as const,
+      href: "/admin/finance",
     },
   ];
 
@@ -68,11 +83,12 @@ export default async function AdminOverviewPage() {
         Real-time snapshot of the IPAM Alumni platform.
       </p>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {kpis.map((kpi) => (
-          <div
+          <Link
             key={kpi.label}
-            className="rounded-xl bg-surface-container p-4 border border-outline-variant/20 hover:bg-surface-container-high/60 transition-colors group"
+            href={kpi.href}
+            className="rounded-xl bg-surface-container p-4 border border-outline-variant/20 hover:bg-surface-container-high/60 transition-colors group block"
           >
             <div className="flex items-center justify-between">
               <div
@@ -83,7 +99,7 @@ export default async function AdminOverviewPage() {
             </div>
             <p className="font-display-metric text-on-surface mt-3">{kpi.value}</p>
             <p className="font-body-compact text-on-surface-variant mt-1">{kpi.label}</p>
-          </div>
+          </Link>
         ))}
       </div>
 

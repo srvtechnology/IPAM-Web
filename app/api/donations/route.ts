@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
   const donation = await db.donation.create({
     data: {
       ...parsed.data,
-      userId: session?.sub,
+      userId: session?.sub ?? null,
       paymentRef: generatePaymentRef(),
       status: "SUCCEEDED",
     },

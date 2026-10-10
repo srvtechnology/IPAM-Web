@@ -394,6 +394,7 @@ async function main() {
         "/images/alumni_gala_event_1788454750646.jpg",
         "/images/ipam_university_campus_1788350001937.jpg",
       ],
+      featured: true,
     },
     create: {
       id: "seed-event-1",
@@ -478,6 +479,7 @@ async function main() {
         "/images/alumni_networking_mixer.jpg",
         "/images/ipam_university_campus_1788350001937.jpg",
       ],
+      featured: true,
     },
     create: {
       id: "seed-event-3",
@@ -519,6 +521,7 @@ async function main() {
       currency: "USD",
       status: "PUBLISHED",
       registeredCount: 3,
+      featured: true,
     },
     create: {
       id: "seed-event-4",
@@ -886,6 +889,10 @@ async function main() {
       image:
         "https://lh3.googleusercontent.com/aida-public/AB6AXuDHF48nWTEz7bPDMDEBe2lGoslnq28w7woy6xDiHqlP72TjTT6XvumtqD0b7z_cos7vG_S1aFaH3KGHjVSn0trPEfTW56GRE3EWPwt0XNXMfZ3cViim4nKTI4oTsLR8cvMOUi55KVS1etzuhlIm82HxhIte0rFY2HqUkxP2SPov66uidqvh-a4h8wURkZd27H-WpbiCOHaeJgptGDcjriLIRmXw1vR_l4bsvbPKCvdP63L99w6j5PAT",
       featured: true,
+      bannerImage:
+        "https://lh3.googleusercontent.com/aida-public/AB6AXuDHF48nWTEz7bPDMDEBe2lGoslnq28w7woy6xDiHqlP72TjTT6XvumtqD0b7z_cos7vG_S1aFaH3KGHjVSn0trPEfTW56GRE3EWPwt0XNXMfZ3cViim4nKTI4oTsLR8cvMOUi55KVS1etzuhlIm82HxhIte0rFY2HqUkxP2SPov66uidqvh-a4h8wURkZd27H-WpbiCOHaeJgptGDcjriLIRmXw1vR_l4bsvbPKCvdP63L99w6j5PAT",
+      status: "APPROVED",
+      submittedByType: "ADMIN",
       location: "Freetown, Sierra Leone",
       contactEmail: "hello@salonetech.example.com",
     },
@@ -958,12 +965,14 @@ async function main() {
     },
   });
 
+  const eventCount = await db.alumniEvent.count();
+  const jobCount = await db.jobOpening.count();
   console.log("\n✅ Seed complete.\n");
   console.log("Demo credentials (password for all seeded accounts below):", DEMO_PASSWORD);
   console.log("  Alumni login  → demo.alumni@ipam.edu");
   console.log("  Admin login   → demo.admin@ipam.edu (Super Administrator)");
   console.log("  Admin login   → demo.registrar@ipam.edu (Registrar — directory + id_cards only)");
-  console.log(`\nSeeded ${alumniSeedData.length} alumni, 3 admin roles, 2 admin users, 2 jobs, 2 events, 1 business.\n`);
+  console.log(`\nSeeded ${alumniSeedData.length} alumni, 3 admin roles, 2 admin users, ${jobCount} jobs, ${eventCount} events, 1 business.\n`);
 }
 
 main()

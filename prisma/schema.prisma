@@ -295,6 +295,7 @@ model AlumniUser {
   jobApplications          JobApplication[]
   jobOpeningApplications   JobOpeningApplication[]
   physicalCardOrders       PhysicalCardOrder[]
+  businesses               AlumniBusiness[]
   alumniRecord             AlumniRecord?
 
   bookmarksMade            AlumniBookmark[] @relation("BookmarkOwner")
@@ -543,6 +544,9 @@ model AlumniEvent {
 
   registrations   EventRegistration[]
 
+  @@index([date])
+  @@index([featured])
+  @@index([status])
   @@map("alumni_events")
 }
 
@@ -577,31 +581,40 @@ model EventRegistration {
 }
 
 model AlumniBusiness {
-  id             String   @id @default(cuid())
-  name           String
-  founders       String
-  classYear      String
-  category       String
-  industry       String
-  tagline        String?
-  description    String   @db.Text
-  about          String?  @db.Text
-  services       Json?
-  keyProducts    Json?
-  yearFounded    Int?
-  companySize    String?
-  website        String
-  image          String?  @db.Text
-  logo           String?  @db.Text
-  featured       Boolean  @default(false)
-  location       String
-  contactEmail   String
-  contactPhone   String?
-  linkedin       String?
-  certifications Json?
+  id              String      @id @default(cuid())
+  userId          String?
+  user            AlumniUser? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  name            String
+  founders        String
+  classYear       String
+  category        String
+  industry        String
+  tagline         String?
+  description     String      @db.Text
+  about           String?     @db.Text
+  services        Json?
+  keyProducts     Json?
+  yearFounded     Int?
+  companySize     String?
+  website         String
+  image           String?     @db.LongText
+  logo            String?     @db.LongText
+  bannerImage     String?     @db.LongText
+  status          String      @default("APPROVED") // "PENDING_APPROVAL" | "APPROVED" | "REJECTED"
+  submittedByType String      @default("ALUMNI")   // "ALUMNI" | "ADMIN"
+  rejectionReason String?     @db.Text
+  featured        Boolean     @default(false)
+  location        String
+  contactEmail    String
+  contactPhone    String?
+  linkedin        String?
+  certifications  Json?
 
-  createdAt      DateTime @default(now())
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @default(now()) @updatedAt
 
+  @@index([status])
+  @@index([userId])
   @@map("alumni_businesses")
 }
 
@@ -611,6 +624,8 @@ model Donation {
   user           AlumniUser? @relation(fields: [userId], references: [id], onDelete: SetNull)
   donorName      String
   donorEmail     String
+  donorPhone     String?
+  donorClass     String?
   amount         Decimal  @db.Decimal(10, 2)
   currency       String   @default("USD")
   fund           String
@@ -625,6 +640,10 @@ model Donation {
 
   transaction Transaction?
 
+  @@index([donorPhone])
+  @@index([status])
+  @@index([createdAt])
+  @@index([userId])
   @@map("donations")
 }
 
@@ -1053,6 +1072,11 @@ model AuditLogEntry {
   afterState    Json?
   tamperHash    String   @db.VarChar(64)
 
+  @@index([timestamp])
+  @@index([category])
+  @@index([severity])
+  @@index([status])
+  @@index([actorAdminId])
   @@map("audit_log_entries")
 }
 

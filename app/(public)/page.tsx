@@ -13,7 +13,7 @@ export default async function HomePage() {
     db.jobOpening.findMany({ orderBy: { postedDate: "desc" }, take: 3 }),
     db.alumniEvent.findMany({ orderBy: { date: "asc" }, take: 3 }),
     db.leadershipMember.findMany({ take: 4 }),
-    db.alumniBusiness.findMany({ orderBy: { createdAt: "desc" }, take: 10 }),
+    db.alumniBusiness.findMany({ where: { status: "APPROVED" }, orderBy: { createdAt: "desc" }, take: 10 }),
   ]);
 
   return (

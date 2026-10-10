@@ -23,7 +23,11 @@ import {
   Zap,
   Sun,
   Laptop,
+  Edit3,
+  Clock,
+  AlertTriangle,
 } from "lucide-react";
+import SubmitBusinessModal from "@/components/public/SubmitBusinessModal";
 
 export interface BusinessDetail {
   id: string;
@@ -36,6 +40,7 @@ export interface BusinessDetail {
   description: string;
   about: string | null;
   image: string | null;
+  bannerImage?: string | null;
   logo: string | null;
   services: string[] | null;
   keyProducts: { name: string; description: string }[] | null;
@@ -47,12 +52,17 @@ export interface BusinessDetail {
   contactPhone: string | null;
   certifications: string[] | null;
   featured: boolean;
+  status?: string;
+  submittedByType?: string;
+  userId?: string | null;
+  rejectionReason?: string | null;
 }
 
 export interface RelatedBusiness {
   id: string;
   name: string;
   image: string | null;
+  bannerImage?: string | null;
   category: string;
   classYear: string;
   description: string;
@@ -79,11 +89,18 @@ function getCategoryIcon(category: string) {
 export default function BusinessDetailView({
   business,
   relatedBusinesses,
+  currentUserId,
+  isAdmin = false,
 }: {
   business: BusinessDetail;
   relatedBusinesses: RelatedBusiness[];
+  currentUserId?: string | null;
+  isAdmin?: boolean;
 }) {
   const [copiedShare, setCopiedShare] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+
+  const canEdit = isAdmin || (currentUserId && business.userId === currentUserId);
 
   async function handleShare() {
     try {
@@ -120,6 +137,17 @@ export default function BusinessDetailView({
           </div>
 
           <div className="flex items-center gap-2">
+            {canEdit && (
+              <button
+                type="button"
+                onClick={() => setIsEditing(true)}
+                className="flex items-center gap-1.5 rounded-xl border border-emerald-600 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-800 shadow-xs transition-colors hover:bg-emerald-100"
+              >
+                <Edit3 className="h-3.5 w-3.5 text-emerald-600" />
+                <span>Edit Business</span>
+              </button>
+            )}
+
             <button
               onClick={handleShare}
               title="Share Business Page"
@@ -151,10 +179,32 @@ export default function BusinessDetailView({
       </div>
 
       <div className="mx-auto max-w-7xl space-y-8 px-4 py-8 md:px-8">
+        {business.status === "PENDING_APPROVAL" && (
+          <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 flex items-start gap-3 shadow-xs">
+            <Clock className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <span className="font-bold">Pending Administrative Review:</span> This business profile is currently awaiting verification by the IPAM Administration and is only visible to you.
+            </div>
+          </div>
+        )}
+
+        {business.status === "REJECTED" && (
+          <div className="rounded-2xl border border-rose-300 bg-rose-50 p-4 text-sm text-rose-900 flex items-start gap-3 shadow-xs">
+            <AlertTriangle className="h-5 w-5 text-rose-600 shrink-0 mt-0.5" />
+            <div>
+              <span className="font-bold">Changes Requested:</span> {business.rejectionReason || "Please update your listing details."} Click "Edit Business" to make changes and resubmit for approval.
+            </div>
+          </div>
+        )}
+
         <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xs">
           <div className="relative h-48 w-full overflow-hidden bg-slate-900 sm:h-64 lg:h-72">
-            {business.image && (
-              <img src={business.image} alt={business.name} className="h-full w-full object-cover opacity-80" />
+            {(business.bannerImage || business.image) && (
+              <img
+                src={business.bannerImage || business.image!}
+                alt={business.name}
+                className="h-full w-full object-cover opacity-80"
+              />
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
 
@@ -552,6 +602,14 @@ export default function BusinessDetailView({
           </div>
         )}
       </div>
+
+      {isEditing && (
+        <SubmitBusinessModal
+          mode="edit"
+          initialData={business}
+          onClose={() => setIsEditing(false)}
+        />
+      )}
     </div>
   );
 }

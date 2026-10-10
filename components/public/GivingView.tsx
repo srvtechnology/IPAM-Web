@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ElementType, type FormEvent } from "react";
+import { useState, useEffect, type ElementType, type FormEvent } from "react";
 import {
   HeartHandshake,
   ShieldCheck,
@@ -24,6 +24,7 @@ import {
   CreditCard,
   Smartphone,
   Landmark,
+  Phone,
 } from "lucide-react";
 import { useApp } from "@/lib/public/context";
 import { useCreateDonation } from "@/hooks/public/useCreateDonation";
@@ -133,6 +134,10 @@ interface ReceiptData {
   ref: string;
   date: string;
   donorName: string;
+  donorEmail?: string;
+  donorPhone?: string;
+  donorClass?: string;
+  paymentMethod?: string;
   isAnonymous: boolean;
   dedication?: string;
 }
@@ -152,10 +157,19 @@ export default function GivingView({ funds, recentDonations }: GivingViewProps) 
   const [dedicationName, setDedicationName] = useState("");
   const [donorName, setDonorName] = useState(session?.profile?.name ?? "");
   const [donorEmail, setDonorEmail] = useState(session?.email ?? "");
+  const [donorPhone, setDonorPhone] = useState("");
   const [donorClass, setDonorClass] = useState(session?.profile?.classYear ? String(session.profile.classYear) : "");
   const [expandedFaq, setExpandedFaq] = useState<number | null>(0);
   const [copiedLink, setCopiedLink] = useState(false);
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
+
+  useEffect(() => {
+    if (session) {
+      if (!donorName && session.profile?.name) setDonorName(session.profile.name);
+      if (!donorEmail && session.email) setDonorEmail(session.email);
+      if (!donorClass && session.profile?.classYear) setDonorClass(String(session.profile.classYear));
+    }
+  }, [session]);
 
   const currentFund = funds.find((f) => f.id === selectedFund) ?? funds[0];
   const activeAmount = customAmount ? parseFloat(customAmount) : selectedAmount;
@@ -164,9 +178,16 @@ export default function GivingView({ funds, recentDonations }: GivingViewProps) 
     e.preventDefault();
     if (!currentFund || isNaN(activeAmount) || activeAmount <= 0) return;
 
+    if (!donorPhone.trim()) {
+      alert("Please provide a phone number for donation verification and receipt SMS.");
+      return;
+    }
+
     const result = await createDonation({
       donorName,
       donorEmail,
+      donorPhone: donorPhone.trim(),
+      donorClass: donorClass.trim() || undefined,
       amount: activeAmount,
       currency,
       fund: currentFund.title,
@@ -186,6 +207,10 @@ export default function GivingView({ funds, recentDonations }: GivingViewProps) 
         ref: result.paymentRef,
         date: new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }),
         donorName: isAnonymous ? "Anonymous Donor" : donorName,
+        donorEmail,
+        donorPhone: donorPhone.trim(),
+        donorClass: donorClass.trim() || undefined,
+        paymentMethod: paymentMethod.toUpperCase(),
         isAnonymous,
         dedication: isDedication && dedicationName ? dedicationName : undefined,
       });
@@ -204,8 +229,12 @@ export default function GivingView({ funds, recentDonations }: GivingViewProps) 
       `Receipt Reference: ${receiptData.ref}`,
       `Date Issued:       ${receiptData.date}`,
       `Donor Name:        ${receiptData.donorName}`,
+      receiptData.donorPhone ? `Phone Number:      ${receiptData.donorPhone}` : "",
+      receiptData.donorEmail ? `Email Address:     ${receiptData.donorEmail}` : "",
+      receiptData.donorClass ? `Class / Affiliation: ${receiptData.donorClass}` : "",
       `Designation Fund:  ${receiptData.fund}`,
       `Gift Schedule:     ${receiptData.frequency}`,
+      `Payment Channel:   ${receiptData.paymentMethod ?? "Digital Payment"}`,
       `Total Amount:      ${getCurrencySymbol(receiptData.currency)}${receiptData.amount.toLocaleString()} ${receiptData.currency}`,
       receiptData.dedication ? `Dedication:        In Honor/Memory of ${receiptData.dedication}` : "",
       "",
@@ -374,6 +403,18 @@ export default function GivingView({ funds, recentDonations }: GivingViewProps) 
                   <span className="font-medium text-slate-500">Donor Recognition:</span>
                   <span className="font-bold text-slate-900">{receiptData.donorName}</span>
                 </div>
+                {receiptData.donorPhone && (
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-slate-500">Contact Phone:</span>
+                    <span className="font-semibold text-slate-900">{receiptData.donorPhone}</span>
+                  </div>
+                )}
+                {receiptData.donorEmail && (
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-slate-500">Email Address:</span>
+                    <span className="font-medium text-slate-800">{receiptData.donorEmail}</span>
+                  </div>
+                )}
                 {receiptData.dedication && (
                   <div className="flex items-center justify-between">
                     <span className="font-medium text-slate-500">Dedication:</span>
@@ -595,12 +636,28 @@ export default function GivingView({ funds, recentDonations }: GivingViewProps) 
               </div>
 
               <div className="space-y-4 border-t border-slate-100 pt-2">
-                <label className="block text-xs font-extrabold text-slate-900 sm:text-sm">
-                  Step 3: Donor Details & Recognition
-                </label>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <label className="block text-xs font-extrabold text-slate-900 sm:text-sm">
+                    Step 3: Donor Details &amp; Recognition
+                  </label>
+                  {!session ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700">
+                      <Sparkles className="h-3 w-3" />
+                      <span>Guest Checkout • No Login Required</span>
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-[11px] font-medium text-slate-700">
+                      <span>Contributing as </span>
+                      <strong className="font-bold text-slate-900">{session.profile?.name ?? session.email}</strong>
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   <div>
-                    <label className="mb-1 block text-xs font-bold text-slate-700">Full Name / Organization</label>
+                    <label className="mb-1 block text-xs font-bold text-slate-700">
+                      Full Name / Organization <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="text"
                       required
@@ -611,13 +668,28 @@ export default function GivingView({ funds, recentDonations }: GivingViewProps) 
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs font-bold text-slate-700">Email Address (for Tax Receipt)</label>
+                    <label className="mb-1 block text-xs font-bold text-slate-700">
+                      Email Address (for Tax Receipt) <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="email"
                       required
                       value={donorEmail}
                       onChange={(e) => setDonorEmail(e.target.value)}
                       placeholder="e.g., alex@example.com"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:bg-white focus:outline-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-bold text-slate-700">
+                      Phone Number (Mobile / WhatsApp) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      required
+                      value={donorPhone}
+                      onChange={(e) => setDonorPhone(e.target.value)}
+                      placeholder="e.g., +232 76 000000"
                       className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:bg-white focus:outline-emerald-500"
                     />
                   </div>
