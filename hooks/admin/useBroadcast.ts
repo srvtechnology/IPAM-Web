@@ -31,11 +31,17 @@ export function useBroadcast() {
   const createTemplate = (payload: Record<string, unknown>) =>
     request("/api/admin/broadcast/templates", { method: "POST", body: JSON.stringify(payload) });
 
+  const updateTemplate = (id: string, payload: Record<string, unknown>) =>
+    request(`/api/admin/broadcast/templates/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
+
   const deleteTemplate = (id: string) =>
     request(`/api/admin/broadcast/templates/${id}`, { method: "DELETE" });
 
   const createAudienceGroup = (payload: Record<string, unknown>) =>
     request("/api/admin/broadcast/audience-groups", { method: "POST", body: JSON.stringify(payload) });
+
+  const updateAudienceGroup = (id: string, payload: Record<string, unknown>) =>
+    request(`/api/admin/broadcast/audience-groups/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
 
   const deleteAudienceGroup = (id: string) =>
     request(`/api/admin/broadcast/audience-groups/${id}`, { method: "DELETE" });
@@ -45,8 +51,10 @@ export function useBroadcast() {
 
   return {
     createTemplate,
+    updateTemplate,
     deleteTemplate,
     createAudienceGroup,
+    updateAudienceGroup,
     deleteAudienceGroup,
     sendBroadcast,
     loading,

@@ -12,7 +12,7 @@ export default async function HomePage() {
   const [jobs, events, leaders, businesses] = await Promise.all([
     db.jobOpening.findMany({ orderBy: { postedDate: "desc" }, take: 3 }),
     db.alumniEvent.findMany({ orderBy: { date: "asc" }, take: 3 }),
-    db.leadershipMember.findMany({ take: 4 }),
+    db.leadershipMember.findMany({ include: { initiatives: true }, orderBy: { classYear: "asc" } }),
     db.alumniBusiness.findMany({ where: { status: "APPROVED" }, orderBy: { createdAt: "desc" }, take: 10 }),
   ]);
 

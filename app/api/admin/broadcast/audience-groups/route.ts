@@ -21,6 +21,11 @@ export async function POST(req: NextRequest) {
   const parsed = createAudienceGroupSchema.safeParse(body);
   if (!parsed.success) return fail(400, "Validation failed", { issues: parsed.error.flatten() });
 
-  const group = await db.targetAudienceGroup.create({ data: parsed.data });
+  const group = await db.targetAudienceGroup.create({
+    data: {
+      ...parsed.data,
+      criteria: (parsed.data.criteria ?? {}) as any,
+    },
+  });
   return ok(group, 201);
 }

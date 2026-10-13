@@ -24,8 +24,11 @@ import {
   User,
   Sparkles,
   CheckCircle2,
+  Bell,
+  LayoutDashboard,
 } from "lucide-react";
 import { useApp } from "@/lib/public/context";
+import HeaderNotificationBell from "@/components/public/notifications/HeaderNotificationBell";
 
 const NAV_LINKS: { href: string; label: string; icon?: typeof HeartHandshake }[] = [
   { href: "/", label: "Home" },
@@ -166,91 +169,109 @@ export default function Header() {
 
             <div className="flex items-center gap-2 sm:gap-3">
               {session ? (
-                <div className="relative" ref={dropdownRef}>
-                  <button
-                    onClick={() => setShowUserDropdown((v) => !v)}
-                    className="flex items-center gap-2.5 rounded-lg border border-slate-700/80 bg-slate-800/80 px-3 py-1.5 text-white shadow-sm transition-all hover:bg-slate-800"
-                  >
-                    <div className="relative">
-                      {session.profile?.avatar ? (
-                        <img
-                          src={session.profile.avatar}
-                          alt={session.profile.name}
-                          className="h-7 w-7 rounded-full object-cover ring-2 ring-emerald-500"
-                        />
-                      ) : (
-                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-950 text-xs font-bold text-emerald-300 ring-2 ring-emerald-500">
-                          {(session.profile?.name ?? session.email).charAt(0)}
+                <>
+                  <HeaderNotificationBell />
+                  <div className="relative" ref={dropdownRef}>
+                    <button
+                      onClick={() => setShowUserDropdown((v) => !v)}
+                      className="flex items-center gap-2.5 rounded-lg border border-slate-700/80 bg-slate-800/80 px-3 py-1.5 text-white shadow-sm transition-all hover:bg-slate-800"
+                    >
+                      <div className="relative">
+                        {session.profile?.avatar ? (
+                          <img
+                            src={session.profile.avatar}
+                            alt={session.profile.name}
+                            className="h-7 w-7 rounded-full object-cover ring-2 ring-emerald-500"
+                          />
+                        ) : (
+                          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-950 text-xs font-bold text-emerald-300 ring-2 ring-emerald-500">
+                            {(session.profile?.name ?? session.email).charAt(0)}
+                          </span>
+                        )}
+                        <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-slate-900" />
+                      </div>
+                      <div className="hidden flex-col text-left sm:flex">
+                        <span className="text-xs font-bold leading-tight text-white">
+                          {(session.profile?.name ?? session.email).split(" ")[0]}
                         </span>
-                      )}
-                      <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-slate-900" />
-                    </div>
-                    <div className="hidden flex-col text-left sm:flex">
-                      <span className="text-xs font-bold leading-tight text-white">
-                        {(session.profile?.name ?? session.email).split(" ")[0]}
-                      </span>
-                      {session.profile?.classYear && (
-                        <span className="text-[10px] font-semibold leading-tight text-emerald-400">
-                          Class of &apos;{String(session.profile.classYear).slice(-2)}
-                        </span>
-                      )}
-                    </div>
-                    <ChevronDown
-                      className={`h-3.5 w-3.5 text-slate-400 transition-transform duration-200 ${showUserDropdown ? "rotate-180" : ""}`}
-                    />
-                  </button>
+                        {session.profile?.classYear && (
+                          <span className="text-[10px] font-semibold leading-tight text-emerald-400">
+                            Class of &apos;{String(session.profile.classYear).slice(-2)}
+                          </span>
+                        )}
+                      </div>
+                      <ChevronDown
+                        className={`h-3.5 w-3.5 text-slate-400 transition-transform duration-200 ${showUserDropdown ? "rotate-180" : ""}`}
+                      />
+                    </button>
 
-                  {showUserDropdown && (
-                    <div className="absolute right-0 z-50 mt-2 w-72 rounded-xl border border-slate-800 bg-slate-900 p-2 shadow-2xl">
-                      <div className="mb-1 rounded-lg border border-slate-800/80 bg-slate-950 p-3">
-                        <div className="flex items-center gap-2.5">
-                          {session.profile?.avatar ? (
-                            <img
-                              src={session.profile.avatar}
-                              alt={session.profile.name}
-                              className="h-10 w-10 rounded-full object-cover ring-2 ring-emerald-500"
-                            />
-                          ) : (
-                            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-950 text-sm font-bold text-emerald-300 ring-2 ring-emerald-500">
-                              {(session.profile?.name ?? session.email).charAt(0)}
-                            </span>
-                          )}
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-extrabold text-white">
-                              {session.profile?.name ?? session.email}
-                            </p>
-                            <p className="truncate text-xs text-slate-400">{session.email}</p>
+                    {showUserDropdown && (
+                      <div className="absolute right-0 z-50 mt-2 w-72 rounded-xl border border-slate-800 bg-slate-900 p-2 shadow-2xl">
+                        <div className="mb-1 rounded-lg border border-slate-800/80 bg-slate-950 p-3">
+                          <div className="flex items-center gap-2.5">
+                            {session.profile?.avatar ? (
+                              <img
+                                src={session.profile.avatar}
+                                alt={session.profile.name}
+                                className="h-10 w-10 rounded-full object-cover ring-2 ring-emerald-500"
+                              />
+                            ) : (
+                              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-950 text-sm font-bold text-emerald-300 ring-2 ring-emerald-500">
+                                {(session.profile?.name ?? session.email).charAt(0)}
+                              </span>
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-extrabold text-white">
+                                {session.profile?.name ?? session.email}
+                              </p>
+                              <p className="truncate text-xs text-slate-400">{session.email}</p>
+                            </div>
+                          </div>
+                          <div className="mt-2.5 flex items-center justify-between border-t border-slate-800 pt-2 text-[11px]">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowUserDropdown(false);
+                                setIsSubscriptionModalOpen(true);
+                              }}
+                              className="group flex items-center gap-1 rounded border border-emerald-500/30 bg-emerald-950/80 px-2 py-0.5 font-bold text-emerald-300 transition-colors hover:border-emerald-400 hover:bg-emerald-900/60"
+                              title="Manage Membership Tier"
+                            >
+                              <ShieldCheck className="h-3 w-3 text-emerald-400" />
+                              <span>{session.membershipTier.replace(/_/g, " ")}</span>
+                              <span className="ml-1 text-[9px] text-emerald-400/70 group-hover:underline">Manage</span>
+                            </button>
+                            <span className="font-medium text-slate-400">ID: {session.studentId}</span>
                           </div>
                         </div>
-                        <div className="mt-2.5 flex items-center justify-between border-t border-slate-800 pt-2 text-[11px]">
+
+                        <div className="space-y-0.5 py-1 text-xs font-semibold text-slate-300">
+                          <Link
+                            href="/dashboard"
+                            onClick={() => setShowUserDropdown(false)}
+                            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-colors hover:bg-emerald-950/60 hover:text-emerald-300"
+                          >
+                            <LayoutDashboard className="h-4 w-4 text-emerald-400" />
+                            <span>Alumni Dashboard</span>
+                          </Link>
+                          <Link
+                            href="/profile?tab=notifications"
+                            onClick={() => setShowUserDropdown(false)}
+                            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-colors hover:bg-emerald-950/60 hover:text-emerald-300"
+                          >
+                            <Bell className="h-4 w-4 text-emerald-400" />
+                            <span>Admin Announcements</span>
+                          </Link>
                           <button
-                            type="button"
                             onClick={() => {
                               setShowUserDropdown(false);
-                              setIsSubscriptionModalOpen(true);
+                              setIsProfileModalOpen(true);
                             }}
-                            className="group flex items-center gap-1 rounded border border-emerald-500/30 bg-emerald-950/80 px-2 py-0.5 font-bold text-emerald-300 transition-colors hover:border-emerald-400 hover:bg-emerald-900/60"
-                            title="Manage Membership Tier"
+                            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-colors hover:bg-emerald-950/60 hover:text-emerald-300"
                           >
-                            <ShieldCheck className="h-3 w-3 text-emerald-400" />
-                            <span>{session.membershipTier.replace(/_/g, " ")}</span>
-                            <span className="ml-1 text-[9px] text-emerald-400/70 group-hover:underline">Manage</span>
+                            <User className="h-4 w-4 text-emerald-400" />
+                            <span>Manage Profile &amp; Photo</span>
                           </button>
-                          <span className="font-medium text-slate-400">ID: {session.studentId}</span>
-                        </div>
-                      </div>
-
-                      <div className="space-y-0.5 py-1 text-xs font-semibold text-slate-300">
-                        <button
-                          onClick={() => {
-                            setShowUserDropdown(false);
-                            setIsProfileModalOpen(true);
-                          }}
-                          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-colors hover:bg-emerald-950/60 hover:text-emerald-300"
-                        >
-                          <User className="h-4 w-4 text-emerald-400" />
-                          <span>Manage Profile &amp; Photo</span>
-                        </button>
                         <button
                           onClick={() => {
                             setShowUserDropdown(false);
@@ -330,7 +351,8 @@ export default function Header() {
                     </div>
                   )}
                 </div>
-              ) : (
+              </>
+            ) : (
                 <div className="flex items-center gap-2">
                   <Link
                     href="/login"
@@ -400,6 +422,22 @@ export default function Header() {
               </div>
             ) : (
               <div className="space-y-2">
+                <Link
+                  href="/dashboard"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-950/60 py-2.5 text-sm font-bold text-emerald-300 hover:bg-emerald-900/60"
+                >
+                  <LayoutDashboard className="h-4 w-4 text-emerald-400" />
+                  <span>Alumni Dashboard</span>
+                </Link>
+                <Link
+                  href="/profile?tab=notifications"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-700 bg-slate-800 py-2.5 text-sm font-bold text-slate-200 hover:bg-slate-700"
+                >
+                  <Bell className="h-4 w-4 text-emerald-400" />
+                  <span>Admin Announcements</span>
+                </Link>
                 <button
                   onClick={() => {
                     setMobileOpen(false);

@@ -20,8 +20,11 @@ import {
   Tag,
   Plus,
   Loader2,
+  Bell,
 } from "lucide-react";
 import { useApp } from "@/lib/public/context";
+import AlumniNotificationsView from "@/components/public/notifications/AlumniNotificationsView";
+import { useAlumniNotifications } from "@/hooks/public/useAlumniNotifications";
 
 interface ProfileData {
   name: string;
@@ -81,6 +84,9 @@ export default function ProfileManagementModal({
   const [fetching, setFetching] = useState(true);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const { unreadCount } = useAlumniNotifications();
+  const [modalTab, setModalTab] = useState<"profile" | "notifications">("profile");
 
   const [form, setForm] = useState<ProfileData>({
     name: "",
@@ -321,8 +327,51 @@ export default function ProfileManagementModal({
           </button>
         </div>
 
+        {/* Tab switch bar */}
+        <div className="flex items-center gap-2 border-b border-slate-800 bg-slate-950/40 px-6 py-2.5">
+          <button
+            type="button"
+            onClick={() => setModalTab("profile")}
+            className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+              modalTab === "profile"
+                ? "bg-emerald-500 text-slate-950 shadow-sm"
+                : "text-slate-300 hover:bg-slate-800"
+            }`}
+          >
+            <User className="h-3.5 w-3.5" />
+            <span>Profile &amp; Avatar</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setModalTab("notifications")}
+            className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+              modalTab === "notifications"
+                ? "bg-emerald-500 text-slate-950 shadow-sm"
+                : "text-slate-300 hover:bg-slate-800"
+            }`}
+          >
+            <Bell className="h-3.5 w-3.5" />
+            <span>Admin Announcements</span>
+            {unreadCount > 0 && (
+              <span
+                className={`rounded-full px-1.5 py-0.2 text-[10px] font-black ${
+                  modalTab === "notifications"
+                    ? "bg-slate-950 text-emerald-400"
+                    : "bg-emerald-500/20 text-emerald-300"
+                }`}
+              >
+                {unreadCount}
+              </span>
+            )}
+          </button>
+        </div>
+
         {/* Content Body */}
-        {fetching ? (
+        {modalTab === "notifications" ? (
+          <div className="max-h-[75vh] overflow-y-auto p-6">
+            <AlumniNotificationsView compact />
+          </div>
+        ) : fetching ? (
           <div className="flex h-72 flex-col items-center justify-center gap-3">
             <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
             <p className="text-xs font-semibold text-slate-400">Loading your profile record...</p>

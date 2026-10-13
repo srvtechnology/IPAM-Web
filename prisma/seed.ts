@@ -965,6 +965,131 @@ async function main() {
     },
   });
 
+  // ---------------- Broadcast Templates & Audience Groups ----------------
+  const seededAlumni = await db.alumniRecord.findMany({ select: { id: true } });
+  const allAlumniIds = seededAlumni.map((a) => a.id);
+
+  const existingTpl = await db.broadcastMessageTemplate.count();
+  if (existingTpl === 0) {
+    await db.broadcastMessageTemplate.createMany({
+      data: [
+        {
+          name: "Annual Alumni Gala 2026",
+          type: "INVITATION",
+          title: "Official Invitation: 2026 IPAM Alumni Gala & Awards",
+          message:
+            "Distinguished Alumni, you are cordially invited to celebrate excellence at the Freetown Convention Centre.",
+          channels: ["EMAIL", "SMS"],
+          priority: "NORMAL",
+          actionUrl: "https://alumni.ipam.edu/events/gala-2026",
+        },
+        {
+          name: "Digital ID Pass Renewal Notice",
+          type: "NOTIFICATION",
+          title: "Action Required: Renew Your Alumni Digital Pass",
+          message:
+            "Your IPAM biometric pass validation is pending annual review. Please log in to complete verification.",
+          channels: ["SMS", "PUSH"],
+          priority: "URGENT",
+          actionUrl: "https://alumni.ipam.edu/pass",
+        },
+      ],
+    });
+  }
+
+  const existingAud = await db.targetAudienceGroup.count();
+  if (existingAud === 0) {
+    await db.targetAudienceGroup.createMany({
+      data: [
+        {
+          name: "All Registered Alumni",
+          description:
+            "Comprehensive network of all registered and verified alumni members across faculties.",
+          criteria: {
+            selectAll: true,
+            userIds: allAlumniIds,
+            faculties: ["All"],
+            cohorts: ["All"],
+            digitalPassOnly: false,
+          },
+          estimatedCount: allAlumniIds.length,
+        },
+        {
+          name: "Executive & Senior Mentors",
+          description: "Senior alumni in advisory and mentorship roles.",
+          criteria: {
+            selectAll: false,
+            userIds: allAlumniIds.slice(0, 3),
+            faculties: ["Economics", "Public Policy"],
+            cohorts: ["2012", "2015"],
+            digitalPassOnly: true,
+          },
+          estimatedCount: Math.min(3, allAlumniIds.length),
+        },
+      ],
+    });
+  }
+
+  const existingBroadcasts = await db.broadcastRecord.count();
+  if (existingBroadcasts === 0) {
+    const adminUser = await db.adminUser.findFirst();
+    await db.broadcastRecord.createMany({
+      data: [
+        {
+          type: "NOTIFICATION",
+          title: "Action Required: Annual Digital Alumni Pass Validation",
+          message:
+            "All verified alumni members are required to validate their biometric and contact credentials to keep their Digital RFID ID Card active for campus access.",
+          recipientsCount: allAlumniIds.length || 5400,
+          audienceLabel: "All Registered Alumni",
+          channels: ["EMAIL", "PUSH"],
+          deliveryRate: "99.2%",
+          cost: "$97.20",
+          status: "DELIVERED",
+          priority: "URGENT",
+          actionUrl: "/pass",
+          createdByAdminId: adminUser ? adminUser.id : null,
+          date: new Date(Date.now() - 1000 * 60 * 60 * 4),
+        },
+        {
+          type: "INVITATION",
+          title: "Official Invitation: 2026 IPAM Global Alumni Gala & Awards",
+          message:
+            "Distinguished Alumni, you are cordially invited to celebrate 35 years of excellence at the Freetown Convention Centre. Keynote address by Hon. Vice Chancellor.",
+          recipientsCount: allAlumniIds.length || 5400,
+          audienceLabel: "All Registered Alumni",
+          channels: ["EMAIL", "SMS"],
+          deliveryRate: "98.4%",
+          cost: "$194.40",
+          status: "DELIVERED",
+          priority: "NORMAL",
+          eventDate: new Date("2026-12-18T18:00:00Z"),
+          eventVenue: "Freetown International Conference Centre, Sierra Leone",
+          rsvpDeadline: new Date("2026-11-30T23:59:59Z"),
+          actionUrl: "/events",
+          createdByAdminId: adminUser ? adminUser.id : null,
+          date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2),
+        },
+        {
+          type: "MESSAGE",
+          title: "Welcome to the Unified IPAM Global Alumni Ecosystem",
+          message:
+            "Welcome to the modernized portal! You can now access global mentorship networks, post and discover verified enterprise opportunities, and connect worldwide.",
+          recipientsCount: allAlumniIds.length || 5400,
+          audienceLabel: "All Registered Alumni",
+          channels: ["EMAIL", "PUSH"],
+          deliveryRate: "100.0%",
+          cost: "$97.20",
+          status: "DELIVERED",
+          priority: "NORMAL",
+          actionUrl: "/directory",
+          createdByAdminId: adminUser ? adminUser.id : null,
+          date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5),
+        },
+      ],
+    });
+  }
+
   const eventCount = await db.alumniEvent.count();
   const jobCount = await db.jobOpening.count();
   console.log("\n✅ Seed complete.\n");

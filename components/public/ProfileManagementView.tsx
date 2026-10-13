@@ -23,8 +23,14 @@ import {
   ChevronRight,
   Sparkles,
   X,
+  Bell,
+  CreditCard,
+  QrCode,
+  ExternalLink,
 } from "lucide-react";
 import { useApp } from "@/lib/public/context";
+import AlumniNotificationsView from "@/components/public/notifications/AlumniNotificationsView";
+import { useAlumniNotifications } from "@/hooks/public/useAlumniNotifications";
 
 interface ProfileData {
   id?: string;
@@ -110,6 +116,17 @@ export default function ProfileManagementView({
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const { unreadCount } = useAlumniNotifications();
+  const [activeTab, setActiveTab] = useState<"profile" | "notifications" | "card">("profile");
+
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      const tab = new URLSearchParams(window.location.search).get("tab");
+      if (tab === "notifications") setActiveTab("notifications");
+      else if (tab === "card") setActiveTab("card");
+    }
+  }, []);
 
   function handleAvatarFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -278,8 +295,105 @@ export default function ProfileManagementView({
         </div>
       </div>
 
-      {/* Account Identity Card */}
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-5 shadow-xl">
+      {/* View Switcher Tabs */}
+      <div className="flex flex-wrap items-center gap-2 border-b border-slate-800 pb-3">
+        <button
+          type="button"
+          onClick={() => setActiveTab("profile")}
+          className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-extrabold transition-all ${
+            activeTab === "profile"
+              ? "bg-emerald-500 text-slate-950 shadow-md"
+              : "border border-slate-800 bg-slate-900 text-slate-300 hover:bg-slate-800"
+          }`}
+        >
+          <User className="h-4 w-4" />
+          <span>Profile Credentials</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("notifications")}
+          className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-extrabold transition-all ${
+            activeTab === "notifications"
+              ? "bg-emerald-500 text-slate-950 shadow-md"
+              : "border border-slate-800 bg-slate-900 text-slate-300 hover:bg-slate-800"
+          }`}
+        >
+          <Bell className="h-4 w-4" />
+          <span>Admin Announcements</span>
+          {unreadCount > 0 && (
+            <span
+              className={`rounded-full px-1.5 py-0.2 text-[10px] font-black ${
+                activeTab === "notifications"
+                  ? "bg-slate-950 text-emerald-400"
+                  : "bg-emerald-500/20 text-emerald-300"
+              }`}
+            >
+              {unreadCount}
+            </span>
+          )}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("card")}
+          className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-extrabold transition-all ${
+            activeTab === "card"
+              ? "bg-emerald-500 text-slate-950 shadow-md"
+              : "border border-slate-800 bg-slate-900 text-slate-300 hover:bg-slate-800"
+          }`}
+        >
+          <CreditCard className="h-4 w-4" />
+          <span>Digital ID Pass</span>
+        </button>
+      </div>
+
+      {activeTab === "notifications" && (
+        <div className="rounded-3xl border border-slate-800 bg-slate-900/80 p-6 sm:p-8 shadow-2xl">
+          <AlumniNotificationsView />
+        </div>
+      )}
+
+      {activeTab === "card" && (
+        <div className="rounded-3xl border border-slate-800 bg-slate-900/80 p-6 sm:p-8 shadow-2xl space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-black text-white">Your Official Digital Alumni Pass</h2>
+              <p className="mt-1 text-xs text-slate-400">
+                Institutional biometric RFID card, barcode &amp; QR verification
+              </p>
+            </div>
+            <Link
+              href="/pass"
+              className="flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-xs font-extrabold text-slate-950 hover:bg-emerald-400 transition-colors shadow-md"
+            >
+              <QrCode className="h-4 w-4" />
+              <span>Full Pass Viewer</span>
+            </Link>
+          </div>
+          <div className="rounded-2xl border border-slate-800 bg-slate-950 p-6">
+            <div className="flex items-center gap-4">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/30">
+                <CreditCard className="h-7 w-7" />
+              </div>
+              <div>
+                <p className="text-base font-extrabold text-white">Verified Alumni Card • Student ID: {studentId}</p>
+                <p className="mt-0.5 text-xs text-emerald-400 font-bold uppercase tracking-wider">
+                  Tier: {membershipTier.replace(/_/g, " ")} Member
+                </p>
+                <p className="mt-1 text-xs text-slate-400">
+                  Registered to {userEmail}. Recognized across campus libraries, facilities, and alumni chapters.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === "profile" && (
+        <>
+          {/* Account Identity Card */}
+          <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-5 shadow-xl">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/30">
@@ -617,6 +731,8 @@ export default function ProfileManagementView({
           </button>
         </div>
       </form>
+        </>
+      )}
     </div>
   );
 }
