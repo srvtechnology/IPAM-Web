@@ -23,6 +23,9 @@ export function useBanners() {
       }
       router.refresh();
       return json.data;
+    } catch (err: any) {
+      setError(err?.message || "An unexpected network error occurred");
+      return null;
     } finally {
       setLoading(false);
     }
@@ -37,5 +40,11 @@ export function useBanners() {
   const toggleBanner = (id: string) =>
     request(`/api/admin/banners/${id}/toggle`, { method: "PATCH" });
 
-  return { createBanner, updateBanner, toggleBanner, loading, error };
+  const deleteBanner = (id: string) =>
+    request(`/api/admin/banners/${id}`, { method: "DELETE" });
+
+  const seedDefaultBanners = (force = false) =>
+    request(`/api/admin/banners/seed?force=${force ? "true" : "false"}`, { method: "POST" });
+
+  return { createBanner, updateBanner, toggleBanner, deleteBanner, seedDefaultBanners, loading, error };
 }

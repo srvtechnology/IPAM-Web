@@ -1,4 +1,6 @@
 import { db } from "@/lib/db";
+import { getHeroSlides } from "@/lib/hero-slides";
+import { getBannersForPage } from "@/lib/commercial-banners";
 import HomeHeroSection from "@/components/public/HomeHeroSection";
 import HomeMetricsSection from "@/components/public/HomeMetricsSection";
 import HomeLeadershipSection from "@/components/public/HomeLeadershipSection";
@@ -7,18 +9,23 @@ import HomeFeaturesSection from "@/components/public/HomeFeaturesSection";
 import HomeJobsSection from "@/components/public/HomeJobsSection";
 import HomeEventsSection from "@/components/public/HomeEventsSection";
 import HomeBusinessesSection from "@/components/public/HomeBusinessesSection";
+import PageCommercialBannersSection from "@/components/public/PageCommercialBannersSection";
+
+export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [jobs, events, leaders, businesses] = await Promise.all([
+  const [jobs, events, leaders, businesses, heroSlides, commercialBanners] = await Promise.all([
     db.jobOpening.findMany({ orderBy: { postedDate: "desc" }, take: 3 }),
     db.alumniEvent.findMany({ orderBy: { date: "asc" }, take: 3 }),
     db.leadershipMember.findMany({ include: { initiatives: true }, orderBy: { classYear: "asc" } }),
     db.alumniBusiness.findMany({ where: { status: "APPROVED" }, orderBy: { createdAt: "desc" }, take: 10 }),
+    getHeroSlides(),
+    getBannersForPage("/"),
   ]);
 
   return (
-    <div className="pb-20">
-      <HomeHeroSection />
+    <div className="pb-12">
+      <HomeHeroSection slides={heroSlides} />
 
       <div className="mx-auto mt-10 max-w-7xl space-y-10 px-4 sm:mt-12 sm:space-y-12 sm:px-6 lg:px-8">
         <HomeMetricsSection />
@@ -60,6 +67,9 @@ export default async function HomePage() {
           }))}
         />
       </div>
+
+      {/* Ads & Commercial Banners Section */}
+      <PageCommercialBannersSection pageLink="/" initialBanners={commercialBanners} />
     </div>
   );
 }

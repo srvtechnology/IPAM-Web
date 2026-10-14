@@ -1,9 +1,13 @@
 import { db } from "@/lib/db";
+import { getBannersForPage } from "@/lib/commercial-banners";
 import GivingView from "@/components/public/GivingView";
+import PageCommercialBannersSection from "@/components/public/PageCommercialBannersSection";
 import { GIVING_FUNDS } from "@/lib/public/giving-funds";
 
+export const dynamic = "force-dynamic";
+
 export default async function GivingPage() {
-  const [fundStats, recentDonationRows] = await Promise.all([
+  const [fundStats, recentDonationRows, commercialBanners] = await Promise.all([
     db.donation.groupBy({
       by: ["fund"],
       where: { status: "SUCCEEDED" },
@@ -15,6 +19,7 @@ export default async function GivingPage() {
       orderBy: { createdAt: "desc" },
       take: 12,
     }),
+    getBannersForPage("/giving"),
   ]);
 
   const statsByFund = new Map(
@@ -36,5 +41,10 @@ export default async function GivingPage() {
     createdAt: donation.createdAt.toISOString(),
   }));
 
-  return <GivingView funds={funds} recentDonations={recentDonations} />;
+  return (
+    <div>
+      <GivingView funds={funds} recentDonations={recentDonations} />
+      <PageCommercialBannersSection pageLink="/giving" initialBanners={commercialBanners} />
+    </div>
+  );
 }

@@ -1,7 +1,11 @@
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getAlumniSession } from "@/lib/auth/session";
+import { getBannersForPage } from "@/lib/commercial-banners";
 import JobsView from "@/components/public/JobsView";
+import PageCommercialBannersSection from "@/components/public/PageCommercialBannersSection";
+
+export const dynamic = "force-dynamic";
 
 export default async function JobsPage({
   searchParams,
@@ -30,6 +34,10 @@ export default async function JobsPage({
       decisionStatus?: string | null;
     }
   > = {};
+
+  const [commercialBanners] = await Promise.all([
+    getBannersForPage("/jobs"),
+  ]);
 
   if (session) {
     const [saved, profile, applications] = await Promise.all([
@@ -83,53 +91,56 @@ export default async function JobsPage({
   });
 
   return (
-    <JobsView
-      savedJobIds={savedJobIds}
-      initialSaved={isSavedFilter}
-      myPostedJobsCount={myPostedJobsCount}
-      myApplicationsMap={myApplicationsMap}
-      jobs={jobs.map((j) => ({
-        id: j.id,
-        title: j.title,
-        company: j.company,
-        location: j.location,
-        country: j.country,
-        state: j.state,
-        city: j.city,
-        type: j.type,
-        workplaceType: j.workplaceType,
-        salary: j.salary,
-        category: j.category,
-        description: j.description,
-        aboutCompany: j.aboutCompany,
-        experienceRequired: j.experienceRequired,
-        experienceLevel: j.experienceLevel,
-        hiringType: j.hiringType,
-        deadline: j.deadline ? j.deadline.toISOString() : null,
-        positionsOpen: j.positionsOpen,
-        postedByType: j.postedByType,
-        postedByName: j.postedByName,
-        postedByTitle: j.postedByTitle,
-        postedDate: j.postedDate.toISOString(),
-        applicationsCount: j._count.applications,
-        postedByAlumni: j.postedByAlumni
-          ? {
-              id: j.postedByAlumni.id,
-              name: j.postedByAlumni.name,
-              classYear: j.postedByAlumni.classYear,
-              currentRole: j.postedByAlumni.currentRole,
-              avatar: j.postedByAlumni.avatar,
-            }
-          : null,
-        postedByAdmin: j.postedByAdmin
-          ? {
-              id: j.postedByAdmin.id,
-              name: j.postedByAdmin.name,
-              title: j.postedByAdmin.title,
-              department: j.postedByAdmin.department,
-            }
-          : null,
-      }))}
-    />
+    <div>
+      <JobsView
+        savedJobIds={savedJobIds}
+        initialSaved={isSavedFilter}
+        myPostedJobsCount={myPostedJobsCount}
+        myApplicationsMap={myApplicationsMap}
+        jobs={jobs.map((j) => ({
+          id: j.id,
+          title: j.title,
+          company: j.company,
+          location: j.location,
+          country: j.country,
+          state: j.state,
+          city: j.city,
+          type: j.type,
+          workplaceType: j.workplaceType,
+          salary: j.salary,
+          category: j.category,
+          description: j.description,
+          aboutCompany: j.aboutCompany,
+          experienceRequired: j.experienceRequired,
+          experienceLevel: j.experienceLevel,
+          hiringType: j.hiringType,
+          deadline: j.deadline ? j.deadline.toISOString() : null,
+          positionsOpen: j.positionsOpen,
+          postedByType: j.postedByType,
+          postedByName: j.postedByName,
+          postedByTitle: j.postedByTitle,
+          postedDate: j.postedDate.toISOString(),
+          applicationsCount: j._count.applications,
+          postedByAlumni: j.postedByAlumni
+            ? {
+                id: j.postedByAlumni.id,
+                name: j.postedByAlumni.name,
+                classYear: j.postedByAlumni.classYear,
+                currentRole: j.postedByAlumni.currentRole,
+                avatar: j.postedByAlumni.avatar,
+              }
+            : null,
+          postedByAdmin: j.postedByAdmin
+            ? {
+                id: j.postedByAdmin.id,
+                name: j.postedByAdmin.name,
+                title: j.postedByAdmin.title,
+                department: j.postedByAdmin.department,
+              }
+            : null,
+        }))}
+      />
+      <PageCommercialBannersSection pageLink="/jobs" initialBanners={commercialBanners} />
+    </div>
   );
 }

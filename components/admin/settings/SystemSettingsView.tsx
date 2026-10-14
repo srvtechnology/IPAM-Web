@@ -75,6 +75,42 @@ export default function SystemSettingsView({ orgDefaultTheme }: { orgDefaultThem
         {error && <p className="font-body-compact text-error">{error}</p>}
       </div>
 
+      <div className="bg-surface-container p-space-lg rounded-xl shadow-md flex items-center justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-primary text-[22px]">view_carousel</span>
+            <span className="font-headline-sm text-on-surface">Home Page Hero Banner Carousel</span>
+          </div>
+          <p className="font-body-compact text-on-surface-variant text-[12px] mt-1">
+            Manage multi-image carousel slides, ordering, titles, and live hero preview.
+          </p>
+        </div>
+        <a
+          href="/admin/hero-carousel"
+          className="px-4 py-2 rounded-lg bg-primary text-on-primary font-body-medium text-xs font-bold hover:opacity-90 transition-opacity"
+        >
+          Manage Carousel
+        </a>
+      </div>
+
+      <div className="bg-surface-container p-space-lg rounded-xl shadow-md flex items-center justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-secondary text-[22px]">campaign</span>
+            <span className="font-headline-sm text-on-surface">Ads &amp; Commercial Banners Studio</span>
+          </div>
+          <p className="font-body-compact text-on-surface-variant text-[12px] mt-1">
+            Manage bottom sponsor ads and placement across Home, Directory, Events, Jobs, Businesses, and Giving.
+          </p>
+        </div>
+        <a
+          href="/admin/commercial"
+          className="px-4 py-2 rounded-lg bg-secondary text-on-secondary font-body-medium text-xs font-bold hover:opacity-90 transition-opacity"
+        >
+          Manage Banners
+        </a>
+      </div>
+
       <div className="bg-surface-container p-space-lg rounded-xl shadow-md">
         <CardPricingManager canWrite={canWrite} />
       </div>

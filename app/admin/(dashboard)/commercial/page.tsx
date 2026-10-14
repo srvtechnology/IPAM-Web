@@ -1,7 +1,15 @@
 import { db } from "@/lib/db";
+import { parseBannerRecord, seedDefaultBannersIfEmpty } from "@/lib/commercial-banners";
 import CommercialBannersView from "@/components/admin/commercial/CommercialBannersView";
 
+export const dynamic = "force-dynamic";
+
 export default async function CommercialPage() {
+  const count = await db.sponsorBanner.count();
+  if (count === 0) {
+    await seedDefaultBannersIfEmpty();
+  }
+
   const [banners, businessesRaw] = await Promise.all([
     db.sponsorBanner.findMany({ orderBy: { name: "asc" } }),
     db.alumniBusiness.findMany({
@@ -23,20 +31,16 @@ export default async function CommercialPage() {
     }),
   ]);
 
+  const parsedBanners = banners.map((b) => ({
+    ...parseBannerRecord(b),
+    invoiceNumber: b.invoiceNumber,
+    invoiceStatus: b.invoiceStatus,
+    subscriptionCadence: b.subscriptionCadence,
+  }));
+
   return (
     <CommercialBannersView
-      banners={banners.map((b) => ({
-        id: b.id,
-        code: b.code,
-        name: b.name,
-        slot: b.slot,
-        contract: b.contract,
-        monthlyFee: b.monthlyFee.toString(),
-        subscriptionCadence: b.subscriptionCadence,
-        active: b.active,
-        invoiceNumber: b.invoiceNumber,
-        invoiceStatus: b.invoiceStatus,
-      }))}
+      banners={parsedBanners}
       businesses={businessesRaw.map((b) => ({
         id: b.id,
         name: b.name,

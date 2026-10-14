@@ -1,15 +1,22 @@
 import { db } from "@/lib/db";
 import { getAlumniSession } from "@/lib/auth/session";
+import { getBannersForPage } from "@/lib/commercial-banners";
 import DirectoryView from "@/components/public/DirectoryView";
+import PageCommercialBannersSection from "@/components/public/PageCommercialBannersSection";
+
+export const dynamic = "force-dynamic";
 
 export default async function DirectoryPage() {
   const session = await getAlumniSession();
 
-  const members = await db.alumniMember.findMany({
-    where: session?.sub ? { userId: { not: session.sub } } : undefined,
-    include: { skills: true, user: { select: { email: true } } },
-    orderBy: { name: "asc" },
-  });
+  const [members, commercialBanners] = await Promise.all([
+    db.alumniMember.findMany({
+      where: session?.sub ? { userId: { not: session.sub } } : undefined,
+      include: { skills: true, user: { select: { email: true } } },
+      orderBy: { name: "asc" },
+    }),
+    getBannersForPage("/directory"),
+  ]);
 
   const alumni = members.map((m) => ({
     id: m.id,
@@ -31,5 +38,10 @@ export default async function DirectoryPage() {
     skills: m.skills.map((s) => s.skill),
   }));
 
-  return <DirectoryView alumni={alumni} currentUserId={session?.sub || null} />;
+  return (
+    <div>
+      <DirectoryView alumni={alumni} currentUserId={session?.sub || null} />
+      <PageCommercialBannersSection pageLink="/directory" initialBanners={commercialBanners} />
+    </div>
+  );
 }

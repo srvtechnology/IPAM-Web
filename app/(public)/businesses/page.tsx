@@ -1,11 +1,15 @@
 import { db } from "@/lib/db";
 import { getAlumniSession } from "@/lib/auth/session";
+import { getBannersForPage } from "@/lib/commercial-banners";
 import BusinessesView from "@/components/public/BusinessesView";
+import PageCommercialBannersSection from "@/components/public/PageCommercialBannersSection";
+
+export const dynamic = "force-dynamic";
 
 export default async function BusinessesPage() {
   const session = await getAlumniSession();
 
-  const [approvedBusinesses, myBusinessesRaw] = await Promise.all([
+  const [approvedBusinesses, myBusinessesRaw, commercialBanners] = await Promise.all([
     db.alumniBusiness.findMany({
       where: { status: "APPROVED" },
       orderBy: [{ featured: "desc" }, { createdAt: "desc" }],
@@ -16,6 +20,7 @@ export default async function BusinessesPage() {
           orderBy: { createdAt: "desc" },
         })
       : Promise.resolve([]),
+    getBannersForPage("/businesses"),
   ]);
 
   function mapBusiness(b: any) {
@@ -49,10 +54,13 @@ export default async function BusinessesPage() {
   }
 
   return (
-    <BusinessesView
-      businesses={approvedBusinesses.map(mapBusiness)}
-      myBusinesses={myBusinessesRaw.map(mapBusiness)}
-      currentUserId={session?.sub ?? null}
-    />
+    <div>
+      <BusinessesView
+        businesses={approvedBusinesses.map(mapBusiness)}
+        myBusinesses={myBusinessesRaw.map(mapBusiness)}
+        currentUserId={session?.sub ?? null}
+      />
+      <PageCommercialBannersSection pageLink="/businesses" initialBanners={commercialBanners} />
+    </div>
   );
 }
