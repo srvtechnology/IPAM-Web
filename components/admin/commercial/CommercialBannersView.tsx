@@ -424,14 +424,13 @@ export default function CommercialBannersView({
                     key={b.id}
                     className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-outline-variant/20 bg-surface-container hover:border-outline-variant/40 hover:shadow-lg transition-all"
                   >
-                    {/* Top: Creative Hero & Overlay Badges */}
-                    <div className="relative h-44 w-full overflow-hidden bg-slate-950">
+                    {/* Top: Creative Panoramic Banner & Overlay Badges */}
+                    <div className="relative aspect-[21/9] sm:aspect-[24/7] w-full overflow-hidden bg-slate-950">
                       <img
                         src={b.bannerImageUrl}
-                        alt={b.headline}
+                        alt={b.name}
                         className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/30 to-transparent" />
 
                       {/* Top Left: Active Status Toggle Pill */}
                       <div className="absolute left-3 top-3">
@@ -441,7 +440,7 @@ export default function CommercialBannersView({
                           onClick={() => handleToggle(b.id)}
                           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold backdrop-blur-xs transition-all shadow-xs ${
                             b.active
-                              ? "bg-secondary/20 text-secondary border border-secondary/40 hover:bg-secondary/30"
+                              ? "bg-secondary/25 text-secondary border border-secondary/40 hover:bg-secondary/35"
                               : "bg-slate-900/80 text-slate-400 border border-slate-700 hover:bg-slate-900"
                           }`}
                         >
@@ -463,27 +462,30 @@ export default function CommercialBannersView({
                           ${b.monthlyFee}/mo
                         </span>
                       </div>
-
-                      {/* Bottom Banner Content Overlay */}
-                      <div className="absolute bottom-3 left-3 right-3">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-secondary">{b.name}</span>
-                          <span className="text-slate-400 text-xs">&middot;</span>
-                          <span className="text-[11px] font-mono text-slate-300">{b.code}</span>
-                        </div>
-                        <h3 className="font-bold text-base text-white line-clamp-1 mt-0.5">
-                          {b.headline}
-                        </h3>
-                      </div>
                     </div>
 
-                    {/* Card Middle: Description & Targeted Placements */}
-                    <div className="flex-1 p-4 space-y-3.5">
-                      {b.description && (
-                        <p className="font-body-compact text-xs text-on-surface-variant line-clamp-2">
-                          {b.description}
-                        </p>
-                      )}
+                    {/* Card Middle: Sponsor Name, Destination URL & Targeted Placements */}
+                    <div className="flex-1 p-4 space-y-3">
+                      <div>
+                        <div className="flex items-center justify-between gap-2">
+                          <h3 className="font-bold font-headline-sm text-on-surface text-base truncate">
+                            {b.name}
+                          </h3>
+                          <span className="text-[10px] font-mono text-on-surface-variant bg-surface-container-high px-1.5 py-0.5 rounded">
+                            {b.code}
+                          </span>
+                        </div>
+                        <a
+                          href={b.targetUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline mt-1 truncate max-w-full font-mono"
+                          title={b.targetUrl}
+                        >
+                          <span className="material-symbols-outlined text-[13px]">link</span>
+                          <span className="truncate">{b.targetUrl}</span>
+                        </a>
+                      </div>
 
                       {/* Interactive Placements Chips */}
                       <div>
@@ -668,10 +670,10 @@ export default function CommercialBannersView({
                         {/* Banner Creative */}
                         <td className="px-4 py-3.5">
                           <div className="flex items-center gap-3">
-                            <div className="relative h-12 w-20 shrink-0 overflow-hidden rounded-lg bg-slate-900 border border-outline-variant/30">
+                            <div className="relative h-11 w-24 shrink-0 overflow-hidden rounded-lg bg-slate-900 border border-outline-variant/30">
                               <img
                                 src={b.bannerImageUrl}
-                                alt={b.headline}
+                                alt={b.name}
                                 className="h-full w-full object-cover"
                               />
                               <div className="absolute top-1 left-1 rounded bg-slate-900/80 px-1 py-0.2 text-[8px] font-bold text-emerald-400">
@@ -680,12 +682,12 @@ export default function CommercialBannersView({
                             </div>
                             <div className="min-w-0 max-w-xs">
                               <div className="font-bold text-on-surface truncate text-sm">
-                                {b.headline}
+                                {b.name}
                               </div>
-                              <div className="text-on-surface-variant text-[11px] truncate flex items-center gap-1.5 mt-0.5">
-                                <span className="font-medium text-secondary">{b.name}</span>
+                              <div className="text-on-surface-variant text-[11px] truncate flex items-center gap-1 mt-0.5 font-mono">
+                                <span className="text-slate-400">{b.code}</span>
                                 <span>&middot;</span>
-                                <span className="text-slate-400 font-mono">{b.code}</span>
+                                <span className="text-primary truncate max-w-[140px]">{b.targetUrl}</span>
                               </div>
                             </div>
                           </div>
