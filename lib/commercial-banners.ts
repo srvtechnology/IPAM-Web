@@ -346,6 +346,7 @@ export async function getBannersForPage(pageLink: string): Promise<CommercialBan
 
     const matched = normalized.filter((b) => {
       if (!b.active) return false;
+      if (pageLink === "ALL" || pageLink === "*") return true;
       if (b.pages.includes("ALL") || b.slot === "ALL" || b.slot === "*") return true;
       if (b.pages.includes(pageLink)) return true;
       if (b.slot === pageLink) return true;
