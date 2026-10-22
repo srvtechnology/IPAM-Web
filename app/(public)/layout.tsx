@@ -38,6 +38,8 @@ async function loadSession(): Promise<PublicSessionUser | null> {
   };
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function PublicLayout({ children }: { children: React.ReactNode }) {
   const session = await loadSession();
 

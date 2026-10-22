@@ -3,6 +3,8 @@ import { db } from "@/lib/db";
 import { getAlumniSession } from "@/lib/auth/session";
 import EventDetailView from "@/components/public/EventDetailView";
 
+export const dynamic = "force-dynamic";
+
 export default async function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const event = await db.alumniEvent.findUnique({

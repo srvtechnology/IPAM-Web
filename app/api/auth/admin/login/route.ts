@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     data: { lastLoginAt: new Date(), lastLoginIp: ipAddress },
   });
 
-  await setAdminSessionCookie({
+  const token = await setAdminSessionCookie({
     sub: admin.id,
     email: admin.email,
     roleId: admin.roleId,
@@ -61,5 +61,5 @@ export async function POST(req: NextRequest) {
   });
 
   const { passwordHash: _omit, ...safeAdmin } = admin;
-  return ok({ admin: safeAdmin, permissions: getEffectivePermissions(admin) });
+  return ok({ admin: safeAdmin, token, permissions: getEffectivePermissions(admin) });
 }

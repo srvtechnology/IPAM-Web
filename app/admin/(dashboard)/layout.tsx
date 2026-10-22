@@ -11,6 +11,8 @@ import Header from "@/components/admin/Header";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter-admin" });
 const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-code-admin" });
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await getAdminSession();
   if (!session) redirect("/admin/login");

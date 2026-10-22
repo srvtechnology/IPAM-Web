@@ -11,6 +11,7 @@ WORKDIR /app
 RUN corepack enable
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+ENV DATABASE_URL="mysql://ipam:ipam_dev_password@mysql:3306/ipam_alumni"
 RUN npx prisma generate
 RUN pnpm build
 
@@ -24,7 +25,8 @@ RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
 # Full node_modules (not just the standalone trace) so the Prisma CLI and
 # seed script (tsx, bcryptjs) are available at container start.
 COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+RUN mkdir -p ./public/uploads && chown -R nextjs:nodejs ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma

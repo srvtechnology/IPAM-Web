@@ -15,7 +15,9 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const token = req.cookies.get(ADMIN_COOKIE)?.value;
+  const authHeader = req.headers.get("authorization");
+  const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : null;
+  const token = req.cookies.get(ADMIN_COOKIE)?.value || bearerToken;
   const payload = token ? await verifyAdminToken(token) : null;
 
   if (!payload) {

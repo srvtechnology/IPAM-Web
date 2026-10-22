@@ -54,7 +54,13 @@ export async function requirePermission(
   module: PermissionModule,
   capability: Capability
 ): Promise<{ admin: AdminUser & { role: { permissions: ({ module: PermissionModule } & CapabilitySet)[] } } } | NextResponse> {
-  const adminId = req.headers.get("x-admin-id");
+  let adminId = req.headers.get("x-admin-id");
+  if (!adminId) {
+    const session = await getAdminSession(req);
+    if (session) {
+      adminId = session.sub;
+    }
+  }
   if (!adminId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

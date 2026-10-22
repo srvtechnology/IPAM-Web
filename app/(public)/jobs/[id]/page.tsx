@@ -3,6 +3,8 @@ import { db } from "@/lib/db";
 import { getAlumniSession } from "@/lib/auth/session";
 import JobDetailView from "@/components/public/JobDetailView";
 
+export const dynamic = "force-dynamic";
+
 export default async function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const job = await db.jobOpening.findUnique({
