@@ -1,5 +1,9 @@
 # API Reference
 
+> 📱 **Looking for Flutter Mobile App Integration?**
+> See the dedicated [Mobile API Integration Guide](file:///Users/pranab/workspace/IPAM-Web/docs/mobile-api/README.md) containing typed Dart models, Dio clients, and Flutter widgets across all 13 modules.
+> Interactive Swagger UI sandbox is live at: [https://ipam.billnbite.cloud/api-docs](https://ipam.billnbite.cloud/api-docs).
+
 All routes live under `app/api/**`. Every response is JSON, shaped `{ "data": ... }` on success or `{ "error": "message", ...extra }` on failure (`lib/api-response.ts`). Mutating routes validate their body with `zod` (`lib/validation/**`) and return `400` with `{ error, issues }` on a validation failure.
 
 **Auth column**: `none` = no session required · `alumni` = requires a valid `ipam_alumni_session` cookie · `admin` = requires a valid `ipam_admin_session` cookie (enforced by `middleware.ts` for every `/api/admin/*` route before the handler even runs).

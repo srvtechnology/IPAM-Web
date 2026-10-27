@@ -49,6 +49,7 @@ Official API documentation and testing sandbox for **IPAM Alumni Web** and the *
     { name: "Leadership", description: "Public executive council and university initiatives" },
     { name: "Content & Banners", description: "Promotional banners and hero slider announcements" },
     { name: "Payments", description: "Stripe PaymentIntent initiation" },
+    { name: "Mobile App", description: "Mobile client aggregation feeds, bootstrap config, and client helpers" },
   ],
   components: {
     securitySchemes: {
@@ -359,6 +360,71 @@ Official API documentation and testing sandbox for **IPAM Alumni Web** and the *
         },
       },
     },
+    "/api/auth/forgot-password": {
+      post: {
+        tags: ["Authentication"],
+        summary: "Forgot Password (Request OTP)",
+        description: "Requests a 2FA OTP code to reset password. Returns test OTP: `123456`.",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["email"],
+                properties: {
+                  email: { type: "string", format: "email", example: "demo.alumni@ipam.edu" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: "Password reset OTP dispatched" },
+          400: { description: "Invalid email" },
+        },
+      },
+    },
+    "/api/auth/reset-password": {
+      post: {
+        tags: ["Authentication"],
+        summary: "Reset Password with OTP",
+        description: "Resets account password using verified OTP code (`123456`).",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["email", "otp", "newPassword"],
+                properties: {
+                  email: { type: "string", format: "email", example: "demo.alumni@ipam.edu" },
+                  otp: { type: "string", example: "123456" },
+                  newPassword: { type: "string", minLength: 8, example: "NewSecurePassword456!" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: "Password reset successfully" },
+          400: { description: "Invalid OTP or validation failure" },
+          404: { description: "Account not found" },
+        },
+      },
+    },
+    "/api/auth/refresh": {
+      post: {
+        tags: ["Authentication"],
+        summary: "Refresh Session Token",
+        description: "Issues a refreshed JWT session token for authenticated mobile clients.",
+        security: [{ BearerAuth: [] }, { CookieAuth: [] }],
+        responses: {
+          200: { description: "Refreshed token issued" },
+          401: { description: "Unauthorized" },
+        },
+      },
+    },
 
     // -------------------------------------------------------------
     // VIRTUAL PASS & QR
@@ -445,6 +511,18 @@ Official API documentation and testing sandbox for **IPAM Alumni Web** and the *
             },
           },
           404: { description: "Pass not found or invalid" },
+        },
+      },
+    },
+    "/api/alumni/digital-pass": {
+      get: {
+        tags: ["Virtual Pass & QR"],
+        summary: "Get Digital ID Pass (Mobile Alias)",
+        description: "Mobile alias for `/api/alumni/pass`. Returns digital alumni card details and JSON `qrPayload` string.",
+        security: [{ BearerAuth: [] }, { CookieAuth: [] }],
+        responses: {
+          200: { description: "Digital alumni pass data" },
+          401: { description: "Authentication required" },
         },
       },
     },
@@ -575,6 +653,39 @@ Official API documentation and testing sandbox for **IPAM Alumni Web** and the *
         description: "Allows alumni to propose a reunion, workshop, or seminar to the alumni executive council.",
         responses: {
           201: { description: "Proposal submitted" },
+        },
+      },
+    },
+    "/api/events/rsvp": {
+      post: {
+        tags: ["Events & Ticketing"],
+        summary: "Mobile Event RSVP / Ticket Booking",
+        description: "Mobile endpoint for event booking. Accepts `{ eventId, ticketCount, ... }` and generates a booking reference.",
+        security: [{ BearerAuth: [] }, { CookieAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["eventId"],
+                properties: {
+                  eventId: { type: "string", example: "seed-event-6" },
+                  ticketCount: { type: "integer", default: 1, example: 1 },
+                  attendeeName: { type: "string", example: "Alex Sesay" },
+                  attendeeEmail: { type: "string", format: "email", example: "demo.alumni@ipam.edu" },
+                  attendeePhone: { type: "string", example: "+232 76 112233" },
+                  notes: { type: "string", example: "Vegetarian dietary preference" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          201: { description: "RSVP confirmed with booking reference" },
+          400: { description: "Validation failure" },
+          401: { description: "Unauthorized" },
+          409: { description: "Event capacity full" },
         },
       },
     },
@@ -917,6 +1028,30 @@ Official API documentation and testing sandbox for **IPAM Alumni Web** and the *
         },
       },
     },
+    "/api/alumni/orders/card": {
+      get: {
+        tags: ["Physical ID Cards"],
+        summary: "My Physical Card Orders (Mobile Alias)",
+        description: "Mobile alias for `/api/physical-card-orders`. Returns user's physical card orders.",
+        security: [{ BearerAuth: [] }, { CookieAuth: [] }],
+        responses: {
+          200: { description: "List of card orders" },
+        },
+      },
+      post: {
+        tags: ["Physical ID Cards"],
+        summary: "Order Physical ID Card (Mobile Alias)",
+        description: "Mobile alias for `/api/physical-card-orders`. Places order for physical PVC/RFID card.",
+        security: [{ BearerAuth: [] }, { CookieAuth: [] }],
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { $ref: "#/components/schemas/PhysicalCardOrderRequest" } } },
+        },
+        responses: {
+          201: { description: "Card order placed" },
+        },
+      },
+    },
 
     // -------------------------------------------------------------
     // DONATIONS & GIVING
@@ -1131,6 +1266,35 @@ Official API documentation and testing sandbox for **IPAM Alumni Web** and the *
           200: { description: "Payment intent clientSecret created" },
           400: { description: "Invalid tier or payment disabled" },
           401: { description: "Authentication required" },
+        },
+      },
+    },
+
+    // -------------------------------------------------------------
+    // MOBILE APP
+    // -------------------------------------------------------------
+    "/api/mobile/home": {
+      get: {
+        tags: ["Mobile App"],
+        summary: "Get Mobile Home Feed",
+        description: "Unified aggregator endpoint for the Flutter mobile home screen. Returns hero slides, active banners, featured events, latest jobs, council leaders, network statistics, and optional personalized user pass summary.",
+        security: [{ BearerAuth: [] }, { CookieAuth: [] }],
+        responses: {
+          200: {
+            description: "Mobile home screen feed object containing slides, banners, events, jobs, leaders, stats, and member info",
+          },
+        },
+      },
+    },
+    "/api/mobile/config": {
+      get: {
+        tags: ["Mobile App"],
+        summary: "Get Mobile App Configuration",
+        description: "Returns client bootstrap configuration including app version, maintenance mode, feature flags, and institutional support contact.",
+        responses: {
+          200: {
+            description: "Mobile runtime configuration object",
+          },
         },
       },
     },
