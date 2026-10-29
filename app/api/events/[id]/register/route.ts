@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { getAlumniSession } from "@/lib/auth/session";
 import { ok, fail } from "@/lib/api-response";
+import { notifyEventRegistrationConfirmed } from "@/lib/notifications";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getAlumniSession();
@@ -86,6 +87,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     where: { id: eventId },
     data: { registeredCount: { increment: ticketCount } },
   });
+
+  // Dispatch push and in-app confirmation notification to alumni
+  notifyEventRegistrationConfirmed({
+    userId: session.sub,
+    eventTitle: event.title,
+    eventDate: event.date,
+    bookingReference: registration.bookingReference,
+    location: event.location,
+  }).catch((err) => console.error("[Events] RSVP Notification error:", err));
 
   return ok(
     {

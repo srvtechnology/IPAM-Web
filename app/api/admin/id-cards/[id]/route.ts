@@ -4,6 +4,7 @@ import { requirePermission } from "@/lib/auth/permissions";
 import { updateIdCardOrderSchema } from "@/lib/validation/idcards";
 import { writeAuditLog, requestMeta } from "@/lib/audit";
 import { ok, fail } from "@/lib/api-response";
+import { notifyIdCardStatusChanged } from "@/lib/notifications";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const gate = await requirePermission(req, "ID_CARDS", "canRead");
@@ -68,6 +69,19 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       beforeState: { status: existing.status },
       afterState: { status: parsed.data.status },
     });
+
+    if (existing.regNo) {
+      db.alumniUser.findUnique({ where: { studentId: existing.regNo } }).then((user) => {
+        if (user && parsed.data.status) {
+          notifyIdCardStatusChanged({
+            alumniUserId: user.id,
+            orderNumber: existing.orderNumber,
+            newStatus: parsed.data.status,
+            trackingCode: (parsed.data as any).trackingCode ?? existing.trackingCode,
+          }).catch(() => null);
+        }
+      }).catch(() => null);
+    }
   }
 
   return ok(updated);

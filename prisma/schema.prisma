@@ -300,6 +300,8 @@ model AlumniUser {
 
   bookmarksMade            AlumniBookmark[] @relation("BookmarkOwner")
   bookmarkedBy             AlumniBookmark[] @relation("BookmarkTarget")
+  deviceTokens             AlumniDeviceToken[]
+  personalNotifications    AlumniNotification[]
 
   @@map("alumni_users")
 }
@@ -1086,4 +1088,45 @@ model SystemSetting {
   updatedAt DateTime @updatedAt
 
   @@map("system_settings")
+}
+
+model AlumniDeviceToken {
+  id          String      @id @default(cuid())
+  userId      String
+  user        AlumniUser  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token       String      @unique @db.VarChar(512)
+  platform    String      @default("android") // "android" | "ios" | "web"
+  deviceName  String?
+  appVersion  String?
+  isActive    Boolean     @default(true)
+  lastUsedAt  DateTime    @default(now())
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([userId])
+  @@index([token])
+  @@index([isActive])
+  @@map("alumni_device_tokens")
+}
+
+model AlumniNotification {
+  id           String             @id @default(cuid())
+  userId       String
+  user         AlumniUser         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title        String
+  message      String             @db.Text
+  type         String             @default("NOTIFICATION") // "NOTIFICATION" | "VERIFICATION" | "ID_CARD" | "JOB" | "EVENT" | "ALERT"
+  priority     BroadcastPriority  @default(NORMAL)
+  actionUrl    String?
+  isRead       Boolean            @default(false)
+  readAt       DateTime?
+  fcmMessageId String?
+  metadata     Json?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("alumni_notifications")
 }

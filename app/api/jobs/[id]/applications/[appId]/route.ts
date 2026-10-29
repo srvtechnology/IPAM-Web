@@ -4,6 +4,7 @@ import { getAdminSession, getAlumniSession } from "@/lib/auth/session";
 import { ok, fail } from "@/lib/api-response";
 import { updateCandidateStatusSchema } from "@/lib/validation/jobs";
 import { writeAuditLog, requestMeta } from "@/lib/audit";
+import { notifyJobApplicationStatusChanged } from "@/lib/notifications";
 
 export async function GET(
   _req: NextRequest,
@@ -127,6 +128,17 @@ export async function PATCH(
         afterState: { status: parsed.data.status },
       });
     }
+  }
+
+  // Dispatch push and in-app notification to candidate
+  if (parsed.data.status && parsed.data.status !== application.status && application.alumniUserId) {
+    notifyJobApplicationStatusChanged({
+      alumniUserId: application.alumniUserId,
+      jobTitle: application.job.title,
+      company: application.job.company,
+      status: parsed.data.status,
+      remarks: parsed.data.recruiterRemarks,
+    }).catch((err) => console.error("[Jobs] Notification error:", err));
   }
 
   return ok(updated);

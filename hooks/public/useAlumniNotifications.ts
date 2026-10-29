@@ -17,6 +17,8 @@ export interface AlumniNotificationItem {
   eventVenue: string | null;
   rsvpDeadline: string | null;
   isRead: boolean;
+  isPersonal?: boolean;
+  categoryType?: string;
 }
 
 export function useAlumniNotifications() {
@@ -77,18 +79,23 @@ export function useAlumniNotifications() {
     fetchNotifications();
   }, [loadReadIds, fetchNotifications]);
 
-  // Listen for sync event across components in the same window
+  // Listen for sync event across components in the same window and real-time push notifications
   useEffect(() => {
     function handleSync() {
       loadReadIds();
     }
+    function handleNewPush() {
+      fetchNotifications();
+    }
     window.addEventListener("ipam-notifications-read-updated", handleSync);
+    window.addEventListener("ipam-new-notification", handleNewPush);
     window.addEventListener("storage", handleSync);
     return () => {
       window.removeEventListener("ipam-notifications-read-updated", handleSync);
+      window.removeEventListener("ipam-new-notification", handleNewPush);
       window.removeEventListener("storage", handleSync);
     };
-  }, [loadReadIds]);
+  }, [loadReadIds, fetchNotifications]);
 
   const saveReadIds = useCallback(
     (newSet: Set<string>) => {
@@ -114,6 +121,8 @@ export function useAlumniNotifications() {
         saveReadIds(next);
         return next;
       });
+      // Fire-and-forget sync to server for personal notification status
+      fetch(`/api/alumni/notifications/${id}/read`, { method: "PATCH" }).catch(() => null);
     },
     [saveReadIds]
   );
@@ -126,6 +135,7 @@ export function useAlumniNotifications() {
           next.delete(id);
         } else {
           next.add(id);
+          fetch(`/api/alumni/notifications/${id}/read`, { method: "PATCH" }).catch(() => null);
         }
         saveReadIds(next);
         return next;
@@ -137,6 +147,7 @@ export function useAlumniNotifications() {
   const markAllAsRead = useCallback(() => {
     const allIds = new Set(rawNotifications.map((n) => n.id));
     saveReadIds(allIds);
+    fetch("/api/alumni/notifications/read-all", { method: "POST" }).catch(() => null);
   }, [rawNotifications, saveReadIds]);
 
   const notifications: AlumniNotificationItem[] = rawNotifications.map((n) => ({

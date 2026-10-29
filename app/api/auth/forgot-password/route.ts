@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { ok, fail } from "@/lib/api-response";
 import { z } from "zod";
+import { sendOtp } from "@/lib/auth/otp";
 
 const forgotPasswordSchema = z.object({
   email: z.string().email("Valid email is required"),
@@ -32,9 +33,17 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  return ok({
-    message: "Password reset OTP code has been dispatched to your email.",
+  // Dispatch real 2FA OTP code via SMTP to the alumni's email
+  const otpResult = await sendOtp({
     email,
-    devOtp: "123456",
+    purpose: "PASSWORD_RESET",
+    name: user.profile?.name || "Alumnus",
+    expiresMinutes: 15,
+  });
+
+  return ok({
+    message: "Password reset 2FA verification code has been dispatched to your email.",
+    email,
+    devOtp: otpResult.devOtp,
   });
 }

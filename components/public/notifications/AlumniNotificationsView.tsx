@@ -26,6 +26,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useAlumniNotifications, type AlumniNotificationItem } from "@/hooks/public/useAlumniNotifications";
+import { useWebPushNotifications } from "@/hooks/public/useWebPushNotifications";
 
 function formatDate(iso: string) {
   try {
@@ -77,6 +78,7 @@ export default function AlumniNotificationsView({
     markAllAsRead,
     refresh,
   } = useAlumniNotifications();
+  const { isSupported, permission, enableNotifications, loading: pushLoading } = useWebPushNotifications();
 
   const [activeTab, setActiveTab] = useState<"ALL" | "UNREAD" | "NOTIFICATION" | "MESSAGE" | "INVITATION">("ALL");
   const [priorityFilter, setPriorityFilter] = useState<"ALL" | "CRITICAL" | "URGENT" | "NORMAL">("ALL");
@@ -144,6 +146,32 @@ export default function AlumniNotificationsView({
           </button>
         </div>
       </div>
+
+      {/* Web Push Opt-in Banner */}
+      {isSupported && permission !== "granted" && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-950/30 p-4 shadow-sm backdrop-blur-sm">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/30">
+              <Sparkles className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-white">Enable Real-Time Web Push Notifications</h3>
+              <p className="text-xs text-emerald-300/80 mt-0.5">
+                Receive instant browser alerts for degree verification approvals, physical ID card shipments, job matches, and campus alerts.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={enableNotifications}
+            disabled={pushLoading}
+            className="flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-2 text-xs font-bold text-slate-950 shadow-md transition-all hover:bg-emerald-400 hover:shadow-emerald-500/20 disabled:opacity-50 flex-shrink-0"
+          >
+            <Bell className="h-4 w-4" />
+            <span>{pushLoading ? "Enabling Push..." : "Enable Push Notifications"}</span>
+          </button>
+        </div>
+      )}
 
       {/* Metrics Ribbon (hide in compact mode) */}
       {!compact && (

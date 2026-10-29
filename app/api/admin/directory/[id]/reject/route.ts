@@ -4,6 +4,7 @@ import { requirePermission } from "@/lib/auth/permissions";
 import { writeAuditLog, requestMeta } from "@/lib/audit";
 import { rejectAlumniRecordSchema } from "@/lib/validation/directory";
 import { ok, fail } from "@/lib/api-response";
+import { notifyDegreeVerificationRejected } from "@/lib/notifications";
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const gate = await requirePermission(req, "DIRECTORY", "canApprove");
@@ -61,6 +62,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     beforeState: { status: target.status, rejectionReason: target.rejectionReason },
     afterState: { status: "REJECTED", rejectionReason },
   });
+
+  // Dispatch push and in-app notification to alumni
+  if (target.alumniUserId) {
+    notifyDegreeVerificationRejected(target.alumniUserId, target.name, rejectionReason).catch((err) =>
+      console.error("[Directory] Failed to send degree rejection notification:", err)
+    );
+  }
 
   return ok(updated);
 }

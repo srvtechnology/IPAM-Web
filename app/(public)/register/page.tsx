@@ -83,8 +83,11 @@ function RegisterForm() {
 
   // 2FA OTP state
   const [otpModalOpen, setOtpModalOpen] = useState(false);
-  const [otp, setOtp] = useState("123456");
+  const [otp, setOtp] = useState("");
   const [otpError, setOtpError] = useState<string | null>(null);
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [devOtp, setDevOtp] = useState<string | null>(null);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   // Re-submission state
   const [isResubmitting, setIsResubmitting] = useState(false);
@@ -130,6 +133,33 @@ function RegisterForm() {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => setResendCooldown((prev) => prev - 1), 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
+
+  async function requestOtp() {
+    setSendingOtp(true);
+    setOtpError(null);
+    try {
+      const res = await fetch("/api/auth/2fa/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: form.email, purpose: "REGISTRATION", name: form.name }),
+      });
+      const json = await res.json();
+      if (json.data?.devOtp) {
+        setDevOtp(json.data.devOtp);
+      }
+      setResendCooldown(30);
+    } catch {
+      // non-fatal
+    } finally {
+      setSendingOtp(false);
+    }
+  }
+
   function handleStartVerification(e: FormEvent) {
     e.preventDefault();
     setError(null);
@@ -143,10 +173,11 @@ function RegisterForm() {
       return;
     }
 
-    // Open 2FA modal
-    setOtp("123456");
+    // Open 2FA modal and send verification code via SMTP
+    setOtp("");
     setOtpError(null);
     setOtpModalOpen(true);
+    requestOtp();
   }
 
   async function handleVerifyAndSubmit() {
@@ -703,18 +734,34 @@ function RegisterForm() {
             </div>
 
             <div className="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-950/50 p-3.5 text-xs text-emerald-200">
-              <p className="font-bold flex items-center gap-1.5 text-emerald-300">
-                <ShieldCheck className="h-4 w-4" />
-                Demonstration Test Environment
+              <p className="font-bold flex items-center justify-between text-emerald-300">
+                <span className="flex items-center gap-1.5">
+                  <ShieldCheck className="h-4 w-4" />
+                  SMTP Security Verification
+                </span>
+                <span className="text-[10px] bg-emerald-900/60 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-500/40">
+                  {sendingOtp ? "Sending..." : "Dispatched"}
+                </span>
               </p>
               <p className="mt-1 text-slate-300">
-                A verification code has been dispatched. For this test environment, enter default OTP:
+                A verification code has been sent via SMTP to <strong className="text-white">{form.email}</strong>.
               </p>
-              <div className="mt-2 text-center">
-                <span className="inline-block rounded-lg bg-emerald-900/80 px-4 py-1 font-mono text-base font-black tracking-widest text-emerald-300 border border-emerald-500/40">
-                  123456
-                </span>
+              <div className="mt-2.5 flex items-center justify-between text-[11px] text-slate-400 bg-slate-950/60 p-2 rounded-lg border border-slate-800">
+                <span>Didn&apos;t receive it?</span>
+                <button
+                  type="button"
+                  disabled={sendingOtp || resendCooldown > 0}
+                  onClick={requestOtp}
+                  className="font-bold text-emerald-400 hover:text-emerald-300 disabled:opacity-50"
+                >
+                  {resendCooldown > 0 ? `Resend code (${resendCooldown}s)` : "Resend code"}
+                </button>
               </div>
+              {devOtp && (
+                <div className="mt-2 text-center text-[11px] text-slate-400">
+                  Code sent: <span className="font-mono font-bold text-emerald-300">{devOtp}</span> (or enter test code <span className="font-mono text-emerald-400">123456</span>)
+                </div>
+              )}
             </div>
 
             <div className="mb-4">

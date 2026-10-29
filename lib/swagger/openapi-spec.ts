@@ -49,6 +49,7 @@ Official API documentation and testing sandbox for **IPAM Alumni Web** and the *
     { name: "Leadership", description: "Public executive council and university initiatives" },
     { name: "Content & Banners", description: "Promotional banners and hero slider announcements" },
     { name: "Payments", description: "Stripe PaymentIntent initiation" },
+    { name: "Push Notifications & FCM", description: "Firebase Cloud Messaging device token registration, push alerts, and notification preferences" },
     { name: "Mobile App", description: "Mobile client aggregation feeds, bootstrap config, and client helpers" },
   ],
   components: {
@@ -357,6 +358,34 @@ Official API documentation and testing sandbox for **IPAM Alumni Web** and the *
         description: "Clears session cookies and ends active web session.",
         responses: {
           200: { description: "Signed out successfully" },
+        },
+      },
+    },
+    "/api/auth/2fa/send-otp": {
+      post: {
+        tags: ["Authentication"],
+        summary: "Send 2FA Security OTP via SMTP",
+        description: "Dispatches a 6-digit verification code to the specified email address via Gmail SMTP (growpos.official@gmail.com) for registration, password reset, or login 2FA.",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["email"],
+                properties: {
+                  email: { type: "string", format: "email", example: "alumni@ipam.edu" },
+                  purpose: { type: "string", enum: ["REGISTRATION", "PASSWORD_RESET", "LOGIN_2FA"], default: "REGISTRATION" },
+                  name: { type: "string", example: "Dr. Amara Kamara" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: "2FA OTP code dispatched successfully" },
+          400: { description: "Validation error" },
+          429: { description: "Rate limit exceeded (wait 30s)" },
         },
       },
     },
@@ -887,13 +916,198 @@ Official API documentation and testing sandbox for **IPAM Alumni Web** and the *
     },
     "/api/alumni/notifications": {
       get: {
-        tags: ["Alumni Directory & Networking"],
-        summary: "Alumni Broadcast Notifications",
-        description: "Fetches official university broadcast announcements, event notices, and priority alerts.",
+        tags: ["Alumni Directory & Networking", "Push Notifications & FCM"],
+        summary: "Alumni Unified Notifications",
+        description: "Fetches official university broadcast announcements and personalized alerts (verification sign-off, ID card updates, job applications, RSVPs).",
         security: [{ BearerAuth: [] }, { CookieAuth: [] }],
         responses: {
           200: { description: "List of notifications" },
           401: { description: "Authentication required" },
+        },
+      },
+    },
+    "/api/alumni/notifications/{id}/read": {
+      patch: {
+        tags: ["Push Notifications & FCM"],
+        summary: "Mark Notification as Read",
+        description: "Marks a specific personal notification as read.",
+        security: [{ BearerAuth: [] }, { CookieAuth: [] }],
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "string" } },
+        ],
+        responses: {
+          200: { description: "Notification marked read" },
+          401: { description: "Authentication required" },
+          404: { description: "Notification not found" },
+        },
+      },
+    },
+    "/api/alumni/notifications/read-all": {
+      post: {
+        tags: ["Push Notifications & FCM"],
+        summary: "Mark All Notifications Read",
+        description: "Marks all personal notifications for the current alumni as read.",
+        security: [{ BearerAuth: [] }, { CookieAuth: [] }],
+        responses: {
+          200: { description: "All notifications marked read" },
+          401: { description: "Authentication required" },
+        },
+      },
+    },
+    "/api/notifications/register-token": {
+      post: {
+        tags: ["Push Notifications & FCM"],
+        summary: "Register FCM Push Device Token",
+        description: "Registers an FCM device push token from Flutter mobile app or Web Push client. Subscribes device to the 'all_alumni' broadcast topic.",
+        security: [{ BearerAuth: [] }, { CookieAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["token"],
+                properties: {
+                  token: { type: "string", description: "FCM registration token" },
+                  platform: { type: "string", enum: ["android", "ios", "web"], default: "android" },
+                  deviceName: { type: "string", example: "Google Pixel 8" },
+                  appVersion: { type: "string", example: "1.0.0" },
+                  subscribeToAll: { type: "boolean", default: true },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          201: { description: "Device token registered successfully" },
+          400: { description: "Validation error" },
+          401: { description: "Authentication required" },
+        },
+      },
+    },
+    "/api/notifications/unregister-token": {
+      post: {
+        tags: ["Push Notifications & FCM"],
+        summary: "Unregister FCM Device Token",
+        description: "Deactivates an FCM device token upon logout or permission revocation.",
+        security: [{ BearerAuth: [] }, { CookieAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["token"],
+                properties: {
+                  token: { type: "string" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: "Token unregistered" },
+          401: { description: "Authentication required" },
+        },
+      },
+    },
+    "/api/notifications/devices": {
+      get: {
+        tags: ["Push Notifications & FCM"],
+        summary: "List Registered Push Devices",
+        description: "Returns the authenticated user's active push notification devices.",
+        security: [{ BearerAuth: [] }, { CookieAuth: [] }],
+        responses: {
+          200: { description: "List of active devices" },
+          401: { description: "Authentication required" },
+        },
+      },
+    },
+    "/api/notifications/test": {
+      post: {
+        tags: ["Push Notifications & FCM"],
+        summary: "Dispatch Test FCM Push",
+        description: "Diagnostic endpoint to verify Firebase Cloud Messaging delivery using the configured serviceAccountKey.json.",
+        security: [{ BearerAuth: [] }, { CookieAuth: [] }],
+        requestBody: {
+          required: false,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  token: { type: "string", description: "Optional specific target FCM device token" },
+                  topic: { type: "string", description: "Optional topic name, e.g. all_alumni" },
+                  title: { type: "string", default: "Test IPAM Notification" },
+                  message: { type: "string", default: "Firebase Cloud Messaging test message" },
+                  priority: { type: "string", enum: ["NORMAL", "HIGH", "URGENT", "CRITICAL"], default: "NORMAL" },
+                  actionUrl: { type: "string", default: "/profile" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: "Test push dispatched" },
+          400: { description: "Missing target" },
+          401: { description: "Authentication required" },
+          503: { description: "Firebase credentials not configured" },
+        },
+      },
+    },
+    "/api/admin/broadcast/test-email": {
+      post: {
+        tags: ["Push Notifications & FCM"],
+        summary: "Dispatch Test Broadcast Email (SMTP)",
+        description: "Diagnostic endpoint to verify Gmail SMTP configuration (growpos.official@gmail.com) by dispatching an official IPAM test broadcast email.",
+        security: [{ BearerAuth: [] }, { CookieAuth: [] }],
+        requestBody: {
+          required: false,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  to: { type: "string", format: "email", description: "Target recipient email (defaults to SMTP account or admin email)" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: "Test email dispatched successfully" },
+          401: { description: "Authentication required" },
+          500: { description: "SMTP dispatch failed" },
+          503: { description: "SMTP credentials not configured" },
+        },
+      },
+    },
+    "/api/admin/broadcast/test-sms": {
+      post: {
+        tags: ["Push Notifications & FCM"],
+        summary: "Verify Twilio SMS / Dispatch Test SMS",
+        description: "Diagnostic endpoint to verify Twilio SMS account & Messaging Service credentials (MG3220f92efd031ac243e385c4958e017d) or send an optional test SMS.",
+        security: [{ BearerAuth: [] }, { CookieAuth: [] }],
+        requestBody: {
+          required: false,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  to: { type: "string", description: "Target phone number in E.164 format (optional - omitting verifies credentials and service SID status)" },
+                  message: { type: "string", description: "Custom test SMS body" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: "Twilio credentials verified or SMS dispatched" },
+          400: { description: "Invalid phone number format" },
+          401: { description: "Authentication required" },
+          502: { description: "Twilio API verification failure" },
+          503: { description: "Twilio credentials not configured" },
         },
       },
     },

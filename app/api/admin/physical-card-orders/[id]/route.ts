@@ -4,6 +4,7 @@ import { requirePermission } from "@/lib/auth/permissions";
 import { writeAuditLog, requestMeta } from "@/lib/audit";
 import { ok, fail } from "@/lib/api-response";
 import { z } from "zod";
+import { notifyIdCardStatusChanged } from "@/lib/notifications";
 
 const updatePhysicalCardOrderSchema = z.object({
   status: z
@@ -107,6 +108,16 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     beforeState: { status: existing.status, paymentStatus: existing.paymentStatus },
     afterState: { status: updated.status, paymentStatus: updated.paymentStatus },
   });
+
+  // Dispatch push and in-app notification when card status changes
+  if (parsed.data.status && parsed.data.status !== existing.status && existing.alumniUserId) {
+    notifyIdCardStatusChanged({
+      alumniUserId: existing.alumniUserId,
+      orderNumber: existing.orderNumber,
+      newStatus: parsed.data.status,
+      trackingCode: parsed.data.trackingCode ?? existing.trackingCode,
+    }).catch((err) => console.error("[PhysicalCard] Notification error:", err));
+  }
 
   return ok(updated);
 }

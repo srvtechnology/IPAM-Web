@@ -110,9 +110,49 @@ export default function OmnichannelBroadcastView({
 
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
   const [selectedAudience, setSelectedAudience] = useState<string>("");
+  const [testEmailStatus, setTestEmailStatus] = useState<string | null>(null);
+  const [sendingTest, setSendingTest] = useState(false);
+  const [testSmsStatus, setTestSmsStatus] = useState<string | null>(null);
+  const [sendingTestSms, setSendingTestSms] = useState(false);
 
   const canWrite = can("BROADCAST", "canWrite");
   const canDelete = can("BROADCAST", "canDelete");
+
+  async function handleSendTestEmail() {
+    setSendingTest(true);
+    setTestEmailStatus(null);
+    try {
+      const res = await fetch("/api/admin/broadcast/test-email", { method: "POST" });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setTestEmailStatus(`✔ Test email dispatched to ${json.data.recipient}!`);
+      } else {
+        setTestEmailStatus(`✖ Test failed: ${json.error || "Unknown error"}`);
+      }
+    } catch {
+      setTestEmailStatus("✖ Network error dispatching test email");
+    } finally {
+      setSendingTest(false);
+    }
+  }
+
+  async function handleSendTestSms() {
+    setSendingTestSms(true);
+    setTestSmsStatus(null);
+    try {
+      const res = await fetch("/api/admin/broadcast/test-sms", { method: "POST" });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setTestSmsStatus(`✔ Twilio SMS verified: ${json.data.friendlyName || "Active"} (${json.data.accountStatus})`);
+      } else {
+        setTestSmsStatus(`✖ Twilio test failed: ${json.error || "Unknown error"}`);
+      }
+    } catch {
+      setTestSmsStatus("✖ Network error verifying Twilio SMS");
+    } finally {
+      setSendingTestSms(false);
+    }
+  }
 
   async function handleSend() {
     const template = templates.find((t) => t.id === selectedTemplate);
@@ -124,6 +164,7 @@ export default function OmnichannelBroadcastView({
       message: template.message,
       channels: template.channels,
       audienceLabel: audience.name,
+      audienceGroupId: audience.id,
       recipientsCount: audience.estimatedCount ?? 0,
       priority: template.priority ?? "NORMAL",
       actionUrl: template.actionUrl ?? null,
@@ -147,7 +188,7 @@ export default function OmnichannelBroadcastView({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-secondary text-[24px]">campaign</span>
@@ -157,7 +198,77 @@ export default function OmnichannelBroadcastView({
             Compose and dispatch messages across SMS, Email and Push.
           </p>
         </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container border border-outline-variant/30 text-xs">
+            <span className="h-2 w-2 rounded-full bg-emerald-400"></span>
+            <span className="text-on-surface-variant font-code-compact">SMTP: growpos.official@gmail.com</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container border border-outline-variant/30 text-xs">
+            <span className="h-2 w-2 rounded-full bg-emerald-400"></span>
+            <span className="text-on-surface-variant font-code-compact">SMS: Twilio (MG3220f...)</span>
+          </div>
+          {canWrite && (
+            <>
+              <button
+                type="button"
+                onClick={handleSendTestEmail}
+                disabled={sendingTest}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-outline-variant/40 bg-surface-container-high hover:bg-surface-container-highest text-on-surface text-xs font-medium transition-colors disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-[16px]">mail</span>
+                {sendingTest ? "Sending…" : "Test Email"}
+              </button>
+              <button
+                type="button"
+                onClick={handleSendTestSms}
+                disabled={sendingTestSms}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-outline-variant/40 bg-surface-container-high hover:bg-surface-container-highest text-on-surface text-xs font-medium transition-colors disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-[16px]">sms</span>
+                {sendingTestSms ? "Checking…" : "Test SMS"}
+              </button>
+            </>
+          )}
+        </div>
       </div>
+
+      {testEmailStatus && (
+        <div
+          className={`rounded-lg px-3 py-2 font-body-compact text-xs flex items-center justify-between ${
+            testEmailStatus.startsWith("✔")
+              ? "bg-emerald-950/40 text-emerald-300 border border-emerald-500/30"
+              : "bg-error-container text-on-error-container"
+          }`}
+        >
+          <span>{testEmailStatus}</span>
+          <button
+            type="button"
+            onClick={() => setTestEmailStatus(null)}
+            className="text-xs hover:opacity-75 ml-2 font-bold"
+          >
+            &times;
+          </button>
+        </div>
+      )}
+
+      {testSmsStatus && (
+        <div
+          className={`rounded-lg px-3 py-2 font-body-compact text-xs flex items-center justify-between ${
+            testSmsStatus.startsWith("✔")
+              ? "bg-emerald-950/40 text-emerald-300 border border-emerald-500/30"
+              : "bg-error-container text-on-error-container"
+          }`}
+        >
+          <span>{testSmsStatus}</span>
+          <button
+            type="button"
+            onClick={() => setTestSmsStatus(null)}
+            className="text-xs hover:opacity-75 ml-2 font-bold"
+          >
+            &times;
+          </button>
+        </div>
+      )}
 
       {error && (
         <div className="rounded-lg bg-error-container text-on-error-container px-3 py-2 font-body-compact">

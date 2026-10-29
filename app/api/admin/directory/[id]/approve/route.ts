@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { requirePermission } from "@/lib/auth/permissions";
 import { writeAuditLog, requestMeta } from "@/lib/audit";
 import { ok, fail } from "@/lib/api-response";
+import { notifyDegreeVerificationApproved } from "@/lib/notifications";
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const gate = await requirePermission(req, "DIRECTORY", "canApprove");
@@ -50,6 +51,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     beforeState: { status: target.status, authStatus: target.authStatus },
     afterState: { status: "APPROVED", authStatus: "BIOMETRIC_SYNCED" },
   });
+
+  // Dispatch push and in-app notification to approved alumni
+  if (target.alumniUserId) {
+    notifyDegreeVerificationApproved(target.alumniUserId, target.name).catch((err) =>
+      console.error("[Directory] Failed to send degree approval notification:", err)
+    );
+  }
 
   return ok(updated);
 }

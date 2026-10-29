@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { hashPassword } from "@/lib/auth/password";
 import { ok, fail } from "@/lib/api-response";
 import { z } from "zod";
+import { verifyOtp } from "@/lib/auth/otp";
 
 const resetPasswordSchema = z.object({
   email: z.string().email("Valid email is required"),
@@ -23,9 +24,15 @@ export async function POST(req: NextRequest) {
 
   const { email, otp, newPassword } = parsed.data;
 
-  // In test / sandbox environment, OTP is 123456
-  if (otp !== "123456") {
-    return fail(400, "Invalid or expired password reset OTP code. For test environment, enter 123456.");
+  // Validate 2FA OTP code (accepts emailed dynamic code or test code 123456)
+  const verification = verifyOtp({
+    email,
+    code: otp,
+    purpose: "PASSWORD_RESET",
+  });
+
+  if (!verification.valid) {
+    return fail(400, verification.error || "Invalid or expired password reset OTP code.");
   }
 
   const user = await db.alumniUser.findUnique({

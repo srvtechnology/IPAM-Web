@@ -372,15 +372,62 @@ function LoginFormContent() {
 
 function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
   const [forgotEmail, setForgotEmail] = useState("");
-  const [sent, setSent] = useState(false);
+  const [step, setStep] = useState<"REQUEST" | "VERIFY" | "DONE">("REQUEST");
+  const [otp, setOtp] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function handleSubmit(e: FormEvent) {
+  async function handleRequestOtp(e: FormEvent) {
     e.preventDefault();
     if (!forgotEmail) return;
-    // No email provider is wired into this project yet — this confirms the
-    // flow visually; wire to a real mailer + reset-token API before relying
-    // on it to actually deliver anything.
-    setSent(true);
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: forgotEmail.trim() }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setError(json.error ?? "Failed to request password reset code");
+        return;
+      }
+      setStep("VERIFY");
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleResetPassword(e: FormEvent) {
+    e.preventDefault();
+    if (!otp || !newPassword) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: forgotEmail.trim(),
+          otp: otp.trim(),
+          newPassword,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setError(json.error ?? "Failed to reset password");
+        return;
+      }
+      setStep("DONE");
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -398,17 +445,36 @@ function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
         <div>
           <h3 className="text-lg font-black text-white">Reset your password</h3>
           <p className="mt-1 text-xs text-slate-400">
-            Enter your registered alumni email to receive a password recovery link.
+            {step === "REQUEST"
+              ? "Enter your registered alumni email to receive a 2FA verification code."
+              : step === "VERIFY"
+              ? "Enter the 6-digit 2FA code sent to your email and your new password."
+              : "Password successfully updated!"}
           </p>
         </div>
 
-        {sent ? (
-          <div className="space-y-1 rounded-2xl border border-emerald-500/40 bg-emerald-950 p-4 text-xs text-emerald-200">
-            <p className="font-bold text-white">Recovery instructions sent!</p>
-            <p>Please check your inbox at <strong>{forgotEmail}</strong>.</p>
+        {error && (
+          <div className="rounded-xl border border-rose-500/30 bg-rose-950/40 p-2.5 text-xs text-rose-300">
+            {error}
           </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-3">
+        )}
+
+        {step === "DONE" && (
+          <div className="space-y-3 rounded-2xl border border-emerald-500/40 bg-emerald-950 p-4 text-xs text-emerald-200">
+            <p className="font-bold text-white">Password reset complete!</p>
+            <p>You can now sign in to your alumni account with your new password.</p>
+            <button
+              type="button"
+              onClick={onClose}
+              className="mt-2 w-full rounded-xl bg-emerald-500 py-2.5 text-xs font-black text-slate-950 shadow-md hover:bg-emerald-400"
+            >
+              Back to Sign In
+            </button>
+          </div>
+        )}
+
+        {step === "REQUEST" && (
+          <form onSubmit={handleRequestOtp} className="space-y-3">
             <input
               type="email"
               required
@@ -427,9 +493,59 @@ function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
               </button>
               <button
                 type="submit"
-                className="rounded-xl bg-emerald-500 py-2.5 text-xs font-black text-slate-950 shadow-md hover:bg-emerald-400"
+                disabled={loading}
+                className="rounded-xl bg-emerald-500 py-2.5 text-xs font-black text-slate-950 shadow-md hover:bg-emerald-400 disabled:opacity-50"
               >
-                Send Link
+                {loading ? "Sending…" : "Send 2FA Code"}
+              </button>
+            </div>
+          </form>
+        )}
+
+        {step === "VERIFY" && (
+          <form onSubmit={handleResetPassword} className="space-y-3 text-left">
+            <div>
+              <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                6-Digit 2FA Code
+              </label>
+              <input
+                type="text"
+                required
+                maxLength={6}
+                placeholder="123456"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                className="w-full text-center tracking-[0.4em] font-mono font-bold rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-white focus:outline-emerald-500"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                New Password (min 8 characters)
+              </label>
+              <input
+                type="password"
+                required
+                minLength={8}
+                placeholder="••••••••"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs font-semibold text-white focus:outline-emerald-500"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setStep("REQUEST")}
+                className="rounded-xl border border-slate-800 py-2.5 text-xs font-bold text-slate-300 hover:bg-slate-850 text-center"
+              >
+                Back
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="rounded-xl bg-emerald-500 py-2.5 text-xs font-black text-slate-950 shadow-md hover:bg-emerald-400 disabled:opacity-50 text-center"
+              >
+                {loading ? "Updating…" : "Set Password"}
               </button>
             </div>
           </form>

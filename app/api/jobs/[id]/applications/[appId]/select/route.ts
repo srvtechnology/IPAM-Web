@@ -4,6 +4,7 @@ import { getAdminSession, getAlumniSession } from "@/lib/auth/session";
 import { selectApplicationSchema } from "@/lib/validation/admin-jobs";
 import { ok, fail } from "@/lib/api-response";
 import { writeAuditLog, requestMeta } from "@/lib/audit";
+import { notifyJobApplicationStatusChanged } from "@/lib/notifications";
 
 export async function POST(
   req: NextRequest,
@@ -84,6 +85,17 @@ export async function POST(
         afterState: { status: "SELECTED", decisionStatus: parsed.data.decisionStatus },
       });
     }
+  }
+
+  // Dispatch push and in-app notification to candidate
+  if (application.alumniUserId) {
+    notifyJobApplicationStatusChanged({
+      alumniUserId: application.alumniUserId,
+      jobTitle: application.job.title,
+      company: application.job.company,
+      status: "SELECTED",
+      remarks: `Offer: ${parsed.data.offerSalary || "Provided"}. Decision: ${parsed.data.decisionStatus}`,
+    }).catch((err) => console.error("[Jobs] Notification error:", err));
   }
 
   return ok(updated);

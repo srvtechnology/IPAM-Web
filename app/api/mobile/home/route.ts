@@ -19,16 +19,16 @@ export async function GET(req: NextRequest) {
     totalEvents,
     totalBusinesses,
   ] = await Promise.all([
-    db.heroSlide.findMany({
+    ((db as any).heroSlide?.findMany({
       where: { active: true },
       orderBy: { order: "asc" },
       take: 5,
-    }),
-    db.commercialBanner.findMany({
+    }) ?? Promise.resolve([])) as Promise<any[]>,
+    ((db as any).commercialBanner?.findMany({
       where: { active: true },
       orderBy: { order: "asc" },
       take: 6,
-    }),
+    }) ?? Promise.resolve([])) as Promise<any[]>,
     db.alumniEvent.findMany({
       where: { status: "PUBLISHED" },
       orderBy: { date: "asc" },
@@ -43,8 +43,6 @@ export async function GET(req: NextRequest) {
       },
     }),
     db.leadershipMember.findMany({
-      where: { active: true },
-      orderBy: { order: "asc" },
       take: 6,
     }),
     db.alumniUser.count({ where: { status: "APPROVED" } }),
@@ -66,7 +64,9 @@ export async function GET(req: NextRequest) {
         db.eventRegistration.count({
           where: { userId: session.sub, bookingStatus: { not: "CANCELLED" } },
         }),
-        db.broadcastNotification.count({ where: { active: true } }),
+        db.alumniNotification.count({
+          where: { userId: session.sub, isRead: false },
+        }).catch(() => 0),
       ]);
 
     if (user && user.profile) {
@@ -92,7 +92,7 @@ export async function GET(req: NextRequest) {
   return ok({
     heroSlides,
     banners,
-    featuredEvents: featuredEvents.map((evt) => ({
+    featuredEvents: featuredEvents.map((evt: any) => ({
       id: evt.id,
       title: evt.title,
       description: evt.description,
@@ -106,7 +106,7 @@ export async function GET(req: NextRequest) {
       ticketPrice: evt.isPaid ? Number(evt.ticketPrice) : 0,
       currency: evt.currency,
     })),
-    latestJobs: latestJobs.map((job) => ({
+    latestJobs: latestJobs.map((job: any) => ({
       id: job.id,
       title: job.title,
       company: job.company,
@@ -119,15 +119,15 @@ export async function GET(req: NextRequest) {
       description: job.description,
       requirements: job.requirements,
       postedDate: job.postedDate,
-      applicationsCount: job._count.applications,
+      applicationsCount: job._count?.applications ?? 0,
     })),
-    councilLeaders: councilLeaders.map((lead) => ({
+    councilLeaders: councilLeaders.map((lead: any) => ({
       id: lead.id,
       name: lead.name,
       role: lead.role,
       title: lead.title,
       classYear: lead.classYear ? `Class of ${lead.classYear}` : "",
-      avatarUrl: lead.avatar,
+      avatarUrl: lead.avatar || lead.image,
       bio: lead.bio,
       linkedin: lead.linkedin,
     })),

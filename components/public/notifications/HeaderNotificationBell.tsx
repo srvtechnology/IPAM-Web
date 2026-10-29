@@ -14,6 +14,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useAlumniNotifications } from "@/hooks/public/useAlumniNotifications";
+import { useWebPushNotifications } from "@/hooks/public/useWebPushNotifications";
 
 function timeAgo(iso: string) {
   try {
@@ -35,6 +36,7 @@ function timeAgo(iso: string) {
 
 export default function HeaderNotificationBell() {
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useAlumniNotifications();
+  const { isSupported, permission, enableNotifications, loading: pushLoading } = useWebPushNotifications();
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -97,6 +99,24 @@ export default function HeaderNotificationBell() {
               </button>
             )}
           </div>
+
+          {/* Web Push Prompt Banner */}
+          {isSupported && permission !== "granted" && (
+            <div className="mx-2 my-2 flex items-center justify-between rounded-xl bg-emerald-950/40 border border-emerald-500/25 px-2.5 py-2">
+              <div className="flex items-center gap-1.5 text-[11px] text-emerald-300">
+                <Sparkles className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" />
+                <span className="font-medium">Enable browser push notifications</span>
+              </div>
+              <button
+                type="button"
+                onClick={enableNotifications}
+                disabled={pushLoading}
+                className="rounded-lg bg-emerald-500 px-2 py-0.5 text-[10px] font-bold text-slate-950 hover:bg-emerald-400 transition-colors disabled:opacity-50"
+              >
+                {pushLoading ? "Enabling…" : "Enable"}
+              </button>
+            </div>
+          )}
 
           {/* List */}
           <div className="max-h-80 divide-y divide-slate-800/60 overflow-y-auto py-1">

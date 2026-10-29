@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { hashPassword } from "@/lib/auth/password";
 import { alumniRegisterSchema } from "@/lib/validation/auth";
 import { ok, fail } from "@/lib/api-response";
+import { verifyOtp } from "@/lib/auth/otp";
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,9 +20,15 @@ export async function POST(req: NextRequest) {
     const email = input.email.trim().toLowerCase();
     const studentId = input.studentId.trim();
 
-    // 2FA OTP verification: Default OTP is 123456
-    if (input.otp !== "123456") {
-      return fail(400, "Invalid two-factor authentication OTP code. For test environment, enter 123456.");
+    // 2FA OTP verification: Verifies emailed OTP via SMTP (with 123456 as sandbox fallback)
+    const otpVerification = verifyOtp({
+      email,
+      code: input.otp,
+      purpose: "REGISTRATION",
+    });
+
+    if (!otpVerification.valid) {
+      return fail(400, otpVerification.error || "Invalid two-factor authentication OTP code.");
     }
 
     // Compute avatar initials from full name

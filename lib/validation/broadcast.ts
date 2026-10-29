@@ -44,6 +44,7 @@ export const sendBroadcastSchema = z.object({
   title: z.string().min(1),
   message: z.string().min(1),
   audienceLabel: z.string().min(1),
+  audienceGroupId: z.string().optional(),
   recipientsCount: z.number().int().min(0),
   channels: z.array(channelEnum).min(1),
   priority: z.enum(["NORMAL", "URGENT", "CRITICAL"]).optional(),
