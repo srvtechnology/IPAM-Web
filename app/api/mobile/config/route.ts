@@ -21,6 +21,14 @@ export async function GET() {
       commercialMarketplace: true,
       biometricScanner: true,
       stripePayments: true,
+      pushNotifications: true,
+    },
+    notifications: {
+      firebaseProjectId: "auratrade-p93c",
+      messagingSenderId: "570831339769",
+      defaultTopic: "all_alumni",
+      channelId: "ipam_alumni_notifications",
+      channelName: "IPAM Alumni Official Notifications",
     },
     support: {
       email: "support@ipam.edu",

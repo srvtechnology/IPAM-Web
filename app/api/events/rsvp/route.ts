@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { getAlumniSession } from "@/lib/auth/session";
+import { notifyEventRegistrationConfirmed } from "@/lib/notifications";
 import { ok, fail } from "@/lib/api-response";
 
 export const dynamic = "force-dynamic";
@@ -95,6 +96,15 @@ export async function POST(req: NextRequest) {
     where: { id: eventId },
     data: { registeredCount: { increment: ticketCount } },
   });
+
+  // Dispatch push & in-app confirmation notification to the alumnus
+  notifyEventRegistrationConfirmed({
+    userId: session.sub,
+    eventTitle: event.title,
+    eventDate: event.date,
+    bookingReference: registration.bookingReference,
+    location: event.location,
+  }).catch((err) => console.error("[RSVP] Notification dispatch error:", err));
 
   return ok(
     {

@@ -1,11 +1,12 @@
+import type { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { getAlumniSession } from "@/lib/auth/session";
 import { ok, fail } from "@/lib/api-response";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  const session = await getAlumniSession();
+export async function GET(req: NextRequest) {
+  const session = await getAlumniSession(req);
   if (!session) return fail(401, "Not authenticated");
 
   const user = await db.alumniUser.findUnique({
