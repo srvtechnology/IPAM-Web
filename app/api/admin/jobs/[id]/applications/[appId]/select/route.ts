@@ -4,6 +4,7 @@ import { requirePermission } from "@/lib/auth/permissions";
 import { writeAuditLog, requestMeta } from "@/lib/audit";
 import { selectApplicationSchema } from "@/lib/validation/admin-jobs";
 import { ok, fail } from "@/lib/api-response";
+import { notifyJobApplicationStatusChanged } from "@/lib/notifications";
 
 export async function POST(
   req: NextRequest,
@@ -53,6 +54,21 @@ export async function POST(
     beforeState: { status: existing.status },
     afterState: { status: "SELECTED", decisionStatus: parsed.data.decisionStatus },
   });
+
+  if (existing.alumniUserId || existing.email) {
+    db.jobOpening.findUnique({ where: { id: existing.jobId } }).then((job) => {
+      notifyJobApplicationStatusChanged({
+        alumniUserId: existing.alumniUserId || "",
+        candidateEmail: existing.email,
+        candidateName: existing.candidateName,
+        jobTitle: job?.title || "Job Position",
+        company: job?.company || "IPAM Partner",
+        status: "SELECTED",
+        offerSalary: parsed.data.offerSalary,
+        remarks: `Offer: ${parsed.data.offerSalary || "Provided"}. Decision: ${parsed.data.decisionStatus}`,
+      }).catch((err) => console.error("[AdminJobs] Select notification error:", err));
+    }).catch(() => null);
+  }
 
   return ok(application);
 }

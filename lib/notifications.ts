@@ -9,6 +9,19 @@ import {
   type FcmSendResult,
   type FcmMulticastResult,
 } from "@/lib/firebase";
+import {
+  sendEmail,
+  sendAlumniRegistrationEmails,
+  sendJobApplicationEmails,
+  sendJobStatusEmail,
+  sendBusinessSubmissionEmails,
+  sendBusinessApprovalEmail,
+  sendDonationEmails,
+  generateEventRsvpConfirmationEmailHtml,
+  generateEventAttendeeUpdateEmailHtml,
+  generateDegreeVerificationEmailHtml,
+  generatePhysicalCardOrderEmailHtml,
+} from "@/lib/email";
 
 export interface SendAlumniNotificationOptions {
   userId: string;
@@ -427,7 +440,7 @@ export async function unregisterUserDeviceToken(options: {
  * Triggered when Registrar signs off / approves an alumni registration or degree.
  */
 export async function notifyDegreeVerificationApproved(alumniUserId: string, name?: string) {
-  return notifyAlumniUser({
+  const result = await notifyAlumniUser({
     userId: alumniUserId,
     title: "🎓 Degree Verification Approved!",
     message: `Congratulations ${name ? name : "Alumnus"}! Your official IPAM degree credentials and digital pass have been signed off by the Registrar.`,
@@ -439,13 +452,37 @@ export async function notifyDegreeVerificationApproved(alumniUserId: string, nam
       action: "view_pass",
     },
   });
+
+  // Also dispatch official verification approval email
+  try {
+    const user = await db.alumniUser.findUnique({
+      where: { id: alumniUserId },
+      select: { email: true, profile: { select: { degree: true } } },
+    });
+    if (user?.email) {
+      const html = generateDegreeVerificationEmailHtml({
+        name: name || "Alumnus",
+        approved: true,
+        degree: user.profile?.degree,
+      });
+      sendEmail({
+        to: user.email,
+        subject: "[IPAM Registrar] Official Degree Verification Approved & Pass Issued",
+        html,
+      }).catch((err) => console.error("[Notifications] Degree approval email error:", err));
+    }
+  } catch (err) {
+    console.error("[Notifications] Failed fetching user email for degree approval:", err);
+  }
+
+  return result;
 }
 
 /**
  * Triggered when Registrar rejects an alumni registration.
  */
 export async function notifyDegreeVerificationRejected(alumniUserId: string, name?: string, reason?: string) {
-  return notifyAlumniUser({
+  const result = await notifyAlumniUser({
     userId: alumniUserId,
     title: "⚠️ Degree Verification Update Required",
     message: reason
@@ -459,6 +496,42 @@ export async function notifyDegreeVerificationRejected(alumniUserId: string, nam
       action: "review_details",
     },
   });
+
+  try {
+    const user = await db.alumniUser.findUnique({
+      where: { id: alumniUserId },
+      select: { email: true },
+    });
+    if (user?.email) {
+      const html = generateDegreeVerificationEmailHtml({
+        name: name || "Alumnus",
+        approved: false,
+        reason,
+      });
+      sendEmail({
+        to: user.email,
+        subject: "[IPAM Registrar] Degree Verification Review — Additional Information Required",
+        html,
+      }).catch((err) => console.error("[Notifications] Degree rejection email error:", err));
+    }
+  } catch (err) {
+    console.error("[Notifications] Failed fetching user email for degree rejection:", err);
+  }
+
+  return result;
+}
+
+/**
+ * Triggered when a new alumnus registers on the platform.
+ */
+export async function notifyAlumniRegistrationReceived(params: {
+  name: string;
+  email: string;
+  studentId: string;
+  degree?: string | null;
+  gradYear?: number | null;
+}) {
+  return sendAlumniRegistrationEmails(params);
 }
 
 /**
@@ -520,14 +593,102 @@ export async function notifyIdCardStatusChanged(params: {
 }
 
 /**
+ * Triggered when Physical ID Card order is created.
+ */
+export async function notifyPhysicalCardOrderSubmitted(params: {
+  alumniEmail: string;
+  recipientName: string;
+  orderNumber: string;
+  cardTier: string;
+  amount: number | string;
+  currency: string;
+  deliveryAddress: string;
+  paymentMethod: string;
+  paymentStatus: string;
+}) {
+  const html = generatePhysicalCardOrderEmailHtml(params);
+  return sendEmail({
+    to: params.alumniEmail,
+    subject: `[IPAM Smart ID] Card Order Confirmed #${params.orderNumber}`,
+    html,
+  });
+}
+
+/**
+ * Triggered when a candidate submits an application for a job opening.
+ * Notifies BOTH Employee (Applicant) and Employer via Push/In-App and Email.
+ */
+export async function notifyJobApplicationSubmitted(params: {
+  applicantUserId: string;
+  candidateName: string;
+  candidateEmail: string;
+  candidatePhone?: string | null;
+  degree?: string | null;
+  gradYear?: number | null;
+  experienceYears?: number | null;
+  matchScore?: number | null;
+  jobTitle: string;
+  company: string;
+  coverNote?: string | null;
+  cvUrl?: string | null;
+  applicationRef: string;
+  employerAlumniUserId?: string | null;
+  employerEmail?: string | null;
+  employerName?: string | null;
+}) {
+  // 1. In-App + FCM Push Notification to Applicant (Employee)
+  await notifyAlumniUser({
+    userId: params.applicantUserId,
+    title: `💼 Application Submitted: ${params.jobTitle}`,
+    message: `Your application for ${params.jobTitle} at ${params.company} has been received. Reference: ${params.applicationRef}.`,
+    type: "JOB",
+    priority: "NORMAL",
+    actionUrl: "/jobs/my-applications",
+    data: {
+      screen: "job_applications",
+      jobTitle: params.jobTitle,
+      company: params.company,
+      applicationRef: params.applicationRef,
+    },
+  }).catch((err) => console.error("[Notifications] Applicant push error:", err));
+
+  // 2. In-App + FCM Push Notification to Employer (if employer is an alumni member)
+  if (params.employerAlumniUserId) {
+    await notifyAlumniUser({
+      userId: params.employerAlumniUserId,
+      title: `📥 New Applicant: ${params.jobTitle}`,
+      message: `${params.candidateName} (${params.degree || "IPAM Alumnus"}) applied for ${params.jobTitle}. Match: ${params.matchScore ?? 85}%.`,
+      type: "JOB",
+      priority: "URGENT",
+      actionUrl: "/jobs/manage",
+      data: {
+        screen: "manage_job_applicants",
+        jobTitle: params.jobTitle,
+        applicationRef: params.applicationRef,
+      },
+    }).catch((err) => console.error("[Notifications] Employer push error:", err));
+  }
+
+  // 3. Dispatch branded confirmation emails to both Employee and Employer
+  await sendJobApplicationEmails(params).catch((err) =>
+    console.error("[Notifications] Job application email error:", err)
+  );
+}
+
+/**
  * Triggered when a candidate's job application status is updated by recruiter or admin.
+ * Notifies Employee (Applicant) via Push/In-App and Email.
  */
 export async function notifyJobApplicationStatusChanged(params: {
   alumniUserId: string;
+  candidateEmail?: string | null;
+  candidateName?: string | null;
   jobTitle: string;
   company: string;
   status: string;
   remarks?: string | null;
+  interviewDate?: Date | string | null;
+  offerSalary?: string | null;
 }) {
   const { alumniUserId, jobTitle, company, status, remarks } = params;
 
@@ -548,6 +709,7 @@ export async function notifyJobApplicationStatusChanged(params: {
       break;
     case "OFFERED":
     case "ACCEPTED":
+    case "SELECTED":
       title = `🎉 Job Offer / Selected: ${jobTitle}`;
       message = `Congratulations! You have been selected for ${jobTitle} at ${company}!`;
       priority = "URGENT";
@@ -558,31 +720,68 @@ export async function notifyJobApplicationStatusChanged(params: {
       break;
   }
 
-  return notifyAlumniUser({
+  // 1. Push + In-App notification
+  const pushPromise = notifyAlumniUser({
     userId: alumniUserId,
     title,
     message,
     type: "JOB",
     priority,
-    actionUrl: "/jobs",
+    actionUrl: "/jobs/my-applications",
     data: {
       screen: "job_applications",
       jobTitle,
       company,
       applicationStatus: status,
     },
-  });
+  }).catch((err) => console.error("[Notifications] Job status push error:", err));
+
+  // 2. Email notification to candidate
+  const emailPromise = (async () => {
+    let email = params.candidateEmail;
+    let name = params.candidateName;
+
+    if (!email) {
+      const user = await db.alumniUser.findUnique({
+        where: { id: alumniUserId },
+        select: { email: true, profile: { select: { name: true } } },
+      }).catch(() => null);
+      email = user?.email;
+      name = name || user?.profile?.name || "Candidate";
+    }
+
+    if (email) {
+      await sendJobStatusEmail({
+        candidateEmail: email,
+        candidateName: name || "Candidate",
+        jobTitle,
+        company,
+        status,
+        remarks,
+        interviewDate: params.interviewDate,
+        offerSalary: params.offerSalary,
+      }).catch((err) => console.error("[Notifications] Job status email error:", err));
+    }
+  })();
+
+  await Promise.all([pushPromise, emailPromise]);
 }
 
 /**
- * Triggered when an alumni registers for an event.
+ * Triggered when an alumnus registers / RSVPs for an event.
  */
 export async function notifyEventRegistrationConfirmed(params: {
   userId: string;
+  attendeeEmail?: string | null;
+  attendeeName?: string | null;
   eventTitle: string;
   eventDate: Date | string;
   bookingReference: string;
   location?: string | null;
+  ticketCount?: number;
+  totalAmount?: number | string;
+  currency?: string;
+  paymentStatus?: string;
 }) {
   const { userId, eventTitle, eventDate, bookingReference, location } = params;
   const formattedDate = new Date(eventDate).toLocaleDateString("en-US", {
@@ -591,17 +790,227 @@ export async function notifyEventRegistrationConfirmed(params: {
     year: "numeric",
   });
 
-  return notifyAlumniUser({
+  // 1. Push & In-App Notification
+  const pushPromise = notifyAlumniUser({
     userId,
     title: `🎟️ RSVP Confirmed: ${eventTitle}`,
     message: `You're confirmed for ${eventTitle} on ${formattedDate}.${location ? ` Venue: ${location}.` : ""} Booking ref: ${bookingReference}.`,
     type: "EVENT",
     priority: "NORMAL",
-    actionUrl: "/events",
+    actionUrl: "/events/my-registrations",
     data: {
       screen: "event_detail",
       bookingReference,
     },
-  });
+  }).catch((err) => console.error("[Notifications] Event RSVP push error:", err));
+
+  // 2. Confirmation Email
+  const emailPromise = (async () => {
+    let email = params.attendeeEmail;
+    let name = params.attendeeName;
+
+    if (!email && userId) {
+      const user = await db.alumniUser.findUnique({
+        where: { id: userId },
+        select: { email: true, profile: { select: { name: true } } },
+      }).catch(() => null);
+      email = user?.email;
+      name = name || user?.profile?.name;
+    }
+
+    if (email) {
+      const html = generateEventRsvpConfirmationEmailHtml({
+        attendeeName: name || "Alumnus",
+        eventTitle,
+        eventDate,
+        bookingReference,
+        location,
+        ticketCount: params.ticketCount,
+        totalAmount: params.totalAmount,
+        currency: params.currency,
+        paymentStatus: params.paymentStatus,
+      });
+      await sendEmail({
+        to: email,
+        subject: `[IPAM Events] RSVP Confirmed: ${eventTitle} (Ref: ${bookingReference})`,
+        html,
+      }).catch((err) => console.error("[Notifications] Event RSVP email error:", err));
+    }
+  })();
+
+  await Promise.all([pushPromise, emailPromise]);
 }
+
+/**
+ * Event notification dispatched ONLY to registered alumni of that specific event.
+ * Dispatches Push / In-App only to alumni with confirmed registrations, and Email to all attendees.
+ */
+export async function notifyEventAttendees(params: {
+  eventId: string;
+  subject: string;
+  message: string;
+  actionUrl?: string | null;
+}) {
+  const event = await db.alumniEvent.findUnique({
+    where: { id: params.eventId },
+    include: {
+      registrations: {
+        where: { bookingStatus: { not: "CANCELLED" } },
+        include: {
+          user: { select: { id: true, email: true, profile: { select: { name: true } } } },
+        },
+      },
+    },
+  });
+
+  if (!event || event.registrations.length === 0) {
+    return { notifiedCount: 0, recipientEmails: [] };
+  }
+
+  // 1. Push + In-App notification ONLY to registered alumni users
+  const registeredUserIds = Array.from(
+    new Set(event.registrations.map((r) => r.userId).filter(Boolean) as string[])
+  );
+
+  const pushPromises = registeredUserIds.map((userId) =>
+    notifyAlumniUser({
+      userId,
+      title: `🎟️ ${event.title}: ${params.subject}`,
+      message: params.message,
+      type: "EVENT",
+      priority: "URGENT",
+      actionUrl: params.actionUrl || `/events`,
+      data: {
+        screen: "event_detail",
+        eventId: event.id,
+      },
+    }).catch((err) => console.error("[Notifications] Attendee push error:", err))
+  );
+
+  // 2. Email notification to registered attendee emails
+  const seenEmails = new Set<string>();
+  const emailPromises: Promise<any>[] = [];
+
+  for (const reg of event.registrations) {
+    const email = (reg.attendeeEmail || reg.user?.email || "").trim().toLowerCase();
+    const name = reg.attendeeName || reg.user?.profile?.name || "Distinguished Alumnus";
+    if (email && email.includes("@") && !seenEmails.has(email)) {
+      seenEmails.add(email);
+      const html = generateEventAttendeeUpdateEmailHtml({
+        recipientName: name,
+        eventTitle: event.title,
+        eventDate: event.date,
+        location: event.location,
+        subject: params.subject,
+        message: params.message,
+        actionUrl: params.actionUrl,
+      });
+
+      emailPromises.push(
+        sendEmail({
+          to: email,
+          subject: `[IPAM Events] ${event.title}: ${params.subject}`,
+          html,
+        }).catch((err) => console.error("[Notifications] Attendee email error:", err))
+      );
+    }
+  }
+
+  await Promise.all([...pushPromises, ...emailPromises]);
+
+  return {
+    notifiedCount: registeredUserIds.length,
+    emailRecipientsCount: seenEmails.size,
+  };
+}
+
+/**
+ * Triggered when a new business listing is submitted by an alumnus.
+ */
+export async function notifyBusinessListingSubmitted(params: {
+  businessName: string;
+  industry: string;
+  founders?: string | null;
+  ownerEmail: string;
+  ownerName: string;
+  contactPhone?: string | null;
+  website?: string | null;
+  location?: string | null;
+  description?: string | null;
+}) {
+  return sendBusinessSubmissionEmails(params);
+}
+
+/**
+ * Triggered when admin approves a business listing.
+ */
+export async function notifyBusinessListingApproved(params: {
+  ownerUserId?: string | null;
+  ownerEmail: string;
+  ownerName: string;
+  businessName: string;
+  industry: string;
+}) {
+  // 1. Push + In-app notification to business owner
+  if (params.ownerUserId) {
+    await notifyAlumniUser({
+      userId: params.ownerUserId,
+      title: `🏢 Business Approved: ${params.businessName}`,
+      message: `Congratulations! Your business listing for ${params.businessName} has been approved and published in the IPAM Directory.`,
+      type: "NOTIFICATION",
+      priority: "NORMAL",
+      actionUrl: "/businesses",
+      data: {
+        screen: "business_directory",
+        businessName: params.businessName,
+      },
+    }).catch((err) => console.error("[Notifications] Business approval push error:", err));
+  }
+
+  // 2. Email notification to business owner
+  await sendBusinessApprovalEmail(params).catch((err) =>
+    console.error("[Notifications] Business approval email error:", err)
+  );
+}
+
+/**
+ * Triggered when a donation is received.
+ * Dispatches ALL donor details to Admin, and official tax receipt to Donor.
+ */
+export async function notifyDonationReceived(params: {
+  donorName: string;
+  donorEmail: string;
+  donorPhone?: string | null;
+  donorGradYear?: number | null;
+  donorDegree?: string | null;
+  amount: number | string;
+  currency: string;
+  fund: string;
+  frequency?: string | null;
+  anonymous?: boolean;
+  paymentRef: string;
+  message?: string | null;
+  donatedAt?: Date | string;
+  userId?: string | null;
+}) {
+  // Push / In-App notification to logged-in donor
+  if (params.userId) {
+    notifyAlumniUser({
+      userId: params.userId,
+      title: "💝 Thank You for Your Gift to IPAM!",
+      message: `Your contribution of ${params.currency} ${Number(params.amount).toFixed(2)} to ${params.fund} has been received. Ref: ${params.paymentRef}.`,
+      type: "NOTIFICATION",
+      priority: "NORMAL",
+      actionUrl: "/donations?mine=true",
+      data: {
+        screen: "giving_history",
+        paymentRef: params.paymentRef,
+      },
+    }).catch((err) => console.error("[Notifications] Donation push error:", err));
+  }
+
+  // Send admin full details email & donor receipt email
+  return sendDonationEmails(params);
+}
+
 

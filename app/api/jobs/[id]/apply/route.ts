@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { getAlumniSession } from "@/lib/auth/session";
 import { ok, fail } from "@/lib/api-response";
 import { applyToJobSchema } from "@/lib/validation/jobs";
+import { notifyJobApplicationSubmitted } from "@/lib/notifications";
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getAlumniSession();
@@ -19,7 +20,20 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (!session) return fail(401, "You must be signed in to apply");
   const { id: jobId } = await params;
 
-  const job = await db.jobOpening.findUnique({ where: { id: jobId } });
+  const job = await db.jobOpening.findUnique({
+    where: { id: jobId },
+    include: {
+      employer: true,
+      postedByAlumni: {
+        select: {
+          userId: true,
+          name: true,
+          user: { select: { email: true } },
+        },
+      },
+      postedByAdmin: { select: { name: true, email: true } },
+    },
+  });
   if (!job) return fail(404, "Job not found");
 
   const existing = await db.jobOpeningApplication.findFirst({
@@ -81,6 +95,39 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       status: "APPLIED",
     },
   });
+
+  // Determine employer contact & alumni user ID
+  const employerAlumniUserId = job.postedByAlumni?.userId || null;
+  const employerEmail =
+    job.employer?.contactEmail ||
+    job.postedByAlumni?.user?.email ||
+    job.postedByAdmin?.email ||
+    null;
+  const employerName =
+    job.employer?.contactName ||
+    job.postedByAlumni?.name ||
+    job.postedByName ||
+    job.company;
+
+  // Dispatch Notifications (Employer + Employee) and Emails
+  notifyJobApplicationSubmitted({
+    applicantUserId: session.sub,
+    candidateName,
+    candidateEmail: email,
+    candidatePhone: phone,
+    degree,
+    gradYear,
+    experienceYears,
+    matchScore,
+    jobTitle: job.title,
+    company: job.company,
+    coverNote,
+    cvUrl,
+    applicationRef,
+    employerAlumniUserId,
+    employerEmail,
+    employerName,
+  }).catch((err) => console.error("[Jobs] Notification error on application:", err));
 
   return ok({ application }, 201);
 }

@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { getAlumniSession } from "@/lib/auth/session";
 import { createDonationSchema } from "@/lib/validation/donations";
 import { ok, fail } from "@/lib/api-response";
+import { notifyDonationReceived } from "@/lib/notifications";
 
 // No real payment gateway is integrated in this pass (out of scope per plan).
 // Donations are recorded as immediately SUCCEEDED with a generated reference.
@@ -61,6 +62,23 @@ export async function POST(req: NextRequest) {
       donationId: donation.id,
     },
   });
+
+  // Dispatch ALL details of donor to admin email & official tax receipt to donor
+  notifyDonationReceived({
+    donorName: donation.donorName,
+    donorEmail: donation.donorEmail,
+    donorPhone: donation.donorPhone,
+    donorDegree: donation.donorClass || "Alumnus / Supporter",
+    amount: Number(donation.amount),
+    currency: donation.currency,
+    fund: donation.fund,
+    frequency: donation.frequency || "ONE_TIME",
+    anonymous: donation.isAnonymous,
+    paymentRef: donation.paymentRef,
+    message: donation.isDedication ? `Dedicated to: ${donation.dedicationName || "Honoree"}` : null,
+    donatedAt: donation.createdAt,
+    userId: session?.sub ?? null,
+  }).catch((err) => console.error("[Donations] Notification dispatch error:", err));
 
   return ok(donation, 201);
 }

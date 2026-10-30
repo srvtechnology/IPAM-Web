@@ -97,13 +97,19 @@ export async function POST(req: NextRequest) {
     data: { registeredCount: { increment: ticketCount } },
   });
 
-  // Dispatch push & in-app confirmation notification to the alumnus
+  // Dispatch push, in-app, and email confirmation notification to the alumnus
   notifyEventRegistrationConfirmed({
     userId: session.sub,
+    attendeeEmail: attendeeEmail || session.email,
+    attendeeName: attendeeName || null,
     eventTitle: event.title,
     eventDate: event.date,
     bookingReference: registration.bookingReference,
     location: event.location,
+    ticketCount: registration.ticketCount,
+    totalAmount: Number(registration.totalAmount),
+    currency: registration.currency,
+    paymentStatus: registration.paymentStatus,
   }).catch((err) => console.error("[RSVP] Notification dispatch error:", err));
 
   return ok(

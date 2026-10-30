@@ -5,6 +5,7 @@ import { createPhysicalCardOrderSchema } from "@/lib/validation/physical-card-or
 import { getPhysicalCardPricing } from "@/lib/card-pricing";
 import { verifyStripePaymentIntent } from "@/lib/payments/stripe";
 import { ok, fail } from "@/lib/api-response";
+import { notifyPhysicalCardOrderSubmitted } from "@/lib/notifications";
 
 function generateOrderNumber() {
   return `PVC-${Date.now().toString(36).toUpperCase()}`;
@@ -106,6 +107,21 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     console.error("Failed to record finance transaction for card order:", err);
+  }
+
+  // Dispatch order confirmation email to alumnus
+  if (session.email) {
+    notifyPhysicalCardOrderSubmitted({
+      alumniEmail: session.email,
+      recipientName,
+      orderNumber,
+      cardTier: tierConfig.name,
+      amount: totalAmount,
+      currency: pricing.currency,
+      deliveryAddress,
+      paymentMethod,
+      paymentStatus: finalPaymentStatus,
+    }).catch((err) => console.error("[CardOrders] Order confirmation email error:", err));
   }
 
   return ok(order, 201);

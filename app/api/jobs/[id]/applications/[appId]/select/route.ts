@@ -87,13 +87,16 @@ export async function POST(
     }
   }
 
-  // Dispatch push and in-app notification to candidate
+  // Dispatch push, in-app, and email notification to candidate
   if (application.alumniUserId) {
     notifyJobApplicationStatusChanged({
       alumniUserId: application.alumniUserId,
+      candidateEmail: application.email,
+      candidateName: application.candidateName,
       jobTitle: application.job.title,
       company: application.job.company,
       status: "SELECTED",
+      offerSalary: parsed.data.offerSalary,
       remarks: `Offer: ${parsed.data.offerSalary || "Provided"}. Decision: ${parsed.data.decisionStatus}`,
     }).catch((err) => console.error("[Jobs] Notification error:", err));
   }

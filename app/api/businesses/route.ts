@@ -4,6 +4,7 @@ import { getAlumniSession, getAdminSession } from "@/lib/auth/session";
 import { createBusinessSchema } from "@/lib/validation/businesses";
 import { ok, fail } from "@/lib/api-response";
 import { writeAuditLog, requestMeta } from "@/lib/audit";
+import { notifyBusinessListingSubmitted } from "@/lib/notifications";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -122,6 +123,24 @@ export async function POST(req: NextRequest) {
       featured: false,
     },
   });
+
+  // Notify admin of new pending listing & send receipt to business owner
+  db.alumniUser.findUnique({
+    where: { id: alumniSession!.sub },
+    include: { profile: true },
+  }).then((alumnus) => {
+    notifyBusinessListingSubmitted({
+      businessName: business.name,
+      industry: business.industry,
+      founders: business.founders,
+      ownerEmail: alumnus?.email || alumniSession!.email,
+      ownerName: alumnus?.profile?.name || "Alumnus Business Owner",
+      contactPhone: business.contactPhone,
+      website: business.website,
+      location: business.location,
+      description: business.description,
+    }).catch((err) => console.error("[Business] Notification error on submission:", err));
+  }).catch(() => null);
 
   return ok(business, 201);
 }

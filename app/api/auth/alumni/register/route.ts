@@ -4,6 +4,7 @@ import { hashPassword } from "@/lib/auth/password";
 import { alumniRegisterSchema } from "@/lib/validation/auth";
 import { ok, fail } from "@/lib/api-response";
 import { verifyOtp } from "@/lib/auth/otp";
+import { notifyAlumniRegistrationReceived } from "@/lib/notifications";
 
 export async function POST(req: NextRequest) {
   try {
@@ -288,6 +289,15 @@ export async function POST(req: NextRequest) {
 
       return created;
     });
+
+    // Dispatch welcome email to alumnus and registration review alert to admin
+    notifyAlumniRegistrationReceived({
+      name: input.name.trim(),
+      email,
+      studentId,
+      degree: input.degree,
+      gradYear: input.classYear,
+    }).catch((err) => console.error("[Registration] Email notification error:", err));
 
     const { passwordHash: _omit, ...safeUser } = user;
     return ok(

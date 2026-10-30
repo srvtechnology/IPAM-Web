@@ -88,13 +88,19 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     data: { registeredCount: { increment: ticketCount } },
   });
 
-  // Dispatch push and in-app confirmation notification to alumni
+  // Dispatch push, in-app, and email confirmation notification to alumni
   notifyEventRegistrationConfirmed({
     userId: session.sub,
+    attendeeEmail: attendeeEmail || session.email,
+    attendeeName: attendeeName || null,
     eventTitle: event.title,
     eventDate: event.date,
     bookingReference: registration.bookingReference,
     location: event.location,
+    ticketCount: registration.ticketCount,
+    totalAmount: Number(registration.totalAmount),
+    currency: registration.currency,
+    paymentStatus: registration.paymentStatus,
   }).catch((err) => console.error("[Events] RSVP Notification error:", err));
 
   return ok(

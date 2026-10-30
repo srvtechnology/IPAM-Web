@@ -4,6 +4,7 @@ import { requirePermission } from "@/lib/auth/permissions";
 import { writeAuditLog, requestMeta } from "@/lib/audit";
 import { updateBusinessSchema } from "@/lib/validation/businesses";
 import { ok, fail } from "@/lib/api-response";
+import { notifyBusinessListingApproved } from "@/lib/notifications";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const gate = await requirePermission(req, "COMMERCIAL", "canRead");
@@ -108,6 +109,22 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     beforeState: { status: prevStatus },
     afterState: { status: newStatus, rejectionReason: updated.rejectionReason },
   });
+
+  // Dispatch push, in-app, and email notification to business owner when approved
+  if (prevStatus !== newStatus && newStatus === "APPROVED") {
+    const owner = updated.user;
+    const ownerEmail = owner?.email || updated.contactEmail;
+    const ownerName = owner?.profile?.name || updated.name;
+    if (ownerEmail) {
+      notifyBusinessListingApproved({
+        ownerUserId: business.userId,
+        ownerEmail,
+        ownerName,
+        businessName: updated.name,
+        industry: updated.industry,
+      }).catch((err) => console.error("[Business] Approval notification error:", err));
+    }
+  }
 
   return ok(updated);
 }

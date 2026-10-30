@@ -4,6 +4,7 @@ import { requirePermission } from "@/lib/auth/permissions";
 import { writeAuditLog, requestMeta } from "@/lib/audit";
 import { updateJobApplicationSchema } from "@/lib/validation/admin-jobs";
 import { ok, fail } from "@/lib/api-response";
+import { notifyJobApplicationStatusChanged } from "@/lib/notifications";
 
 export async function GET(
   req: NextRequest,
@@ -66,6 +67,22 @@ export async function PATCH(
       beforeState: { status: existing.status },
       afterState: { status: parsed.data.status },
     });
+
+    if (existing.alumniUserId || existing.email) {
+      db.jobOpening.findUnique({ where: { id: existing.jobId } }).then((job) => {
+        notifyJobApplicationStatusChanged({
+          alumniUserId: existing.alumniUserId || "",
+          candidateEmail: existing.email,
+          candidateName: existing.candidateName,
+          jobTitle: job?.title || "Job Position",
+          company: job?.company || "IPAM Partner",
+          status: parsed.data.status!,
+          remarks: parsed.data.recruiterRemarks,
+          interviewDate: parsed.data.interviewDate,
+          offerSalary: parsed.data.offerSalary,
+        }).catch((err) => console.error("[AdminJobs] Status notification error:", err));
+      }).catch(() => null);
+    }
   }
 
   return ok(application);

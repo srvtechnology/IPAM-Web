@@ -115,6 +115,19 @@ export default function OmnichannelBroadcastView({
   const [testSmsStatus, setTestSmsStatus] = useState<string | null>(null);
   const [sendingTestSms, setSendingTestSms] = useState(false);
 
+  // Custom Email + SMS composer state
+  const [composeMode, setComposeMode] = useState<"template" | "custom">("custom");
+  const [customTitle, setCustomTitle] = useState("");
+  const [customMessage, setCustomMessage] = useState("");
+  const [customChannels, setCustomChannels] = useState<string[]>(["EMAIL", "SMS"]);
+  const [customPriority, setCustomPriority] = useState<"NORMAL" | "URGENT" | "CRITICAL">("NORMAL");
+  const [customAudience, setCustomAudience] = useState<string>("");
+  const [customActionUrl, setCustomActionUrl] = useState("");
+  const [directRecipientMode, setDirectRecipientMode] = useState(false);
+  const [directEmail, setDirectEmail] = useState("");
+  const [directPhone, setDirectPhone] = useState("");
+  const [customSendStatus, setCustomSendStatus] = useState<string | null>(null);
+
   const canWrite = can("BROADCAST", "canWrite");
   const canDelete = can("BROADCAST", "canDelete");
 
@@ -172,6 +185,71 @@ export default function OmnichannelBroadcastView({
       eventVenue: template.eventVenue ?? null,
       rsvpDeadline: template.rsvpDeadline ?? null,
     });
+  }
+
+  async function handleCustomSend() {
+    if (!customTitle.trim() || !customMessage.trim() || customChannels.length === 0) return;
+    setCustomSendStatus(null);
+
+    // Direct single recipient dispatch (Email or SMS)
+    if (directRecipientMode) {
+      const results: string[] = [];
+      if (customChannels.includes("EMAIL") && directEmail.trim()) {
+        try {
+          const res = await fetch("/api/admin/broadcast/test-email", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ to: directEmail.trim(), subject: customTitle, message: customMessage }),
+          });
+          const json = await res.json();
+          if (res.ok && json.success) results.push(`Email delivered to ${directEmail.trim()}`);
+          else results.push(`Email failed: ${json.error || "Unknown"}`);
+        } catch {
+          results.push(`Email network error`);
+        }
+      }
+
+      if (customChannels.includes("SMS") && directPhone.trim()) {
+        try {
+          const res = await fetch("/api/admin/broadcast/test-sms", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ to: directPhone.trim(), message: `[IPAM] ${customTitle}: ${customMessage}` }),
+          });
+          const json = await res.json();
+          if (res.ok && json.success) results.push(`SMS dispatched to ${directPhone.trim()}`);
+          else results.push(`SMS failed: ${json.error || "Unknown"}`);
+        } catch {
+          results.push(`SMS network error`);
+        }
+      }
+
+      setCustomSendStatus(results.join(" | ") || "No direct recipient details specified.");
+      return;
+    }
+
+    // Broadcast to audience group or all alumni
+    const audience = audienceGroups.find((a) => a.id === customAudience);
+    const audienceLabel = audience ? audience.name : "All Registered Alumni";
+    const recipientsCount = audience?.estimatedCount ?? alumni.length;
+
+    const res = await sendBroadcast({
+      type: "MESSAGE",
+      title: customTitle.trim(),
+      message: customMessage.trim(),
+      channels: customChannels,
+      audienceLabel,
+      audienceGroupId: audience?.id,
+      recipientsCount,
+      priority: customPriority,
+      actionUrl: customActionUrl.trim() || null,
+    });
+
+    if (res) {
+      setCustomSendStatus(`✔ Custom broadcast "${customTitle}" successfully dispatched to ${audienceLabel}!`);
+      setCustomTitle("");
+      setCustomMessage("");
+    }
   }
 
   async function handleConfirmDelete() {
@@ -277,53 +355,272 @@ export default function OmnichannelBroadcastView({
       )}
 
       {/* Composer */}
-      <div className="rounded-xl bg-surface-container border border-outline-variant/20 p-4">
-        <h2 className="font-headline-sm text-on-surface mb-3">Compose &amp; Send</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <label className="font-body-compact text-on-surface-variant">
-            Template
-            <select
-              value={selectedTemplate}
-              onChange={(e) => setSelectedTemplate(e.target.value)}
-              className="mt-1 w-full rounded-lg bg-surface-container-low border border-outline-variant/30 px-3 py-2 font-body-default text-on-surface outline-none focus:border-secondary"
+      <div className="rounded-xl bg-surface-container border border-outline-variant/20 p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4 border-b border-outline-variant/20 pb-3">
+          <div>
+            <h2 className="font-headline-sm text-on-surface">Compose &amp; Send</h2>
+            <p className="text-xs text-on-surface-variant font-body-compact">
+              Dispatch custom messages or saved templates across SMTP Email, Twilio SMS, and Firebase Push.
+            </p>
+          </div>
+          <div className="flex items-center rounded-lg bg-surface-container-low p-1 border border-outline-variant/30 text-xs">
+            <button
+              type="button"
+              onClick={() => setComposeMode("custom")}
+              className={`px-3 py-1.5 rounded-md font-medium transition-colors ${
+                composeMode === "custom"
+                  ? "bg-secondary text-on-secondary shadow-xs"
+                  : "text-on-surface-variant hover:text-on-surface"
+              }`}
             >
-              <option value="">Select a template…</option>
-              {templates.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="font-body-compact text-on-surface-variant">
-            Audience
-            <select
-              value={selectedAudience}
-              onChange={(e) => setSelectedAudience(e.target.value)}
-              className="mt-1 w-full rounded-lg bg-surface-container-low border border-outline-variant/30 px-3 py-2 font-body-default text-on-surface outline-none focus:border-secondary"
+              Custom Email + SMS
+            </button>
+            <button
+              type="button"
+              onClick={() => setComposeMode("template")}
+              className={`px-3 py-1.5 rounded-md font-medium transition-colors ${
+                composeMode === "template"
+                  ? "bg-secondary text-on-secondary shadow-xs"
+                  : "text-on-surface-variant hover:text-on-surface"
+              }`}
             >
-              <option value="">Select an audience…</option>
-              {audienceGroups.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name} ({a.estimatedCount ?? "—"})
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="flex items-end">
-            {canWrite && (
-              <button
-                type="button"
-                onClick={handleSend}
-                disabled={loading || !selectedTemplate || !selectedAudience}
-                className="w-full flex items-center justify-center gap-1.5 rounded-lg bg-secondary text-on-secondary px-4 py-2 font-body-medium font-semibold shadow-xs hover:opacity-90 transition-opacity disabled:opacity-50"
-              >
-                <span className="material-symbols-outlined text-[18px]">send</span>
-                {loading ? "Sending…" : "Send Broadcast"}
-              </button>
-            )}
+              Saved Template
+            </button>
           </div>
         </div>
+
+        {customSendStatus && (
+          <div className="mb-4 rounded-lg bg-emerald-950/40 text-emerald-300 border border-emerald-500/30 px-3 py-2 text-xs flex items-center justify-between">
+            <span>{customSendStatus}</span>
+            <button
+              type="button"
+              onClick={() => setCustomSendStatus(null)}
+              className="font-bold text-xs hover:opacity-75 ml-2"
+            >
+              &times;
+            </button>
+          </div>
+        )}
+
+        {composeMode === "custom" ? (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <label className="font-body-compact text-on-surface-variant md:col-span-2">
+                Subject / Title *
+                <input
+                  type="text"
+                  value={customTitle}
+                  onChange={(e) => setCustomTitle(e.target.value)}
+                  placeholder="e.g. Official University Dispatch: Annual Alumni Summit"
+                  className="mt-1 w-full rounded-lg bg-surface-container-low border border-outline-variant/30 px-3 py-2 font-body-default text-on-surface outline-none focus:border-secondary text-sm"
+                />
+              </label>
+              <label className="font-body-compact text-on-surface-variant">
+                Target Audience *
+                <select
+                  value={customAudience}
+                  onChange={(e) => setCustomAudience(e.target.value)}
+                  disabled={directRecipientMode}
+                  className="mt-1 w-full rounded-lg bg-surface-container-low border border-outline-variant/30 px-3 py-2 font-body-default text-on-surface outline-none focus:border-secondary text-sm disabled:opacity-40"
+                >
+                  <option value="">All Registered Alumni ({alumni.length})</option>
+                  {audienceGroups.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name} ({a.estimatedCount ?? "—"})
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <label className="block font-body-compact text-on-surface-variant">
+              Message Content *
+              <textarea
+                rows={4}
+                value={customMessage}
+                onChange={(e) => setCustomMessage(e.target.value)}
+                placeholder="Compose your announcement message here. Formatted with university styling for emails and segmented for SMS delivery..."
+                className="mt-1 w-full rounded-lg bg-surface-container-low border border-outline-variant/30 px-3 py-2 font-body-default text-on-surface outline-none focus:border-secondary text-sm"
+              />
+              <div className="flex justify-between items-center text-[11px] text-on-surface-variant/70 mt-1">
+                <span>Supports plain text and line breaks</span>
+                <span className="font-code-compact">
+                  {customMessage.length} chars • ~{Math.ceil(customMessage.length / 160) || 1} SMS segment(s)
+                </span>
+              </div>
+            </label>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+              <div>
+                <span className="block font-body-compact text-on-surface-variant mb-1.5">Dispatch Channels:</span>
+                <div className="flex flex-wrap items-center gap-3 text-xs">
+                  <label className="flex items-center gap-1.5 cursor-pointer text-on-surface">
+                    <input
+                      type="checkbox"
+                      checked={customChannels.includes("EMAIL")}
+                      onChange={(e) => {
+                        if (e.target.checked) setCustomChannels((prev) => [...prev, "EMAIL"]);
+                        else setCustomChannels((prev) => prev.filter((c) => c !== "EMAIL"));
+                      }}
+                      className="rounded border-outline-variant/50 text-secondary focus:ring-0"
+                    />
+                    <span className="font-semibold text-emerald-400">Email</span> (SMTP)
+                  </label>
+                  <label className="flex items-center gap-1.5 cursor-pointer text-on-surface">
+                    <input
+                      type="checkbox"
+                      checked={customChannels.includes("SMS")}
+                      onChange={(e) => {
+                        if (e.target.checked) setCustomChannels((prev) => [...prev, "SMS"]);
+                        else setCustomChannels((prev) => prev.filter((c) => c !== "SMS"));
+                      }}
+                      className="rounded border-outline-variant/50 text-secondary focus:ring-0"
+                    />
+                    <span className="font-semibold text-blue-400">SMS</span> (Twilio)
+                  </label>
+                  <label className="flex items-center gap-1.5 cursor-pointer text-on-surface">
+                    <input
+                      type="checkbox"
+                      checked={customChannels.includes("PUSH")}
+                      onChange={(e) => {
+                        if (e.target.checked) setCustomChannels((prev) => [...prev, "PUSH"]);
+                        else setCustomChannels((prev) => prev.filter((c) => c !== "PUSH"));
+                      }}
+                      className="rounded border-outline-variant/50 text-secondary focus:ring-0"
+                    />
+                    <span className="font-semibold text-purple-400">Push</span> (FCM)
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label className="font-body-compact text-on-surface-variant block">
+                  Priority
+                  <select
+                    value={customPriority}
+                    onChange={(e) => setCustomPriority(e.target.value as any)}
+                    className="mt-1 w-full rounded-lg bg-surface-container-low border border-outline-variant/30 px-3 py-1.5 font-body-default text-on-surface outline-none focus:border-secondary text-sm"
+                  >
+                    <option value="NORMAL">Normal Priority</option>
+                    <option value="URGENT">Urgent Notice</option>
+                    <option value="CRITICAL">Critical Alert</option>
+                  </select>
+                </label>
+              </div>
+
+              <div>
+                <label className="font-body-compact text-on-surface-variant block">
+                  Action Link (Optional)
+                  <input
+                    type="url"
+                    value={customActionUrl}
+                    onChange={(e) => setCustomActionUrl(e.target.value)}
+                    placeholder="https://ipam.billnbite.cloud/events/..."
+                    className="mt-1 w-full rounded-lg bg-surface-container-low border border-outline-variant/30 px-3 py-1.5 font-body-default text-on-surface outline-none focus:border-secondary text-sm"
+                  />
+                </label>
+              </div>
+            </div>
+
+            {/* Direct Single Recipient Toggle */}
+            <div className="pt-2 border-t border-outline-variant/20">
+              <label className="flex items-center gap-2 cursor-pointer text-xs text-on-surface-variant mb-2">
+                <input
+                  type="checkbox"
+                  checked={directRecipientMode}
+                  onChange={(e) => setDirectRecipientMode(e.target.checked)}
+                  className="rounded border-outline-variant/50 text-secondary focus:ring-0"
+                />
+                <span className="font-medium text-on-surface">Direct Custom Dispatch (Single Recipient Mode)</span>
+              </label>
+
+              {directRecipientMode && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 rounded-lg bg-surface-container-low border border-outline-variant/30 text-xs">
+                  <label className="text-on-surface-variant">
+                    Specific Recipient Email (for Custom Email)
+                    <input
+                      type="email"
+                      value={directEmail}
+                      onChange={(e) => setDirectEmail(e.target.value)}
+                      placeholder="alumnus@example.com"
+                      className="mt-1 w-full rounded-lg bg-surface-container border border-outline-variant/30 px-3 py-1.5 text-on-surface text-xs outline-none"
+                    />
+                  </label>
+                  <label className="text-on-surface-variant">
+                    Specific Recipient Phone (for Custom SMS, E.164)
+                    <input
+                      type="text"
+                      value={directPhone}
+                      onChange={(e) => setDirectPhone(e.target.value)}
+                      placeholder="+23276123456 or +14155552671"
+                      className="mt-1 w-full rounded-lg bg-surface-container border border-outline-variant/30 px-3 py-1.5 text-on-surface text-xs outline-none"
+                    />
+                  </label>
+                </div>
+              )}
+            </div>
+
+            <div className="pt-2 flex justify-end">
+              {canWrite && (
+                <button
+                  type="button"
+                  onClick={handleCustomSend}
+                  disabled={loading || !customTitle.trim() || !customMessage.trim() || customChannels.length === 0}
+                  className="flex items-center gap-2 rounded-lg bg-secondary text-on-secondary px-6 py-2.5 font-body-medium font-semibold shadow-xs hover:opacity-90 transition-opacity disabled:opacity-50"
+                >
+                  <span className="material-symbols-outlined text-[18px]">send</span>
+                  {loading ? "Dispatching…" : directRecipientMode ? "Send Direct Custom Message" : "Dispatch Custom Broadcast"}
+                </button>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <label className="font-body-compact text-on-surface-variant">
+              Template
+              <select
+                value={selectedTemplate}
+                onChange={(e) => setSelectedTemplate(e.target.value)}
+                className="mt-1 w-full rounded-lg bg-surface-container-low border border-outline-variant/30 px-3 py-2 font-body-default text-on-surface outline-none focus:border-secondary"
+              >
+                <option value="">Select a template…</option>
+                {templates.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="font-body-compact text-on-surface-variant">
+              Audience
+              <select
+                value={selectedAudience}
+                onChange={(e) => setSelectedAudience(e.target.value)}
+                className="mt-1 w-full rounded-lg bg-surface-container-low border border-outline-variant/30 px-3 py-2 font-body-default text-on-surface outline-none focus:border-secondary"
+              >
+                <option value="">Select an audience…</option>
+                {audienceGroups.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name} ({a.estimatedCount ?? "—"})
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="flex items-end">
+              {canWrite && (
+                <button
+                  type="button"
+                  onClick={handleSend}
+                  disabled={loading || !selectedTemplate || !selectedAudience}
+                  className="w-full flex items-center justify-center gap-1.5 rounded-lg bg-secondary text-on-secondary px-4 py-2 font-body-medium font-semibold shadow-xs hover:opacity-90 transition-opacity disabled:opacity-50"
+                >
+                  <span className="material-symbols-outlined text-[18px]">send</span>
+                  {loading ? "Sending…" : "Send Broadcast"}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Templates & Audiences */}

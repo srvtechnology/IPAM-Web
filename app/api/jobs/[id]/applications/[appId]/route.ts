@@ -130,14 +130,18 @@ export async function PATCH(
     }
   }
 
-  // Dispatch push and in-app notification to candidate
+  // Dispatch push, in-app, and email notification to candidate
   if (parsed.data.status && parsed.data.status !== application.status && application.alumniUserId) {
     notifyJobApplicationStatusChanged({
       alumniUserId: application.alumniUserId,
+      candidateEmail: application.email,
+      candidateName: application.candidateName,
       jobTitle: application.job.title,
       company: application.job.company,
       status: parsed.data.status,
       remarks: parsed.data.recruiterRemarks,
+      interviewDate: parsed.data.interviewDate,
+      offerSalary: parsed.data.offerSalary,
     }).catch((err) => console.error("[Jobs] Notification error:", err));
   }
 
