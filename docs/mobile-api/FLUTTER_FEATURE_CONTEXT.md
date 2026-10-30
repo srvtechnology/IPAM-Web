@@ -298,7 +298,7 @@ graph TD
 * **Web Parity:** Matches `components/public/notifications/AlumniNotificationsView.tsx` & `HeaderNotificationBell.tsx`.
 * **Features:**
   * **Firebase Cloud Messaging (FCM):** Background push notifications for broadcasts, degree approvals, ID card shipments, job updates, and event RSVPs using `serviceAccountKey.json`.
-  * **Device Token Lifecycle:** Registers device token upon app start/login via `POST /api/notifications/register-token` and unregisters on sign-out via `POST /api/notifications/unregister-token`.
+  * **Device Token Lifecycle:** Registers device token atomically during login via `POST /api/auth/alumni/login` (or standalone `POST /api/notifications/register-token`) and unregisters on sign-out via `POST /api/auth/alumni/logout` (or `POST /api/notifications/unregister-token`). See [IPAM_MOBILE_NOTIFICATION_REFACTOR_CONTEXT.md](file:///Users/pranab/workspace/IPAM-Web/docs/mobile-api/IPAM_MOBILE_NOTIFICATION_REFACTOR_CONTEXT.md) for complete details.
   * **Notification Bell:** In top app bar with unread count badge.
   * **Broadcast & Alert List:** Official university alerts, urgent campus notices, event invitations, and career opportunities.
   * **Category Badges:** Filter by `EVENT`, `CAREER`, `MEMBERSHIP`, `URGENT`, `VERIFICATION`, `ID_CARD`.

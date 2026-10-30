@@ -23,6 +23,23 @@ export const alumniLoginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
   rememberMe: z.boolean().default(true),
+  // Direct device push token parameters for mobile apps
+  deviceToken: z.string().min(10).optional(),
+  fcmToken: z.string().min(10).optional(),
+  platform: z.enum(["android", "ios", "web"]).optional(),
+  deviceName: z.string().max(100).optional(),
+  appVersion: z.string().max(50).optional(),
+  subscribeToAll: z.boolean().optional(),
+  // Nested device object structure
+  device: z
+    .object({
+      token: z.string().min(10, "FCM registration token is required"),
+      platform: z.enum(["android", "ios", "web"]).default("android"),
+      deviceName: z.string().max(100).optional(),
+      appVersion: z.string().max(50).optional(),
+      subscribeToAll: z.boolean().default(true),
+    })
+    .optional(),
 });
 
 export const adminLoginSchema = z.object({

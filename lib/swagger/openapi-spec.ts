@@ -91,6 +91,22 @@ Official API documentation and testing sandbox for **IPAM Alumni Web** and the *
           email: { type: "string", format: "email", example: "alumni@ipam.edu" },
           password: { type: "string", format: "password", example: "AlumniPass123!" },
           rememberMe: { type: "boolean", example: true },
+          deviceToken: { type: "string", description: "FCM Push notification device token (optional - registers device upon login)", example: "fcm_token_1234567890" },
+          platform: { type: "string", enum: ["android", "ios", "web"], default: "android", description: "Mobile client operating system" },
+          deviceName: { type: "string", example: "Samsung Galaxy S24" },
+          appVersion: { type: "string", example: "1.0.0" },
+          subscribeToAll: { type: "boolean", default: true, description: "Automatically subscribe device to university broadcast topic 'all_alumni'" },
+          device: {
+            type: "object",
+            description: "Nested device token object (alternative structure)",
+            properties: {
+              token: { type: "string" },
+              platform: { type: "string", enum: ["android", "ios", "web"] },
+              deviceName: { type: "string" },
+              appVersion: { type: "string" },
+              subscribeToAll: { type: "boolean" },
+            },
+          },
         },
       },
       AlumniRegisterRequest: {
@@ -293,6 +309,18 @@ Official API documentation and testing sandbox for **IPAM Alumni Web** and the *
                         token: { type: "string", description: "JWT bearer token to pass in Authorization: Bearer <token>" },
                         savedJobsCount: { type: "integer" },
                         profile: { type: "object" },
+                        deviceRegistered: { type: "boolean", description: "Indicates if an FCM device token was registered during login", example: true },
+                        device: {
+                          type: "object",
+                          description: "Registered device details",
+                          properties: {
+                            id: { type: "string" },
+                            platform: { type: "string" },
+                            deviceName: { type: "string" },
+                            appVersion: { type: "string" },
+                            isActive: { type: "boolean" },
+                          },
+                        },
                       },
                     },
                   },
@@ -355,9 +383,22 @@ Official API documentation and testing sandbox for **IPAM Alumni Web** and the *
       post: {
         tags: ["Authentication"],
         summary: "Sign Out",
-        description: "Clears session cookies and ends active web session.",
+        description: "Clears session cookies and deactivates the mobile device push token if provided in request body.",
+        requestBody: {
+          required: false,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  deviceToken: { type: "string", description: "FCM Push notification token to deactivate upon logout", example: "fcm_token_1234567890" },
+                },
+              },
+            },
+          },
+        },
         responses: {
-          200: { description: "Signed out successfully" },
+          200: { description: "Signed out successfully and device token deactivated" },
         },
       },
     },
@@ -446,8 +487,25 @@ Official API documentation and testing sandbox for **IPAM Alumni Web** and the *
       post: {
         tags: ["Authentication"],
         summary: "Refresh Session Token",
-        description: "Issues a refreshed JWT session token for authenticated mobile clients.",
+        description: "Issues a refreshed JWT session token for authenticated mobile clients. Optionally updates and keeps active the device push token.",
         security: [{ BearerAuth: [] }, { CookieAuth: [] }],
+        requestBody: {
+          required: false,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  token: { type: "string", description: "Current token (if not using Authorization header)" },
+                  deviceToken: { type: "string", description: "FCM Push notification token to keep active" },
+                  platform: { type: "string", enum: ["android", "ios", "web"] },
+                  deviceName: { type: "string" },
+                  appVersion: { type: "string" },
+                },
+              },
+            },
+          },
+        },
         responses: {
           200: { description: "Refreshed token issued" },
           401: { description: "Unauthorized" },

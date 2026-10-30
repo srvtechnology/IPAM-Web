@@ -4,6 +4,8 @@ import {
   sendMulticastPush,
   sendPushToTopic,
   isFirebaseConfigured,
+  subscribeTokensToTopic,
+  unsubscribeTokensFromTopic,
   type FcmSendResult,
   type FcmMulticastResult,
 } from "@/lib/firebase";
@@ -261,6 +263,157 @@ export async function notifyBroadcast(options: BroadcastPushOptions) {
     console.error("[Notifications] Broadcast push delivery error:", err);
     return {
       pushed: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
+
+// --------------------------------------------------------------------------
+// Device Push Token Lifecycle (Login integration & Token Sync)
+// --------------------------------------------------------------------------
+
+export interface RegisterDeviceTokenOptions {
+  userId: string;
+  token: string;
+  platform?: "android" | "ios" | "web" | string;
+  deviceName?: string | null;
+  appVersion?: string | null;
+  subscribeToAll?: boolean;
+}
+
+export interface RegisterDeviceTokenResult {
+  success: boolean;
+  registered?: boolean;
+  device?: {
+    id: string;
+    platform: string;
+    deviceName: string | null;
+    appVersion: string | null;
+    isActive: boolean;
+    lastUsedAt: Date;
+  };
+  topicSubscribed?: boolean;
+  fcmConfigured?: boolean;
+  error?: string;
+}
+
+/**
+ * Registers or updates an FCM device token for a user, activating it and subscribing to topics.
+ * Used during login handshake and background token refresh.
+ */
+export async function registerUserDeviceToken(
+  options: RegisterDeviceTokenOptions
+): Promise<RegisterDeviceTokenResult> {
+  const {
+    userId,
+    token,
+    platform = "android",
+    deviceName,
+    appVersion,
+    subscribeToAll = true,
+  } = options;
+
+  if (!token || typeof token !== "string" || token.trim().length < 10) {
+    return { success: false, error: "Invalid device token" };
+  }
+
+  const cleanToken = token.trim();
+  const validPlatform =
+    platform === "ios" || platform === "web" || platform === "android" ? platform : "android";
+
+  try {
+    const deviceRecord = await db.alumniDeviceToken.upsert({
+      where: { token: cleanToken },
+      update: {
+        userId,
+        platform: validPlatform,
+        deviceName: deviceName || null,
+        appVersion: appVersion || null,
+        isActive: true,
+        lastUsedAt: new Date(),
+      },
+      create: {
+        userId,
+        token: cleanToken,
+        platform: validPlatform,
+        deviceName: deviceName || null,
+        appVersion: appVersion || null,
+        isActive: true,
+        lastUsedAt: new Date(),
+      },
+    });
+
+    let topicSubscribed = false;
+    if (subscribeToAll && isFirebaseConfigured()) {
+      try {
+        const subResult = await subscribeTokensToTopic([cleanToken], "all_alumni");
+        topicSubscribed = subResult.success;
+      } catch (err) {
+        console.warn("[FCM] Topic subscription error during token registration:", err);
+      }
+    }
+
+    return {
+      success: true,
+      registered: true,
+      device: {
+        id: deviceRecord.id,
+        platform: deviceRecord.platform,
+        deviceName: deviceRecord.deviceName,
+        appVersion: deviceRecord.appVersion,
+        isActive: deviceRecord.isActive,
+        lastUsedAt: deviceRecord.lastUsedAt,
+      },
+      topicSubscribed,
+      fcmConfigured: isFirebaseConfigured(),
+    };
+  } catch (err) {
+    console.error("[Notifications] Failed to register user device token:", err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
+
+/**
+ * Deactivates an FCM device token for a user, unsubscribing from topics.
+ * Used during logout and push permission revoke.
+ */
+export async function unregisterUserDeviceToken(options: {
+  userId?: string;
+  token: string;
+}): Promise<{ success: boolean; unregistered?: boolean; error?: string }> {
+  const { userId, token } = options;
+  if (!token || typeof token !== "string" || token.trim().length < 10) {
+    return { success: false, error: "Invalid device token" };
+  }
+
+  const cleanToken = token.trim();
+
+  try {
+    const whereClause: any = { token: cleanToken };
+    if (userId) {
+      whereClause.userId = userId;
+    }
+
+    const existing = await db.alumniDeviceToken.findFirst({ where: whereClause });
+    if (existing) {
+      await db.alumniDeviceToken.update({
+        where: { id: existing.id },
+        data: { isActive: false },
+      });
+    }
+
+    if (isFirebaseConfigured()) {
+      await unsubscribeTokensFromTopic([cleanToken], "all_alumni").catch(() => null);
+    }
+
+    return { success: true, unregistered: true };
+  } catch (err) {
+    console.error("[Notifications] Failed to unregister device token:", err);
+    return {
+      success: false,
       error: err instanceof Error ? err.message : String(err),
     };
   }

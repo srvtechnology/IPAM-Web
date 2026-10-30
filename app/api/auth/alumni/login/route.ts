@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { verifyPassword } from "@/lib/auth/password";
 import { setAlumniSessionCookie } from "@/lib/auth/session";
 import { alumniLoginSchema } from "@/lib/validation/auth";
+import { registerUserDeviceToken } from "@/lib/notifications";
 import { ok, fail } from "@/lib/api-response";
 
 export async function POST(req: NextRequest) {
@@ -53,7 +54,39 @@ export async function POST(req: NextRequest) {
 
   const token = await setAlumniSessionCookie({ sub: user.id, email: user.email }, { persistent: rememberMe });
 
+  // Mobile Push Notifications: Seamlessly register FCM device token if provided in login payload
+  const incomingDeviceToken =
+    parsed.data.device?.token || parsed.data.deviceToken || parsed.data.fcmToken;
+
+  let deviceRegistration: any = null;
+  if (incomingDeviceToken) {
+    const platform = parsed.data.device?.platform || parsed.data.platform || "android";
+    const deviceName = parsed.data.device?.deviceName || parsed.data.deviceName;
+    const appVersion = parsed.data.device?.appVersion || parsed.data.appVersion;
+    const subscribeToAll = parsed.data.device?.subscribeToAll ?? parsed.data.subscribeToAll ?? true;
+
+    deviceRegistration = await registerUserDeviceToken({
+      userId: user.id,
+      token: incomingDeviceToken,
+      platform,
+      deviceName,
+      appVersion,
+      subscribeToAll,
+    });
+  }
+
   const savedJobsCount = await db.savedJob.count({ where: { userId: user.id } });
   const { passwordHash: _omit, ...safeUser } = user;
-  return ok({ ...safeUser, token, savedJobsCount });
+  return ok({
+    ...safeUser,
+    token,
+    savedJobsCount,
+    ...(deviceRegistration && deviceRegistration.success
+      ? {
+          device: deviceRegistration.device,
+          deviceRegistered: true,
+          topicSubscribed: deviceRegistration.topicSubscribed,
+        }
+      : {}),
+  });
 }

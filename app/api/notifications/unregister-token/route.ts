@@ -1,8 +1,7 @@
 import { type NextRequest } from "next/server";
-import { db } from "@/lib/db";
 import { getAlumniSession } from "@/lib/auth/session";
 import { unregisterDeviceTokenSchema } from "@/lib/validation/notifications";
-import { unsubscribeTokensFromTopic, isFirebaseConfigured } from "@/lib/firebase";
+import { unregisterUserDeviceToken } from "@/lib/notifications";
 import { ok, fail } from "@/lib/api-response";
 
 export const dynamic = "force-dynamic";
@@ -24,27 +23,11 @@ export async function POST(req: NextRequest) {
     return fail(400, "Validation failed", { issues: parsed.error.flatten() });
   }
 
-  const { token } = parsed.data;
-
-  // Deactivate in DB
-  const existing = await db.alumniDeviceToken.findFirst({
-    where: { token, userId: session.sub },
+  const result = await unregisterUserDeviceToken({
+    userId: session.sub,
+    token: parsed.data.token,
   });
 
-  if (existing) {
-    await db.alumniDeviceToken.update({
-      where: { id: existing.id },
-      data: { isActive: false },
-    });
-  }
-
-  // Unsubscribe from topic
-  if (isFirebaseConfigured()) {
-    await unsubscribeTokensFromTopic([token], "all_alumni").catch(() => null);
-  }
-
-  return ok({
-    unregistered: true,
-  });
+  return ok(result);
 }
 

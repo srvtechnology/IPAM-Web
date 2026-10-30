@@ -31,12 +31,23 @@ The JWT token is returned in the JSON body upon successful login (`POST /api/aut
 | `email` | `string` | **Yes** | Registered alumni email | `demo.alumni@ipam.edu` |
 | `password` | `string` | **Yes** | Account password | `Password123!` |
 | `rememberMe` | `boolean` | No | Extend session duration | `true` |
+| `deviceToken` | `string` | No | FCM push notification device token (registers device atomically on login) | `fcm_token_1234567890_abc` |
+| `platform` | `string` | No | Client operating system (`android`, `ios`, `web`) | `android` |
+| `deviceName` | `string` | No | Hardware device name | `Samsung Galaxy S24 Ultra` |
+| `appVersion` | `string` | No | Flutter app release version | `1.0.0` |
+| `subscribeToAll` | `boolean` | No | Auto-subscribe to university broadcast topic `all_alumni` (default: `true`) | `true` |
+| `device` | `object` | No | Alternative nested object structure for device info | `{ "token": "...", "platform": "android" }` |
 
 ```json
 {
   "email": "demo.alumni@ipam.edu",
   "password": "Password123!",
-  "rememberMe": true
+  "rememberMe": true,
+  "deviceToken": "fcm_token_1234567890_abc",
+  "platform": "android",
+  "deviceName": "Samsung Galaxy S24 Ultra",
+  "appVersion": "1.0.0",
+  "subscribeToAll": true
 }
 ```
 
@@ -52,6 +63,15 @@ The JWT token is returned in the JSON body upon successful login (`POST /api/aut
     "status": "APPROVED",
     "savedJobsCount": 3,
     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "deviceRegistered": true,
+    "topicSubscribed": true,
+    "device": {
+      "id": "cuid...",
+      "platform": "android",
+      "deviceName": "Samsung Galaxy S24 Ultra",
+      "appVersion": "1.0.0",
+      "isActive": true
+    },
     "profile": {
       "id": "cmv123...",
       "name": "Alex Sesay",
@@ -196,7 +216,43 @@ Authorization: Bearer <jwt_token>
 
 ### 5. Logout
 * **Method & Path:** `POST /api/auth/alumni/logout`
-* **Auth Required:** Optional (clears server-side cookies if present)
+* **Auth Required:** Optional (`BearerAuth`)
+* **Description:** Clears session cookies and deactivates the device push token on the backend to stop sending notifications after signing out.
+
+#### Request Body (`application/json` - Optional)
+```json
+{
+  "deviceToken": "fcm_token_1234567890_abc"
+}
+```
+
+#### Success Response (`200 OK`)
+```json
+{
+  "data": {
+    "loggedOut": true,
+    "deviceUnregistered": true
+  }
+}
+```
+
+---
+
+### 6. Refresh Session Token
+* **Method & Path:** `POST /api/auth/refresh`
+* **Auth Required:** `BearerAuth` (or `{ token: "..." }` in body)
+* **Description:** Issues a refreshed JWT token for the mobile client and keeps the device push token active.
+
+#### Request Body (`application/json` - Optional)
+```json
+{
+  "token": "current_jwt_bearer_token",
+  "deviceToken": "fcm_token_1234567890_abc",
+  "platform": "android",
+  "deviceName": "Samsung Galaxy S24 Ultra",
+  "appVersion": "1.0.0"
+}
+```
 
 ---
 
@@ -213,6 +269,7 @@ class LoginResponse {
   final String membershipTier;
   final String status;
   final String token;
+  final bool deviceRegistered;
   final AlumniProfile? profile;
 
   LoginResponse({
@@ -223,6 +280,7 @@ class LoginResponse {
     required this.membershipTier,
     required this.status,
     required this.token,
+    this.deviceRegistered = false,
     this.profile,
   });
 
@@ -235,6 +293,7 @@ class LoginResponse {
       membershipTier: json['membershipTier'] ?? 'STANDARD',
       status: json['status'] ?? 'PENDING',
       token: json['token'] ?? '',
+      deviceRegistered: json['deviceRegistered'] ?? false,
       profile: json['profile'] != null ? AlumniProfile.fromJson(json['profile']) : null,
     );
   }

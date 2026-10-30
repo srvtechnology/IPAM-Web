@@ -762,32 +762,68 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
 
 ## 7. Token Lifecycle & Authentication Wiring
 
-To guarantee device tokens are always bound to the authenticated alumnus:
+With the backend login integration, device token registration is **atomic**—the mobile app registers its push token in the exact same handshake as authentication, eliminating race conditions or secondary network failures.
 
-### 7.1 On User Login (`lib/screens/login_screen.dart`)
-Immediately after obtaining the `auth_token`:
+### 7.1 On User Login (`lib/screens/login_screen.dart` - Unified Handshake)
 ```dart
-// 1. Save auth token
-await storage.write(key: 'auth_token', value: response.data['data']['token']);
-
-// 2. Trigger FCM token synchronization
+// 1. Retrieve the FCM device token from Firebase Messaging
 final fcmToken = await FirebaseMessaging.instance.getToken();
+
+// 2. Send login credentials WITH device token in a single request
+final response = await dio.post(
+  '/api/auth/alumni/login',
+  data: {
+    'email': emailController.text.trim(),
+    'password': passwordController.text,
+    'rememberMe': true,
+    'deviceToken': fcmToken,
+    'platform': Platform.isAndroid ? 'android' : 'ios',
+    'deviceName': '${deviceInfo.manufacturer} ${deviceInfo.model}',
+    'appVersion': packageInfo.version,
+    'subscribeToAll': true,
+  },
+);
+
+// 3. Save the returned JWT token
+final authToken = response.data['data']['token'];
+await storage.write(key: 'auth_token', value: authToken);
 if (fcmToken != null) {
-  await NotificationService.instance.syncTokenWithBackend(fcmToken);
+  await storage.write(key: 'fcm_device_token', value: fcmToken);
 }
+
+// 4. Verify device registration state from response
+final isDeviceRegistered = response.data['data']['deviceRegistered'] ?? false;
+debugPrint("Device registered with backend: $isDeviceRegistered");
 ```
 
-### 7.2 On User Logout
-Before clearing the local session storage:
+### 7.2 On User Logout (Deactivate Device Token)
+Before clearing local storage, pass the device token to `/api/auth/alumni/logout` so the backend stops sending alerts for that alumnus to the device:
 ```dart
 // 1. Tell backend to deactivate push token for this user
-await NotificationService.instance.unregisterOnLogout();
+final fcmToken = await storage.read(key: 'fcm_device_token');
+try {
+  await dio.post(
+    '/api/auth/alumni/logout',
+    data: {'deviceToken': fcmToken},
+  );
+} catch (e) {
+  debugPrint("Logout warning: $e");
+}
 
-// 2. Clear stored auth token
+// 2. Clear stored auth tokens
 await storage.deleteAll();
 
 // 3. Navigate to login
 Navigator.of(context).pushReplacementNamed('/login');
+```
+
+### 7.3 On Token Refresh (`onTokenRefresh`)
+If Firebase rotates the device token while the user is actively logged in:
+```dart
+_fcm.onTokenRefresh.listen((newToken) async {
+  debugPrint("🔄 FCM Token Refreshed: $newToken");
+  await NotificationService.instance.syncTokenWithBackend(newToken);
+});
 ```
 
 ---

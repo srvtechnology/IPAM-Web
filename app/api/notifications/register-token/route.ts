@@ -1,8 +1,7 @@
 import { type NextRequest } from "next/server";
-import { db } from "@/lib/db";
 import { getAlumniSession } from "@/lib/auth/session";
 import { registerDeviceTokenSchema } from "@/lib/validation/notifications";
-import { subscribeTokensToTopic, isFirebaseConfigured } from "@/lib/firebase";
+import { registerUserDeviceToken } from "@/lib/notifications";
 import { ok, fail } from "@/lib/api-response";
 
 export const dynamic = "force-dynamic";
@@ -24,52 +23,15 @@ export async function POST(req: NextRequest) {
     return fail(400, "Validation failed", { issues: parsed.error.flatten() });
   }
 
-  const { token, platform, deviceName, appVersion, subscribeToAll } = parsed.data;
-
-  // Upsert token for this user
-  const deviceRecord = await db.alumniDeviceToken.upsert({
-    where: { token },
-    update: {
-      userId: session.sub,
-      platform,
-      deviceName: deviceName || null,
-      appVersion: appVersion || null,
-      isActive: true,
-      lastUsedAt: new Date(),
-    },
-    create: {
-      userId: session.sub,
-      token,
-      platform,
-      deviceName: deviceName || null,
-      appVersion: appVersion || null,
-      isActive: true,
-      lastUsedAt: new Date(),
-    },
+  const result = await registerUserDeviceToken({
+    userId: session.sub,
+    ...parsed.data,
   });
 
-  // Automatically subscribe device to default FCM broadcast topic "all_alumni"
-  let topicSubscribed = false;
-  if (subscribeToAll && isFirebaseConfigured()) {
-    try {
-      const subResult = await subscribeTokensToTopic([token], "all_alumni");
-      topicSubscribed = subResult.success;
-    } catch (err) {
-      console.warn("[FCM] Topic subscription error:", err);
-    }
+  if (!result.success) {
+    return fail(500, result.error || "Failed to register device token");
   }
 
-  return ok({
-    registered: true,
-    device: {
-      id: deviceRecord.id,
-      platform: deviceRecord.platform,
-      deviceName: deviceRecord.deviceName,
-      isActive: deviceRecord.isActive,
-      lastUsedAt: deviceRecord.lastUsedAt,
-    },
-    topicSubscribed,
-    fcmConfigured: isFirebaseConfigured(),
-  }, 201);
+  return ok(result, 201);
 }
 
