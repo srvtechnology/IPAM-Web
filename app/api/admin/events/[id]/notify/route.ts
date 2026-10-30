@@ -74,3 +74,4 @@ export async function POST(
     emailsDispatched: result.emailRecipientsCount,
   });
 }
+
