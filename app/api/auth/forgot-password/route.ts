@@ -28,12 +28,11 @@ export async function POST(req: NextRequest) {
   if (!user) {
     // For security, do not disclose whether email exists
     return ok({
-      message: "If your email is registered with IPAM Alumni Association, a reset OTP code has been dispatched.",
-      devOtp: "123456",
+      message: "If your email is registered with IPAM Alumni Association, a dynamic reset verification code has been dispatched to your inbox.",
     });
   }
 
-  // Dispatch real 2FA OTP code via SMTP to the alumni's email
+  // Dispatch real dynamic 2FA OTP code via SMTP to the alumni's email
   const otpResult = await sendOtp({
     email,
     purpose: "PASSWORD_RESET",
@@ -41,9 +40,12 @@ export async function POST(req: NextRequest) {
     expiresMinutes: 15,
   });
 
+  if (!otpResult.success) {
+    return fail(500, otpResult.error || "Failed to dispatch password reset verification code via email.");
+  }
+
   return ok({
-    message: "Password reset 2FA verification code has been dispatched to your email.",
+    message: "A 6-digit dynamic password reset verification code has been dispatched to your email.",
     email,
-    devOtp: otpResult.devOtp,
   });
 }

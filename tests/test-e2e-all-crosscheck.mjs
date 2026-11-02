@@ -270,9 +270,13 @@ async function runMasterCrossCheck() {
   const replayCheck = verifyOtp({ email: testEmail, code: otpResult.devOtp, purpose: "LOGIN_2FA" });
   assert(replayCheck.valid === false, "Replay attack prevented: code invalidated after single use");
 
-  // 5. Automated sandbox fallback
+  // 5. Dynamic enforcement & automated sandbox fallback
+  const staticCheck = verifyOtp({ email: testEmail, code: TEST_OTP, purpose: "LOGIN_2FA" });
+  assert(staticCheck.valid === false, "Static fallback code '123456' strictly blocked without ALLOW_TEST_OTP");
+  process.env.ALLOW_TEST_OTP = "true";
   const sandboxCheck = verifyOtp({ email: testEmail, code: TEST_OTP, purpose: "LOGIN_2FA" });
-  assert(sandboxCheck.valid === true, "Sandbox fallback code '123456' accepted for test workflows");
+  assert(sandboxCheck.valid === true, "Sandbox fallback code '123456' accepted when ALLOW_TEST_OTP=true");
+  delete process.env.ALLOW_TEST_OTP;
 
   console.log("✔ Domain 5 passed: 2FA Auth OTP engine verified.\n");
 

@@ -439,7 +439,7 @@ When the backend sends notifications, Flutter can read the payload fields in bot
 * **Alumni Email:** `demo.alumni@ipam.edu`
 * **Password:** `Password123!`
 * **Student ID:** `IPAM-2015-0042`
-* **Registration 2FA OTP:** `123456`
+* **Registration 2FA OTP:** Dynamic 6-digit code via SMTP email (or `123456` when `ALLOW_TEST_OTP=true`)
 
 ### Testing with `curl`
 ```bash

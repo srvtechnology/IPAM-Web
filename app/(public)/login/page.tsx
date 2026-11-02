@@ -512,10 +512,10 @@ function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
                 type="text"
                 required
                 maxLength={6}
-                placeholder="123456"
+                placeholder="••••••"
                 value={otp}
                 onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-                className="w-full text-center tracking-[0.4em] font-mono font-bold rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-white focus:outline-emerald-500"
+                className="w-full text-center tracking-[0.4em] font-mono font-bold rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-white focus:outline-emerald-500 placeholder:text-slate-600"
               />
             </div>
             <div>

@@ -81,14 +81,6 @@ function RegisterForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // 2FA OTP state
-  const [otpModalOpen, setOtpModalOpen] = useState(false);
-  const [otp, setOtp] = useState("");
-  const [otpError, setOtpError] = useState<string | null>(null);
-  const [sendingOtp, setSendingOtp] = useState(false);
-  const [devOtp, setDevOtp] = useState<string | null>(null);
-  const [resendCooldown, setResendCooldown] = useState(0);
-
   // Re-submission state
   const [isResubmitting, setIsResubmitting] = useState(false);
   const [rejectionReason, setRejectionReason] = useState<string | null>(null);
@@ -97,6 +89,20 @@ function RegisterForm() {
   const [registeredPending, setRegisteredPending] = useState(false);
 
   useEffect(() => {
+    // Restore saved draft if user navigated back to edit registration
+    try {
+      const saved = sessionStorage.getItem("ipam_registration_draft");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.form) {
+          setForm(parsed.form);
+          if (parsed.form.password) setConfirmPassword(parsed.form.password);
+          if (typeof parsed.isResubmitting === "boolean") setIsResubmitting(parsed.isResubmitting);
+          setAcceptedTerms(true);
+        }
+      }
+    } catch {}
+
     const emailParam = searchParams.get("email");
     const resubmitParam = searchParams.get("resubmit");
 
@@ -133,34 +139,7 @@ function RegisterForm() {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
-  useEffect(() => {
-    if (resendCooldown <= 0) return;
-    const timer = setInterval(() => setResendCooldown((prev) => prev - 1), 1000);
-    return () => clearInterval(timer);
-  }, [resendCooldown]);
-
-  async function requestOtp() {
-    setSendingOtp(true);
-    setOtpError(null);
-    try {
-      const res = await fetch("/api/auth/2fa/send-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: form.email, purpose: "REGISTRATION", name: form.name }),
-      });
-      const json = await res.json();
-      if (json.data?.devOtp) {
-        setDevOtp(json.data.devOtp);
-      }
-      setResendCooldown(30);
-    } catch {
-      // non-fatal
-    } finally {
-      setSendingOtp(false);
-    }
-  }
-
-  function handleStartVerification(e: FormEvent) {
+  async function handleStartVerification(e: FormEvent) {
     e.preventDefault();
     setError(null);
 
@@ -173,38 +152,39 @@ function RegisterForm() {
       return;
     }
 
-    // Open 2FA modal and send verification code via SMTP
-    setOtp("");
-    setOtpError(null);
-    setOtpModalOpen(true);
-    requestOtp();
-  }
-
-  async function handleVerifyAndSubmit() {
-    if (!otp.trim()) {
-      setOtpError("Please enter the 6-digit OTP code.");
-      return;
-    }
-
     setLoading(true);
-    setOtpError(null);
+
     try {
-      const res = await fetch("/api/auth/alumni/register", {
+      // 1. Dispatch dynamic OTP code via SMTP email
+      const res = await fetch("/api/auth/2fa/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, otp: otp.trim(), isResubmission: isResubmitting }),
+        body: JSON.stringify({ email: form.email.trim(), purpose: "REGISTRATION", name: form.name }),
       });
       const json = await res.json();
+
       if (!res.ok) {
-        setOtpError(json.error ?? json.issues?.formErrors?.[0] ?? "Registration failed");
+        setError(json.error || "Failed to dispatch verification email. Please check your email address.");
+        setLoading(false);
         return;
       }
 
-      setOtpModalOpen(false);
-      setRegisteredPending(true);
+      // 2. Persist registration draft for separate 2FA verification page
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem(
+          "ipam_registration_draft",
+          JSON.stringify({
+            form,
+            isResubmitting,
+            timestamp: Date.now(),
+          })
+        );
+      }
+
+      // 3. Smoothly navigate to the separate 2FA page
+      router.push(`/register/verify?email=${encodeURIComponent(form.email.trim())}`);
     } catch {
-      setOtpError("Something went wrong. Please check your connection and try again.");
-    } finally {
+      setError("Network error dispatching verification email. Please check your connection.");
       setLoading(false);
     }
   }
@@ -709,99 +689,6 @@ function RegisterForm() {
           </div>
         </div>
       </div>
-
-      {/* 2-Factor Authentication Modal */}
-      {otpModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-3xl border border-emerald-500/30 bg-slate-900 p-6 shadow-2xl text-slate-200">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
-              <div className="flex items-center gap-2">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400">
-                  <KeyRound className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-black text-white">Two-Factor Authentication</h3>
-                  <p className="text-[11px] text-slate-400">Security Verification Code</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setOtpModalOpen(false)}
-                className="text-slate-400 hover:text-white p-1"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-950/50 p-3.5 text-xs text-emerald-200">
-              <p className="font-bold flex items-center justify-between text-emerald-300">
-                <span className="flex items-center gap-1.5">
-                  <ShieldCheck className="h-4 w-4" />
-                  SMTP Security Verification
-                </span>
-                <span className="text-[10px] bg-emerald-900/60 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-500/40">
-                  {sendingOtp ? "Sending..." : "Dispatched"}
-                </span>
-              </p>
-              <p className="mt-1 text-slate-300">
-                A verification code has been sent via SMTP to <strong className="text-white">{form.email}</strong>.
-              </p>
-              <div className="mt-2.5 flex items-center justify-between text-[11px] text-slate-400 bg-slate-950/60 p-2 rounded-lg border border-slate-800">
-                <span>Didn&apos;t receive it?</span>
-                <button
-                  type="button"
-                  disabled={sendingOtp || resendCooldown > 0}
-                  onClick={requestOtp}
-                  className="font-bold text-emerald-400 hover:text-emerald-300 disabled:opacity-50"
-                >
-                  {resendCooldown > 0 ? `Resend code (${resendCooldown}s)` : "Resend code"}
-                </button>
-              </div>
-              {devOtp && (
-                <div className="mt-2 text-center text-[11px] text-slate-400">
-                  Code sent: <span className="font-mono font-bold text-emerald-300">{devOtp}</span> (or enter test code <span className="font-mono text-emerald-400">123456</span>)
-                </div>
-              )}
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-xs font-bold text-slate-300 mb-1.5 text-center">
-                Enter 6-Digit Verification Code *
-              </label>
-              <input
-                type="text"
-                maxLength={6}
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-                placeholder="123456"
-                className="w-full text-center tracking-[0.5em] font-mono text-2xl font-black rounded-xl border border-slate-800 bg-slate-950 py-3 text-white focus:outline-emerald-500"
-              />
-              {otpError && (
-                <p className="mt-2 text-center text-xs font-semibold text-rose-400">{otpError}</p>
-              )}
-            </div>
-
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setOtpModalOpen(false)}
-                className="flex-1 rounded-xl border border-slate-700 bg-slate-800 py-2.5 text-xs font-bold text-slate-300 hover:bg-slate-750 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={loading}
-                onClick={handleVerifyAndSubmit}
-                className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-emerald-500 py-2.5 text-xs font-black text-slate-950 hover:bg-emerald-400 transition-colors disabled:opacity-50"
-              >
-                <ShieldCheck className="h-4 w-4" />
-                <span>{loading ? "Verifying…" : "Verify & Complete"}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -33,14 +33,12 @@ export async function POST(req: NextRequest) {
   });
 
   if (!result.success) {
-    return fail(429, result.error || "Failed to send verification code");
+    return fail(500, result.error || "Failed to dispatch verification code via SMTP email.");
   }
 
   return ok({
     sent: true,
-    message: `Verification code sent to ${email}`,
+    message: `A 6-digit dynamic verification code has been dispatched via SMTP email to ${email}.`,
     expiresInMinutes: 15,
-    // Return devOtp in non-production for local convenience
-    devOtp: process.env.NODE_ENV !== "production" ? result.devOtp : undefined,
   });
 }

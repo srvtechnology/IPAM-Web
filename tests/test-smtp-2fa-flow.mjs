@@ -101,18 +101,31 @@ async function run2faTestSuite() {
   console.log("✔ Replay attack prevented (code invalidated after single use).\n");
 
   // -------------------------------------------------------------------------
-  // Test 4: Sandbox Test OTP Fallback (123456)
+  // Test 4: Dynamic Enforcement & Static 123456 Rejection by Default
   // -------------------------------------------------------------------------
-  console.log("▶ [Test 4] Verifying sandbox fallback code '123456'...");
+  console.log("▶ [Test 4] Verifying static bypass '123456' is strictly blocked by default...");
+  delete process.env.ALLOW_TEST_OTP;
+  const staticBlockRes = verifyOtp({
+    email: "unauthorized.user@example.com",
+    code: TEST_OTP,
+    purpose: "PASSWORD_RESET",
+  });
+  if (staticBlockRes.valid) {
+    throw new Error("FAIL: Static OTP '123456' was accepted when ALLOW_TEST_OTP was unset!");
+  }
+  console.log("✔ Static OTP '123456' properly blocked without dynamic email dispatch.");
+
+  // 4b. When ALLOW_TEST_OTP is explicitly enabled for automated test environments:
+  process.env.ALLOW_TEST_OTP = "true";
   const sandboxRes = verifyOtp({
-    email: "any.alumni@example.com",
+    email: "automated.ci@example.com",
     code: TEST_OTP,
     purpose: "PASSWORD_RESET",
   });
   if (!sandboxRes.valid) {
-    throw new Error("FAIL: Sandbox fallback OTP '123456' was not accepted.");
+    throw new Error("FAIL: Sandbox fallback OTP '123456' was not accepted when ALLOW_TEST_OTP=true.");
   }
-  console.log("✔ Test sandbox fallback '123456' accepted for automated workflows.\n");
+  console.log("✔ Automated test fallback '123456' accepted when ALLOW_TEST_OTP=true.\n");
 
   console.log("========================================================");
   console.log("🎉 ALL SMTP 2FA AUTH TESTS PASSED SUCCESSFULLY!");

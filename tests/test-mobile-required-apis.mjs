@@ -78,13 +78,13 @@ async function runTests() {
   });
 
   // 3. Forgot Password
-  await test("POST /api/auth/forgot-password handles OTP dispatch", async () => {
+  await test("POST /api/auth/forgot-password handles dynamic OTP dispatch", async () => {
     const res = await request("/api/auth/forgot-password", {
       method: "POST",
       body: JSON.stringify({ email: "demo.alumni@ipam.edu" }),
     });
     if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
-    if (!res.data?.data?.devOtp) throw new Error("Missing devOtp in response");
+    if (!res.data?.data?.message) throw new Error("Missing confirmation message in response");
   });
 
   // 4. Reset Password

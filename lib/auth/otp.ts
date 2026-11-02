@@ -157,9 +157,14 @@ async function getEmailModule() {
     emailModuleInstance = await import("@/lib/email");
   } catch {
     try {
-      emailModuleInstance = await import("../email");
+      const tsPath = "../email.ts";
+      emailModuleInstance = await import(tsPath);
     } catch {
-      return null;
+      try {
+        emailModuleInstance = await import("../email");
+      } catch {
+        return null;
+      }
     }
   }
   return emailModuleInstance;
@@ -231,7 +236,8 @@ export async function sendOtp(options: {
       if (!result.success) {
         console.error("[OTP] Failed to send email via SMTP:", result.error);
         return {
-          success: true,
+          success: false,
+          error: `Failed to deliver verification email via SMTP: ${result.error}`,
           devOtp: code,
         };
       }
@@ -243,7 +249,8 @@ export async function sendOtp(options: {
     } catch (err) {
       console.error("[OTP] Unexpected error sending email:", err);
       return {
-        success: true,
+        success: false,
+        error: err instanceof Error ? err.message : "SMTP email delivery failed",
         devOtp: code,
       };
     }
@@ -251,14 +258,15 @@ export async function sendOtp(options: {
 
   // Fallback if SMTP is not configured
   return {
-    success: true,
+    success: false,
+    error: "SMTP email service is not configured. Please verify server SMTP settings.",
     devOtp: code,
   };
 }
 
 /**
- * Validates a submitted OTP code against the store.
- * Supports the test code "123456" for automated testing and sandbox environments.
+ * Validates a submitted OTP code against the dynamic store.
+ * Rejects static bypasses to enforce real dynamic email verification.
  */
 export function verifyOtp(options: {
   email: string;
@@ -267,10 +275,14 @@ export function verifyOtp(options: {
 }): { valid: boolean; error?: string } {
   const { email, code, purpose } = options;
   const normalizedEmail = email.trim().toLowerCase();
-  const cleanCode = code.trim();
+  const cleanCode = (code || "").trim();
 
-  // Test environment fallback: 123456 is always accepted
-  if (cleanCode === TEST_OTP) {
+  if (!cleanCode) {
+    return { valid: false, error: "Verification code is required." };
+  }
+
+  // Automated test fallback: Only permitted when ALLOW_TEST_OTP=true (e.g. during specific automated test runners)
+  if (process.env.ALLOW_TEST_OTP === "true" && cleanCode === TEST_OTP) {
     return { valid: true };
   }
 
@@ -278,7 +290,10 @@ export function verifyOtp(options: {
   const entry = otpStore.get(storeKey);
 
   if (!entry) {
-    return { valid: false, error: "No verification code was requested for this email, or it has expired." };
+    return {
+      valid: false,
+      error: "No verification code was requested for this email, or it has expired. Please click 'Resend code'.",
+    };
   }
 
   const now = Date.now();
@@ -294,7 +309,10 @@ export function verifyOtp(options: {
   }
 
   if (entry.code !== cleanCode) {
-    return { valid: false, error: "Invalid verification code. Please check your email and try again." };
+    return {
+      valid: false,
+      error: "Invalid verification code. Please check your email inbox and enter the dynamic 6-digit code received.",
+    };
   }
 
   // Code verified! Delete from store to prevent replay attacks

@@ -104,7 +104,7 @@ The JWT token is returned in the JSON body upon successful login (`POST /api/aut
 ### 2. Alumni Registration / Re-submission
 * **Method & Path:** `POST /api/auth/alumni/register`
 * **Auth Required:** `None`
-* **Description:** Submits a new registration application linked to a university student ID. Requires 2FA OTP verification (Test OTP: `123456`). Newly submitted accounts enter `PENDING` status awaiting registrar review.
+* **Description:** Submits a new registration application linked to a university student ID. Requires dynamic 2FA OTP verification via single-use 6-digit code dispatched to the applicant's email using `POST /api/auth/2fa/send-otp`. Newly submitted accounts enter `PENDING` status awaiting registrar review.
 
 #### Request Body (`application/json`)
 | Field | Type | Required | Description |
@@ -116,7 +116,7 @@ The JWT token is returned in the JSON body upon successful login (`POST /api/aut
 | `classYear` | `integer` | **Yes** | Year of graduation (1950 - 2040) |
 | `degree` | `string` | **Yes** | Degree earned (e.g. `B.Sc. Banking & Finance`) |
 | `major` | `string` | **Yes** | Faculty / Department |
-| `otp` | `string` | **Yes** | 2FA verification code (`123456`) |
+| `otp` | `string` | **Yes** | 6-digit dynamic 2FA verification code received via SMTP email |
 | `currentRole` | `string` | No | Current job title |
 | `company` | `string` | No | Employer name |
 | `location` | `string` | No | City of residence |
@@ -141,7 +141,7 @@ The JWT token is returned in the JSON body upon successful login (`POST /api/aut
   "industry": "Technology",
   "bio": "Passionate about mobile apps and civic tech.",
   "isMentor": true,
-  "otp": "123456"
+  "otp": "492817"
 }
 ```
 
@@ -155,7 +155,7 @@ The JWT token is returned in the JSON body upon successful login (`POST /api/aut
     }
   }
   ```
-* `400 Bad Request`: Validation failure or incorrect OTP (`Invalid two-factor authentication OTP code. For test environment, enter 123456.`).
+* `400 Bad Request`: Validation failure or incorrect OTP (`Invalid verification code. Please check your email inbox and enter the dynamic 6-digit code received.`).
 * `409 Conflict`: Account already exists or email/student ID already registered.
 
 ---
@@ -253,6 +253,90 @@ Authorization: Bearer <jwt_token>
   "appVersion": "1.0.0"
 }
 ```
+
+---
+
+### 7. Dispatch 2FA Verification Code (SMTP Email)
+* **Method & Path:** `POST /api/auth/2fa/send-otp`
+* **Auth Required:** `None`
+* **Description:** Dispatches a dynamic single-use 6-digit cryptographic verification code to the target email via SMTP. Call this before user registration or account verification.
+
+#### Request Body (`application/json`)
+| Field | Type | Required | Description | Example |
+|---|---|---|---|---|
+| `email` | `string` | **Yes** | Destination email address | `jane.doe@alumni.ipam.edu` |
+| `purpose` | `string` | No | `REGISTRATION`, `PASSWORD_RESET`, `LOGIN_2FA` (default: `REGISTRATION`) | `REGISTRATION` |
+| `name` | `string` | No | Applicant or user name for personalized email | `Jane Doe` |
+
+```json
+{
+  "email": "jane.doe@alumni.ipam.edu",
+  "purpose": "REGISTRATION",
+  "name": "Jane Doe"
+}
+```
+
+#### Success Response (`200 OK`)
+```json
+{
+  "data": {
+    "sent": true,
+    "message": "A 6-digit dynamic verification code has been dispatched via SMTP email to jane.doe@alumni.ipam.edu.",
+    "expiresInMinutes": 15
+  }
+}
+```
+
+---
+
+### 8. Forgot Password (Request OTP)
+* **Method & Path:** `POST /api/auth/forgot-password`
+* **Auth Required:** `None`
+* **Description:** Initiates a password reset by generating and dispatching a dynamic 6-digit verification code to the registered alumni's email address via SMTP.
+
+#### Request Body (`application/json`)
+```json
+{
+  "email": "demo.alumni@ipam.edu"
+}
+```
+
+#### Success Response (`200 OK`)
+```json
+{
+  "data": {
+    "message": "A 6-digit dynamic password reset verification code has been dispatched to your email.",
+    "email": "demo.alumni@ipam.edu"
+  }
+}
+```
+
+---
+
+### 9. Reset Password with OTP
+* **Method & Path:** `POST /api/auth/reset-password`
+* **Auth Required:** `None`
+* **Description:** Completes password reset by verifying the dynamic 6-digit OTP received via email and setting the new password.
+
+#### Request Body (`application/json`)
+```json
+{
+  "email": "demo.alumni@ipam.edu",
+  "otp": "492817",
+  "newPassword": "NewSecurePassword456!"
+}
+```
+
+#### Success Response (`200 OK`)
+```json
+{
+  "data": {
+    "message": "Password reset successfully. You can now log in with your new password."
+  }
+}
+```
+
+---
 
 ---
 

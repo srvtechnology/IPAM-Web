@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
 
   const { email, otp, newPassword } = parsed.data;
 
-  // Validate 2FA OTP code (accepts emailed dynamic code or test code 123456)
+  // Validate dynamic 2FA OTP code dispatched via SMTP email
   const verification = verifyOtp({
     email,
     code: otp,

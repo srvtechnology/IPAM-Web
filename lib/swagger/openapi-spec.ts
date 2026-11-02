@@ -127,7 +127,7 @@ Official API documentation and testing sandbox for **IPAM Alumni Web** and the *
           industry: { type: "string", example: "Technology" },
           bio: { type: "string", example: "Passionate about open source and community mentorship." },
           isMentor: { type: "boolean", example: true },
-          otp: { type: "string", example: "123456", description: "Default test 2FA OTP code: 123456" },
+          otp: { type: "string", example: "492817", description: "6-digit dynamic 2FA OTP code dispatched via SMTP email" },
         },
       },
       ChangePasswordRequest: {
@@ -337,7 +337,7 @@ Official API documentation and testing sandbox for **IPAM Alumni Web** and the *
       post: {
         tags: ["Authentication"],
         summary: "Alumni Registration / Resubmission",
-        description: "Registers a new alumni account with 2FA verification (Test OTP: 123456). Submitted accounts go to PENDING for university registrar approval.",
+        description: "Registers a new alumni account with 2FA verification. A 6-digit dynamic code is dispatched via SMTP email using /api/auth/2fa/send-otp. Submitted accounts go to PENDING for university registrar approval.",
         requestBody: {
           required: true,
           content: { "application/json": { schema: { $ref: "#/components/schemas/AlumniRegisterRequest" } } },
@@ -434,7 +434,7 @@ Official API documentation and testing sandbox for **IPAM Alumni Web** and the *
       post: {
         tags: ["Authentication"],
         summary: "Forgot Password (Request OTP)",
-        description: "Requests a 2FA OTP code to reset password. Returns test OTP: `123456`.",
+        description: "Requests a single-use 6-digit dynamic 2FA OTP code to reset password, dispatched securely via SMTP email.",
         requestBody: {
           required: true,
           content: {
@@ -459,7 +459,7 @@ Official API documentation and testing sandbox for **IPAM Alumni Web** and the *
       post: {
         tags: ["Authentication"],
         summary: "Reset Password with OTP",
-        description: "Resets account password using verified OTP code (`123456`).",
+        description: "Resets account password using the verified single-use dynamic OTP code dispatched to the user's email.",
         requestBody: {
           required: true,
           content: {
@@ -469,7 +469,7 @@ Official API documentation and testing sandbox for **IPAM Alumni Web** and the *
                 required: ["email", "otp", "newPassword"],
                 properties: {
                   email: { type: "string", format: "email", example: "demo.alumni@ipam.edu" },
-                  otp: { type: "string", example: "123456" },
+                  otp: { type: "string", example: "492817", description: "6-digit dynamic verification code received via email" },
                   newPassword: { type: "string", minLength: 8, example: "NewSecurePassword456!" },
                 },
               },

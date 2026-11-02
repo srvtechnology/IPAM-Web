@@ -178,4 +178,4 @@ When testing against the sandbox or local database:
   * Password: `Password123!`
   * Student ID: `IPAM-2015-0042`
   * Status: `APPROVED`
-* **Registration 2FA OTP Code:** `123456`
+* **Registration 2FA OTP:** Dynamic 6-digit code delivered via SMTP email (or `123456` in local test runners when `ALLOW_TEST_OTP=true` is set)

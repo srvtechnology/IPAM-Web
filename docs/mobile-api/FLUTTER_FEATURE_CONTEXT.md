@@ -33,8 +33,9 @@ graph TD
     Splash -->|No Token| AuthFlow[Authentication Flow]
     
     AuthFlow --> LoginScreen[Sign In]
-    AuthFlow --> RegisterScreen[Alumni Registration + 2FA OTP]
-    AuthFlow --> PendingScreen[Registration Pending Review Screen]
+    AuthFlow --> RegisterScreen[Alumni Registration]
+    RegisterScreen --> Verify2faScreen[Dedicated 2FA OTP Screen]
+    Verify2faScreen --> PendingScreen[Registration Pending Review Screen]
 
     MainScaffold --> Tab1[Tab 1: Home Dashboard]
     MainScaffold --> Tab2[Tab 2: Virtual ID Pass]
@@ -79,11 +80,12 @@ graph TD
   * Splash Screen checks `flutter_secure_storage` for `ipam_alumni_jwt_token`.
   * If valid, calls `GET /api/auth/alumni/me` to refresh user state and navigates to `MainScaffold`.
   * **Login Screen:** Email + Password with "Remember Me" toggle. Error handling for bad credentials or unapproved account status (`PENDING` / `REJECTED`).
-  * **Registration Flow:** Multi-step or accordion form capturing full name, university student registration ID (`IPAM-YYYY-XXXX`), graduation year, degree, faculty/major, current employer, job title, and mandatory 2FA OTP (`123456` in testing sandbox).
+  * **Registration Flow:** Multi-step or accordion form capturing full name, university student registration ID (`IPAM-YYYY-XXXX`), graduation year, degree, faculty/major, current employer, job title, and dynamic 2FA OTP verification via SMTP email (`POST /api/auth/2fa/send-otp`).
   * **Pending Account State:** If an account is created, displays a congratulatory modal indicating registrar verification is in progress.
 * **APIs:**
-  * `POST /api/auth/alumni/login`
+  * `POST /api/auth/2fa/send-otp`
   * `POST /api/auth/alumni/register`
+  * `POST /api/auth/alumni/login`
   * `GET /api/auth/alumni/me`
 
 ---

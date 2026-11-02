@@ -21,26 +21,6 @@ export async function POST(req: NextRequest) {
     const email = input.email.trim().toLowerCase();
     const studentId = input.studentId.trim();
 
-    // 2FA OTP verification: Verifies emailed OTP via SMTP (with 123456 as sandbox fallback)
-    const otpVerification = verifyOtp({
-      email,
-      code: input.otp,
-      purpose: "REGISTRATION",
-    });
-
-    if (!otpVerification.valid) {
-      return fail(400, otpVerification.error || "Invalid two-factor authentication OTP code.");
-    }
-
-    // Compute avatar initials from full name
-    const initials = input.name
-      .trim()
-      .split(/\s+/)
-      .map((p) => p[0])
-      .slice(0, 2)
-      .join("")
-      .toUpperCase();
-
     // Check existing records in AlumniUser and AlumniRecord
     const [existingEmailUser, existingStudentIdUser, existingRegNoRecord] = await Promise.all([
       db.alumniUser.findUnique({ where: { email }, include: { profile: true, alumniRecord: true } }),
@@ -70,18 +50,41 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // -----------------------------------------------------------------------
-    // Re-submission flow for existing rejected user
-    // -----------------------------------------------------------------------
+    // Check if an approved or pending account already exists
     if (existingUser) {
       const isRejected = existingUser.status === "REJECTED" || existingUser.alumniRecord?.status === "REJECTED";
-
       if (!isRejected) {
         if (existingUser.status === "PENDING" || existingUser.alumniRecord?.status === "PENDING") {
           return fail(409, "An application with this email or student ID is already pending administrator approval.");
         }
         return fail(409, "An approved account with this email or student ID already exists. Please sign in.");
       }
+    }
+
+    // 2FA OTP verification: Verifies dynamic OTP dispatched via SMTP email
+    const otpVerification = verifyOtp({
+      email,
+      code: input.otp,
+      purpose: "REGISTRATION",
+    });
+
+    if (!otpVerification.valid) {
+      return fail(400, otpVerification.error || "Invalid two-factor authentication OTP code.");
+    }
+
+    // Compute avatar initials from full name
+    const initials = input.name
+      .trim()
+      .split(/\s+/)
+      .map((p) => p[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase();
+
+    // -----------------------------------------------------------------------
+    // Re-submission flow for existing rejected user
+    // -----------------------------------------------------------------------
+    if (existingUser) {
 
       const passwordHash = await hashPassword(input.password);
 
