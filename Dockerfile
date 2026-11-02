@@ -1,25 +1,22 @@
 # ---- deps ----
 FROM node:20-alpine AS deps
 WORKDIR /app
-RUN corepack enable
-COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml* ./
-RUN pnpm install --frozen-lockfile || pnpm install
+COPY package.json package-lock.json ./
+RUN npm ci
 
 # ---- build ----
 FROM node:20-alpine AS builder
 WORKDIR /app
-RUN corepack enable
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV DATABASE_URL="mysql://ipam:ipam_dev_password@mysql:3306/ipam_alumni"
 RUN npx prisma generate
-RUN pnpm build
+RUN npm run build
 
 # ---- run ----
 FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
-RUN corepack enable
 RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
 
 # Full node_modules (not just the standalone trace) so the Prisma CLI and
