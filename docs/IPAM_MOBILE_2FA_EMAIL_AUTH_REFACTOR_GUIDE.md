@@ -749,3 +749,4 @@ class _Verify2faScreenState extends State<Verify2faScreen> {
 | **Forgot Password Code** | `POST` | `/api/auth/forgot-password` |
 | **Reset Password with Code**| `POST` | `/api/auth/reset-password` |
 | **Login with Device Token**| `POST` | `/api/auth/alumni/login` |
+
