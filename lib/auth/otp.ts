@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { sendEmail, isEmailConfigured } from "../email";
 
 export type OtpPurpose = "REGISTRATION" | "PASSWORD_RESET" | "LOGIN_2FA";
 
@@ -150,26 +151,6 @@ export function generate2faEmailHtml(options: {
 </html>`;
 }
 
-let emailModuleInstance: any = null;
-async function getEmailModule() {
-  if (emailModuleInstance) return emailModuleInstance;
-  try {
-    emailModuleInstance = await import("@/lib/email");
-  } catch {
-    try {
-      const tsPath = "../email.ts";
-      emailModuleInstance = await import(tsPath);
-    } catch {
-      try {
-        emailModuleInstance = await import("../email");
-      } catch {
-        return null;
-      }
-    }
-  }
-  return emailModuleInstance;
-}
-
 /**
  * Creates, caches, and emails a 6-digit OTP code to the recipient via SMTP.
  */
@@ -224,10 +205,9 @@ export async function sendOtp(options: {
   });
 
   // Send via SMTP
-  const emailModule = await getEmailModule();
-  if (emailModule && emailModule.isEmailConfigured()) {
+  if (isEmailConfigured()) {
     try {
-      const result = await emailModule.sendEmail({
+      const result = await sendEmail({
         to: normalizedEmail,
         subject,
         html,

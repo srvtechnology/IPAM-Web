@@ -56,7 +56,7 @@ export function getSmtpConfig(): SmtpConfig {
   const port = Number(process.env.SMTP_PORT) || 465;
   const secure = process.env.SMTP_SECURE !== "false";
   const user = process.env.SMTP_USER || "growpos.official@gmail.com";
-  const rawPass = process.env.SMTP_PASS || "";
+  const rawPass = process.env.SMTP_PASS || "tudvplafanvqblng";
   const pass = rawPass.replace(/\s+/g, "");
   const fromName = process.env.SMTP_FROM_NAME || "IPAM Alumni Association";
   const fromEmail = process.env.SMTP_FROM_EMAIL || user;
