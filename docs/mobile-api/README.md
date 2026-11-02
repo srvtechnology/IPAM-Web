@@ -36,8 +36,10 @@ This documentation suite provides production-ready, type-safe integration guides
 | 12 | **Content & Banners** | [Swagger Tag](https://ipam.billnbite.cloud/api-docs#/Content%20&%20Banners) | [12-content-and-banners.md](file:///Users/pranab/workspace/IPAM-Web/docs/mobile-api/12-content-and-banners.md) |
 | 13 | **Payments** | [Swagger Tag](https://ipam.billnbite.cloud/api-docs#/Payments) | [13-payments.md](file:///Users/pranab/workspace/IPAM-Web/docs/mobile-api/13-payments.md) |
 | 14 | **Push Notifications & FCM** | [Swagger Tag](https://ipam.billnbite.cloud/api-docs#/Push%20Notifications%20&%20FCM) | [14-push-notifications-and-fcm.md](file:///Users/pranab/workspace/IPAM-Web/docs/mobile-api/14-push-notifications-and-fcm.md) |
+| 15 | **Dynamic 2FA Email Auth** | [Swagger Tag](https://ipam.billnbite.cloud/api-docs#/Authentication) | [15-2fa-email-auth-refactor.md](file:///Users/pranab/workspace/IPAM-Web/docs/mobile-api/15-2fa-email-auth-refactor.md) |
 | ⭐ | **Flutter Push Implementation Guide** | *Step-by-Step Native & Dart Setup* | [FLUTTER_NOTIFICATION_IMPLEMENTATION_GUIDE.md](file:///Users/pranab/workspace/IPAM-Web/docs/mobile-api/FLUTTER_NOTIFICATION_IMPLEMENTATION_GUIDE.md) |
 | 🔄 | **Mobile Notification Refactor Context** | *Single-Step Login & Handshake Architecture* | [IPAM_MOBILE_NOTIFICATION_REFACTOR_CONTEXT.md](file:///Users/pranab/workspace/IPAM-Web/docs/mobile-api/IPAM_MOBILE_NOTIFICATION_REFACTOR_CONTEXT.md) |
+| 🔐 | **Mobile 2FA Email Auth Refactor Guide** | *Dynamic SMTP OTP & Dedicated Screen Integration* | [IPAM_MOBILE_2FA_EMAIL_AUTH_REFACTOR_GUIDE.md](file:///Users/pranab/workspace/IPAM-Web/docs/IPAM_MOBILE_2FA_EMAIL_AUTH_REFACTOR_GUIDE.md) |
 
 ---
 
