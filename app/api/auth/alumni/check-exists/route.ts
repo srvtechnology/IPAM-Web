@@ -89,3 +89,4 @@ export async function GET(req: NextRequest) {
     message: "No existing account found. Ready for registration.",
   });
 }
+
