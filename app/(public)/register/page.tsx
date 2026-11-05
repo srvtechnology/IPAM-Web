@@ -155,11 +155,16 @@ function RegisterForm() {
     setLoading(true);
 
     try {
-      // 1. Dispatch dynamic OTP code via SMTP email
+      // 1. Dispatch dynamic OTP code via SMTP email with email and studentId pre-validation
       const res = await fetch("/api/auth/2fa/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: form.email.trim(), purpose: "REGISTRATION", name: form.name }),
+        body: JSON.stringify({
+          email: form.email.trim(),
+          studentId: form.studentId.trim(),
+          purpose: "REGISTRATION",
+          name: form.name,
+        }),
       });
       const json = await res.json();
 
@@ -334,8 +339,24 @@ function RegisterForm() {
                 </div>
 
                 {error && (
-                  <div className="mb-4 rounded-lg border border-rose-500/30 bg-rose-950/60 px-3 py-2 text-sm text-rose-300">
-                    {error}
+                  <div className="mb-4 rounded-xl border border-rose-500/30 bg-rose-950/60 p-3 text-sm text-rose-300">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-400" />
+                      <div className="flex-1">
+                        <p>{error}</p>
+                        {error.toLowerCase().includes("already exists") && (
+                          <div className="mt-2">
+                            <Link
+                              href="/login"
+                              className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1 text-xs font-bold text-white transition-colors hover:bg-emerald-500"
+                            >
+                              <span>Sign In to Existing Account</span>
+                              <ArrowRight className="h-3 w-3" />
+                            </Link>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 )}
 

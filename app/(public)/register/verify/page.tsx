@@ -360,8 +360,19 @@ function Verify2faContent() {
                 className="w-full rounded-2xl border border-slate-800 bg-slate-950 py-3.5 text-center font-mono text-3xl font-black tracking-[0.5em] text-white shadow-inner placeholder:text-slate-700 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
               />
               {otpError && (
-                <div className="mt-3 rounded-xl border border-rose-500/30 bg-rose-950/40 p-2.5 text-center text-xs font-semibold text-rose-300">
-                  {otpError}
+                <div className="mt-3 rounded-xl border border-rose-500/30 bg-rose-950/40 p-3 text-center text-xs font-semibold text-rose-300">
+                  <p>{otpError}</p>
+                  {otpError.toLowerCase().includes("already exists") && (
+                    <div className="mt-2">
+                      <Link
+                        href="/login"
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1 text-xs font-bold text-white transition-colors hover:bg-emerald-500"
+                      >
+                        <span>Sign In to Existing Account</span>
+                        <ArrowRight className="h-3 w-3" />
+                      </Link>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

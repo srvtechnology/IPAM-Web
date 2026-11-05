@@ -30,34 +30,141 @@ export async function POST(req: NextRequest) {
 
     // Conflict: email and studentId belong to two different AlumniUser accounts
     if (existingEmailUser && existingStudentIdUser && existingEmailUser.id !== existingStudentIdUser.id) {
-      return fail(409, "The provided email and student ID belong to two different accounts.");
+      return fail(409, "The provided email and student ID belong to two different accounts.", {
+        code: "CREDENTIALS_CONFLICT",
+      });
+    }
+
+    // Explicit check 1: Email already exists and is not rejected
+    if (existingEmailUser) {
+      const isRejected =
+        existingEmailUser.status === "REJECTED" ||
+        existingEmailUser.alumniRecord?.status === "REJECTED";
+
+      if (!isRejected) {
+        if (
+          existingEmailUser.status === "PENDING" ||
+          existingEmailUser.alumniRecord?.status === "PENDING"
+        ) {
+          return fail(
+            409,
+            "An application with this email address is already pending administrator approval.",
+            {
+              code: "PENDING_APPROVAL",
+              status: "PENDING",
+              field: "email",
+              email,
+            }
+          );
+        }
+        return fail(
+          409,
+          "An account with this email address already exists. Please sign in.",
+          {
+            code: "USER_ALREADY_EXISTS",
+            status: "APPROVED",
+            field: "email",
+            email,
+          }
+        );
+      }
+    }
+
+    // Explicit check 2: Student ID already belongs to an existing user account
+    if (existingStudentIdUser) {
+      const isRejected =
+        existingStudentIdUser.status === "REJECTED" ||
+        existingStudentIdUser.alumniRecord?.status === "REJECTED";
+
+      if (!isRejected) {
+        if (
+          existingStudentIdUser.status === "PENDING" ||
+          existingStudentIdUser.alumniRecord?.status === "PENDING"
+        ) {
+          return fail(
+            409,
+            "An application with this student ID is already pending administrator approval.",
+            {
+              code: "PENDING_APPROVAL",
+              status: "PENDING",
+              field: "studentId",
+              studentId,
+            }
+          );
+        }
+        return fail(
+          409,
+          "An account with this student ID already exists. Please sign in.",
+          {
+            code: "USER_ALREADY_EXISTS",
+            status: "APPROVED",
+            field: "studentId",
+            studentId,
+          }
+        );
+      }
     }
 
     const existingUser = existingEmailUser || existingStudentIdUser;
 
-    // Check if the student ID is already linked to a different, non-rejected user
+    // Explicit check 3: Student ID is already linked to another non-rejected record
     if (existingRegNoRecord?.alumniUserId) {
-      if (existingUser && existingRegNoRecord.alumniUserId !== existingUser.id) {
+      if (!existingUser || existingRegNoRecord.alumniUserId !== existingUser.id) {
         const otherUser = existingRegNoRecord.alumniUser;
         if (otherUser && otherUser.status !== "REJECTED") {
-          return fail(409, "An account with this student/registration ID already exists.");
-        }
-      } else if (!existingUser) {
-        const otherUser = existingRegNoRecord.alumniUser;
-        if (otherUser && otherUser.status !== "REJECTED") {
-          return fail(409, "An account with this student/registration ID already exists.");
+          if (otherUser.status === "PENDING" || existingRegNoRecord.status === "PENDING") {
+            return fail(
+              409,
+              "An application with this student ID is already pending administrator approval.",
+              {
+                code: "PENDING_APPROVAL",
+                status: "PENDING",
+                field: "studentId",
+                studentId,
+              }
+            );
+          }
+          return fail(
+            409,
+            "An account with this student ID already exists. Please sign in.",
+            {
+              code: "USER_ALREADY_EXISTS",
+              status: "APPROVED",
+              field: "studentId",
+              studentId,
+            }
+          );
         }
       }
     }
 
-    // Check if an approved or pending account already exists
+    // Explicit check 4: General check on existing user record
     if (existingUser) {
-      const isRejected = existingUser.status === "REJECTED" || existingUser.alumniRecord?.status === "REJECTED";
+      const isRejected =
+        existingUser.status === "REJECTED" || existingUser.alumniRecord?.status === "REJECTED";
       if (!isRejected) {
         if (existingUser.status === "PENDING" || existingUser.alumniRecord?.status === "PENDING") {
-          return fail(409, "An application with this email or student ID is already pending administrator approval.");
+          return fail(
+            409,
+            "An application with this email or student ID is already pending administrator approval.",
+            {
+              code: "PENDING_APPROVAL",
+              status: "PENDING",
+              email: existingUser.email,
+              studentId: existingUser.studentId,
+            }
+          );
         }
-        return fail(409, "An approved account with this email or student ID already exists. Please sign in.");
+        return fail(
+          409,
+          "An approved account with this email or student ID already exists. Please sign in.",
+          {
+            code: "USER_ALREADY_EXISTS",
+            status: "APPROVED",
+            email: existingUser.email,
+            studentId: existingUser.studentId,
+          }
+        );
       }
     }
 
@@ -311,10 +418,44 @@ export async function POST(req: NextRequest) {
       },
       201
     );
-  } catch (error) {
+  } catch (error: any) {
     if (error instanceof Error && error.message === "STUDENT_ID_CONFLICT") {
-      return fail(409, "An account with this student/registration ID already exists.");
+      return fail(409, "An account with this student ID already exists. Please sign in.", {
+        code: "USER_ALREADY_EXISTS",
+        field: "studentId",
+      });
     }
+
+    // Prisma Unique constraint violation (P2002)
+    if (error?.code === "P2002" || String(error?.message).includes("Unique constraint")) {
+      const target = Array.isArray(error?.meta?.target)
+        ? error.meta.target.join(" ")
+        : String(error?.meta?.target || "");
+
+      if (target.includes("email") || String(error?.message).includes("email")) {
+        return fail(409, "An account with this email address already exists. Please sign in.", {
+          code: "USER_ALREADY_EXISTS",
+          field: "email",
+        });
+      }
+
+      if (
+        target.includes("studentId") ||
+        target.includes("regNo") ||
+        String(error?.message).includes("studentId") ||
+        String(error?.message).includes("regNo")
+      ) {
+        return fail(409, "An account with this student ID already exists. Please sign in.", {
+          code: "USER_ALREADY_EXISTS",
+          field: "studentId",
+        });
+      }
+
+      return fail(409, "An account with this email or student ID already exists. Please sign in.", {
+        code: "USER_ALREADY_EXISTS",
+      });
+    }
+
     console.error("Registration error:", error);
     return fail(500, "Registration failed due to a server error. Please try again.");
   }
