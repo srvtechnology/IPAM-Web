@@ -97,7 +97,7 @@ export default function CardPricingManager({
             <h3 className="font-headline-md text-on-surface">Physical ID Card Pricing & Payment Options</h3>
           </div>
           <p className="font-body-compact text-on-surface-variant text-xs mt-1">
-            Configure member card tier pricing, courier delivery fees, and enabled payment channels (COD & Stripe).
+            Configure member card tier pricing, courier delivery fees, and enabled payment channels (COD & Flot).
           </p>
         </div>
 
@@ -192,11 +192,11 @@ export default function CardPricingManager({
               <input
                 type="checkbox"
                 disabled={!canWrite}
-                checked={current.stripeEnabled}
-                onChange={(e) => setFormState({ ...current, stripeEnabled: e.target.checked })}
+                checked={current.flotEnabled ?? current.stripeEnabled}
+                onChange={(e) => setFormState({ ...current, flotEnabled: e.target.checked, stripeEnabled: e.target.checked })}
                 className="rounded border-outline-variant text-primary focus:ring-primary h-4 w-4"
               />
-              <span>Stripe Payment Gateway (Card/Online)</span>
+              <span>Flot Payment Gateway (App & Card)</span>
             </label>
           </div>
         </div>

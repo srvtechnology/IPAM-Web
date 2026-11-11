@@ -27,7 +27,7 @@ export default function CreateBookingModal({
   const [attendeePhone, setAttendeePhone] = useState("");
   const [ticketCount, setTicketCount] = useState(1);
   const [paymentMethod, setPaymentMethod] = useState<
-    "FREE" | "OFFLINE_CASH" | "STRIPE" | "BANK_TRANSFER" | "COMPLIMENTARY"
+    "FREE" | "OFFLINE_CASH" | "FLOT" | "STRIPE" | "BANK_TRANSFER" | "COMPLIMENTARY"
   >("OFFLINE_CASH");
   const [paymentStatus, setPaymentStatus] = useState<"FREE" | "PAID" | "PENDING">("PAID");
   const [notes, setNotes] = useState("");
@@ -236,13 +236,14 @@ export default function CreateBookingModal({
                   value={paymentMethod}
                   onChange={(e) =>
                     setPaymentMethod(
-                      e.target.value as "OFFLINE_CASH" | "STRIPE" | "BANK_TRANSFER" | "COMPLIMENTARY"
+                      e.target.value as "OFFLINE_CASH" | "FLOT" | "STRIPE" | "BANK_TRANSFER" | "COMPLIMENTARY"
                     )
                   }
                   className="w-full rounded-lg bg-surface-container-high border border-outline-variant/30 px-3 py-2 text-sm font-semibold text-on-surface focus:outline-hidden focus:ring-2 focus:ring-primary"
                 >
                   <option value="OFFLINE_CASH">Desk Cash Payment (Venue)</option>
                   <option value="BANK_TRANSFER">Direct Bank Transfer</option>
+                  <option value="FLOT">Flot Payment Gateway (App & Card)</option>
                   <option value="STRIPE">Stripe / Online Card</option>
                   <option value="COMPLIMENTARY">Complimentary (Waived by Registrar)</option>
                 </select>

@@ -12,7 +12,8 @@ export interface PhysicalCardPricingSettings {
   currency: "USD" | "SLE";
   shippingFee: number;
   codEnabled: boolean;
-  stripeEnabled: boolean;
+  flotEnabled: boolean;
+  stripeEnabled: boolean; // Backwards compatibility alias
   tiers: {
     STANDARD_PVC: CardTierPricing;
     GOLD_RFID_SMART: CardTierPricing;
@@ -24,6 +25,7 @@ export const DEFAULT_CARD_PRICING: PhysicalCardPricingSettings = {
   currency: "USD",
   shippingFee: 0,
   codEnabled: true,
+  flotEnabled: true,
   stripeEnabled: true,
   tiers: {
     STANDARD_PVC: {
@@ -77,11 +79,13 @@ export async function getPhysicalCardPricing(): Promise<PhysicalCardPricingSetti
     }
 
     const val = record.value as Partial<PhysicalCardPricingSettings>;
+    const isFlotActive = val.flotEnabled ?? val.stripeEnabled ?? DEFAULT_CARD_PRICING.flotEnabled;
     return {
       currency: val.currency === "SLE" ? "SLE" : "USD",
       shippingFee: typeof val.shippingFee === "number" ? val.shippingFee : DEFAULT_CARD_PRICING.shippingFee,
       codEnabled: val.codEnabled ?? DEFAULT_CARD_PRICING.codEnabled,
-      stripeEnabled: val.stripeEnabled ?? DEFAULT_CARD_PRICING.stripeEnabled,
+      flotEnabled: isFlotActive,
+      stripeEnabled: isFlotActive,
       tiers: {
         STANDARD_PVC: {
           ...DEFAULT_CARD_PRICING.tiers.STANDARD_PVC,

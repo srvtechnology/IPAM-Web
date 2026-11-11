@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect, type FormEvent } from "react";
-import { CheckCircle2, Truck, CreditCard, Banknote, ShieldCheck, MapPin, User, Phone } from "lucide-react";
+import { CheckCircle2, Truck, CreditCard, Banknote, ShieldCheck, MapPin, User, Phone, Zap } from "lucide-react";
 import { useCreatePhysicalCardOrder } from "@/hooks/public/useCreatePhysicalCardOrder";
-import StripeCardPaymentSection from "./StripeCardPaymentSection";
+import FlotPaymentSection from "./FlotPaymentSection";
 
 export default function PhysicalCardOrderForm({
   memberName,
@@ -16,7 +16,7 @@ export default function PhysicalCardOrderForm({
     pricing,
     pricingLoading,
     createOrder,
-    createPaymentIntent,
+    createFlotPaymentLink,
     loading,
     error,
     setError,
@@ -26,7 +26,7 @@ export default function PhysicalCardOrderForm({
   const [recipientName, setRecipientName] = useState(memberName || "");
   const [recipientPhone, setRecipientPhone] = useState("");
   const [deliveryAddress, setDeliveryAddress] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"STRIPE" | "COD">("STRIPE");
+  const [paymentMethod, setPaymentMethod] = useState<"FLOT" | "COD" | "STRIPE">("FLOT");
   const [order, setOrder] = useState<{
     orderNumber: string;
     cardTier: string;
@@ -44,6 +44,8 @@ export default function PhysicalCardOrderForm({
   const totalAmount = subtotal + shippingFee;
   const currencySymbol = pricing.currency === "SLE" ? "SLE " : "$";
 
+  const isOnlinePaymentEnabled = pricing.flotEnabled || pricing.stripeEnabled;
+
   // Dynamically adjust active tier and payment method when admin modifies pricing or enabled gateways
   useEffect(() => {
     if (pricing && pricing.tiers) {
@@ -53,13 +55,13 @@ export default function PhysicalCardOrderForm({
         );
         if (firstEnabled) setCardTier(firstEnabled);
       }
-      if (paymentMethod === "STRIPE" && !pricing.stripeEnabled && pricing.codEnabled) {
+      if ((paymentMethod === "FLOT" || paymentMethod === "STRIPE") && !isOnlinePaymentEnabled && pricing.codEnabled) {
         setPaymentMethod("COD");
-      } else if (paymentMethod === "COD" && !pricing.codEnabled && pricing.stripeEnabled) {
-        setPaymentMethod("STRIPE");
+      } else if (paymentMethod === "COD" && !pricing.codEnabled && isOnlinePaymentEnabled) {
+        setPaymentMethod("FLOT");
       }
     }
-  }, [pricing, cardTier, paymentMethod]);
+  }, [pricing, cardTier, paymentMethod, isOnlinePaymentEnabled]);
 
   // Handle Cash on Delivery submission
   async function handleCodSubmit(e: FormEvent) {
@@ -89,31 +91,34 @@ export default function PhysicalCardOrderForm({
     }
   }
 
-  // Handle Stripe Payment Gateway submission
-  async function handleStripePay() {
+  // Handle Flot Payment Gateway initiation
+  async function handleFlotInitiate(type: "in-app" | "credit-card") {
     setError(null);
 
     if (!deliveryAddress.trim()) {
       setError("Please provide a complete courier delivery address before paying.");
-      return;
+      return null;
     }
     if (!recipientPhone.trim()) {
       setError("Please provide a recipient contact phone number for the courier.");
-      return;
+      return null;
     }
 
-    // Initialize Payment Intent with verified admin pricing on backend
-    const intent = await createPaymentIntent(cardTier, recipientName || memberName);
-    if (!intent) return;
+    const linkResult = await createFlotPaymentLink(cardTier, recipientName || memberName, type);
+    return linkResult;
+  }
 
-    // Finalize order with verified payment reference
+  // Handle Flot Payment Gateway completion
+  async function handleFlotComplete(paymentRef: string) {
+    setError(null);
+
     const result = await createOrder({
       cardTier,
       deliveryAddress,
       recipientName: recipientName.trim() || memberName,
       recipientPhone: recipientPhone.trim(),
-      paymentMethod: "STRIPE",
-      paymentRef: intent.id,
+      paymentMethod: "FLOT",
+      paymentRef,
     });
 
     if (result) {
@@ -147,7 +152,7 @@ export default function PhysicalCardOrderForm({
           <div className="flex justify-between border-b border-slate-200/60 pb-2">
             <span className="text-slate-500 font-medium">Payment Channel</span>
             <span className="font-bold text-slate-800">
-              {isCod ? "Cash on Delivery (COD)" : "Stripe Online Payment"}
+              {isCod ? "Cash on Delivery (COD)" : (order.paymentMethod === "FLOT" ? "Flot Payment Gateway (App/Card)" : "Online Card Payment")}
             </span>
           </div>
 
@@ -346,20 +351,20 @@ export default function PhysicalCardOrderForm({
         </label>
 
         <div className="grid grid-cols-2 gap-3">
-          {pricing.stripeEnabled && (
+          {isOnlinePaymentEnabled && (
             <button
               type="button"
-              onClick={() => setPaymentMethod("STRIPE")}
+              onClick={() => setPaymentMethod("FLOT")}
               className={`flex items-center gap-2 rounded-xl border p-3 text-left transition-all cursor-pointer ${
-                paymentMethod === "STRIPE"
+                paymentMethod === "FLOT" || paymentMethod === "STRIPE"
                   ? "border-emerald-600 bg-emerald-50 text-emerald-900 ring-2 ring-emerald-500/20 shadow-2xs"
                   : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
               }`}
             >
-              <CreditCard className="h-4 w-4 shrink-0 text-emerald-600" />
+              <Zap className="h-4 w-4 shrink-0 text-emerald-600" />
               <div>
-                <p className="text-xs font-bold">Stripe Card</p>
-                <p className="text-[10px] text-slate-500">Pay Online Instantly</p>
+                <p className="text-xs font-bold">Flot Payment</p>
+                <p className="text-[10px] text-slate-500">App Wallet & Card</p>
               </div>
             </button>
           )}
@@ -384,14 +389,15 @@ export default function PhysicalCardOrderForm({
         </div>
 
         {/* Payment Channel Body */}
-        {paymentMethod === "STRIPE" ? (
+        {paymentMethod === "FLOT" || paymentMethod === "STRIPE" ? (
           <div className="rounded-2xl border border-slate-200 bg-white p-4">
-            <StripeCardPaymentSection
+            <FlotPaymentSection
               amount={totalAmount}
               currency={pricing.currency}
               memberName={recipientName || memberName}
               loading={loading}
-              onPay={handleStripePay}
+              onInitiatePayment={handleFlotInitiate}
+              onCompleteOrder={handleFlotComplete}
             />
           </div>
         ) : (

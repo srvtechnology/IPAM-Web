@@ -65,7 +65,7 @@ export default function SubscriptionManagementView({
   const [tiers, setTiers] = useState<Record<MembershipTierKey, SubscriptionTierPlan>>(SUBSCRIPTION_TIERS);
 
   const [selectedUpgradePlan, setSelectedUpgradePlan] = useState<SubscriptionTierPlan | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<"CARD" | "STRIPE" | "SIMULATED">("CARD");
+  const [paymentMethod, setPaymentMethod] = useState<"CARD" | "FLOT" | "STRIPE" | "SIMULATED">("FLOT");
   const [upgradeLoading, setUpgradeLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -403,23 +403,23 @@ export default function SubscriptionManagementView({
                   <input
                     type="radio"
                     name="method"
+                    checked={paymentMethod === "FLOT" || paymentMethod === "STRIPE"}
+                    onChange={() => setPaymentMethod("FLOT")}
+                    className="text-emerald-500"
+                  />
+                  <Zap className="h-4 w-4 text-emerald-400" />
+                  <span>Flot Payment Gateway (App & Card)</span>
+                </label>
+                <label className="flex items-center gap-2.5 cursor-pointer text-slate-200">
+                  <input
+                    type="radio"
+                    name="method"
                     checked={paymentMethod === "CARD"}
                     onChange={() => setPaymentMethod("CARD")}
                     className="text-emerald-500"
                   />
                   <CreditCard className="h-4 w-4 text-emerald-400" />
                   <span>Card Instant Activation (Simulated / Live)</span>
-                </label>
-                <label className="flex items-center gap-2.5 cursor-pointer text-slate-200">
-                  <input
-                    type="radio"
-                    name="method"
-                    checked={paymentMethod === "STRIPE"}
-                    onChange={() => setPaymentMethod("STRIPE")}
-                    className="text-emerald-500"
-                  />
-                  <Zap className="h-4 w-4 text-amber-400" />
-                  <span>Stripe Global Gateway</span>
                 </label>
               </div>
             </div>

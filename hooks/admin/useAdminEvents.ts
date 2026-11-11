@@ -49,7 +49,7 @@ export interface AdminBookingItem {
   totalAmount: number;
   currency: string;
   paymentStatus: "FREE" | "PAID" | "PENDING" | "REFUNDED";
-  paymentMethod: "FREE" | "STRIPE" | "OFFLINE_CASH" | "BANK_TRANSFER" | "COMPLIMENTARY" | null;
+  paymentMethod: "FREE" | "FLOT" | "STRIPE" | "OFFLINE_CASH" | "BANK_TRANSFER" | "COMPLIMENTARY" | null;
   paymentRef: string | null;
   bookingStatus: "CONFIRMED" | "ATTENDED" | "CANCELLED";
   attendedAt: string | null;

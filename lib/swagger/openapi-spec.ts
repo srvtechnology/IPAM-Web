@@ -48,7 +48,7 @@ Official API documentation and testing sandbox for **IPAM Alumni Web** and the *
     { name: "Media & Uploads", description: "Upload profile photos, avatars, and CV documents" },
     { name: "Leadership", description: "Public executive council and university initiatives" },
     { name: "Content & Banners", description: "Promotional banners and hero slider announcements" },
-    { name: "Payments", description: "Stripe PaymentIntent initiation" },
+    { name: "Payments", description: "Flot Payment Gateway link creation, RSA cryptographic signing, and Webhook processing" },
     { name: "Push Notifications & FCM", description: "Firebase Cloud Messaging device token registration, push alerts, and notification preferences" },
     { name: "Mobile App", description: "Mobile client aggregation feeds, bootstrap config, and client helpers" },
   ],
@@ -224,9 +224,9 @@ Official API documentation and testing sandbox for **IPAM Alumni Web** and the *
           deliveryAddress: { type: "string", example: "14 Pademba Road, Freetown, Sierra Leone" },
           paymentMethod: {
             type: "string",
-            enum: ["STRIPE", "COD"],
-            example: "COD",
-            description: "Stripe Online Payment or Cash on Delivery",
+            enum: ["FLOT", "STRIPE", "COD"],
+            example: "FLOT",
+            description: "Flot Payment Gateway (App/Card) or Cash on Delivery",
           },
           paymentRef: { type: "string", nullable: true, example: "pi_stripe_12345" },
         },
@@ -1522,8 +1522,65 @@ Official API documentation and testing sandbox for **IPAM Alumni Web** and the *
     },
 
     // -------------------------------------------------------------
-    // PAYMENTS
+    // PAYMENTS (FLOT PAYMENT GATEWAY)
     // -------------------------------------------------------------
+    "/api/payments/flot/create-payment-link": {
+      post: {
+        tags: ["Payments"],
+        summary: "Create Flot Payment Link",
+        description: "Initializes a cryptographically signed Flot Payment Link for in-app wallet or credit-card checkout.",
+        security: [{ BearerAuth: [] }, { CookieAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  cardTier: { type: "string", enum: ["STANDARD_PVC", "GOLD_RFID_SMART", "EXECUTIVE_TITANIUM"] },
+                  orderNumber: { type: "string" },
+                  type: { type: "string", enum: ["in-app", "credit-card"], default: "in-app" },
+                  recipientName: { type: "string" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: "Flot Payment Link created successfully" },
+          400: { description: "Invalid tier or invalid amount" },
+          401: { description: "Authentication required" },
+        },
+      },
+    },
+    "/api/payments/flot/webhook": {
+      post: {
+        tags: ["Payments"],
+        summary: "Flot Payment Webhook Receiver",
+        description: "Receives one-shot order completion or failure notifications from Flot backend protected with HTTP Basic Auth.",
+        security: [{ BasicAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["orderId", "flotRequestId", "status"],
+                properties: {
+                  orderId: { type: "string", example: "PVC-XYZ123" },
+                  flotRequestId: { type: "string", example: "123456" },
+                  status: { type: "string", enum: ["completed", "failed"], example: "completed" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: "Webhook received and processed" },
+          401: { description: "Invalid HTTP Basic Auth credentials" },
+        },
+      },
+    },
     "/api/payments/stripe/create-payment-intent": {
       post: {
         tags: ["Payments"],

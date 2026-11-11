@@ -5,7 +5,7 @@ export const createPhysicalCardOrderSchema = z.object({
   deliveryAddress: z.string().min(3, "Delivery address is required"),
   recipientName: z.string().min(2, "Recipient name is required"),
   recipientPhone: z.string().min(5, "Contact phone number is required"),
-  paymentMethod: z.enum(["COD", "STRIPE"]).default("COD"),
+  paymentMethod: z.enum(["COD", "FLOT", "STRIPE"]).default("FLOT"),
   paymentRef: z.string().optional(),
 });
 
@@ -21,7 +21,8 @@ export const updatePhysicalCardPricingSchema = z.object({
   currency: z.enum(["USD", "SLE"]).default("USD"),
   shippingFee: z.number().min(0).default(0),
   codEnabled: z.boolean().default(true),
-  stripeEnabled: z.boolean().default(true),
+  flotEnabled: z.boolean().optional(),
+  stripeEnabled: z.boolean().optional(),
   tiers: z.object({
     STANDARD_PVC: cardTierPricingSchema,
     GOLD_RFID_SMART: cardTierPricingSchema,

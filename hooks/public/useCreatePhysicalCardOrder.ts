@@ -9,7 +9,7 @@ export interface CreateOrderPayload {
   deliveryAddress: string;
   recipientName: string;
   recipientPhone: string;
-  paymentMethod: "COD" | "STRIPE";
+  paymentMethod: "COD" | "FLOT" | "STRIPE";
   paymentRef?: string;
 }
 
@@ -23,6 +23,17 @@ export interface CreatedOrderResponse {
   paymentMethod: string;
   paymentStatus: string;
   status: string;
+}
+
+export interface FlotPaymentInitResult {
+  orderId: string;
+  paymentAttemptId: string;
+  paymentLink: string;
+  qrCodeData?: string;
+  amount: number;
+  currency: string;
+  isSandbox: boolean;
+  type: string;
 }
 
 export function useCreatePhysicalCardOrder() {
@@ -52,6 +63,30 @@ export function useCreatePhysicalCardOrder() {
   useEffect(() => {
     fetchPricing();
   }, [fetchPricing]);
+
+  async function createFlotPaymentLink(
+    cardTier: string,
+    recipientName?: string,
+    type: "in-app" | "credit-card" = "in-app"
+  ): Promise<FlotPaymentInitResult | null> {
+    setError(null);
+    try {
+      const res = await fetch("/api/payments/flot/create-payment-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cardTier, recipientName, type }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.error || "Failed to initialize Flot payment link");
+      }
+      return json.data as FlotPaymentInitResult;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Flot payment initialization failed";
+      setError(msg);
+      return null;
+    }
+  }
 
   async function createPaymentIntent(cardTier: string, recipientName?: string) {
     setError(null);
@@ -107,6 +142,7 @@ export function useCreatePhysicalCardOrder() {
     pricing,
     pricingLoading,
     createOrder,
+    createFlotPaymentLink,
     createPaymentIntent,
     loading,
     error,

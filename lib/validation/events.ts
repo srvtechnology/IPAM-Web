@@ -68,7 +68,7 @@ export const createBookingSchema = z.object({
   currency: z.enum(["USD", "SLE"]).default("USD"),
   paymentStatus: z.enum(["FREE", "PAID", "PENDING", "REFUNDED"]).default("FREE"),
   paymentMethod: z
-    .enum(["FREE", "STRIPE", "OFFLINE_CASH", "BANK_TRANSFER", "COMPLIMENTARY"])
+    .enum(["FREE", "FLOT", "STRIPE", "OFFLINE_CASH", "BANK_TRANSFER", "COMPLIMENTARY"])
     .default("FREE"),
   paymentRef: z.string().optional().nullable(),
   bookingStatus: z.enum(["CONFIRMED", "ATTENDED", "CANCELLED"]).default("CONFIRMED"),
@@ -80,7 +80,7 @@ export const updateBookingSchema = z.object({
   bookingStatus: z.enum(["CONFIRMED", "ATTENDED", "CANCELLED"]).optional(),
   paymentStatus: z.enum(["FREE", "PAID", "PENDING", "REFUNDED"]).optional(),
   paymentMethod: z
-    .enum(["FREE", "STRIPE", "OFFLINE_CASH", "BANK_TRANSFER", "COMPLIMENTARY"])
+    .enum(["FREE", "FLOT", "STRIPE", "OFFLINE_CASH", "BANK_TRANSFER", "COMPLIMENTARY"])
     .optional(),
   paymentRef: z.string().optional().nullable(),
   attendedAt: z.string().or(z.date()).optional().nullable(),

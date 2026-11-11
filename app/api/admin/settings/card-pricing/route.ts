@@ -47,11 +47,16 @@ async function handleUpdate(req: NextRequest) {
   if (!body) return fail(400, "Invalid JSON body");
 
   const currentPricing = await getPhysicalCardPricing();
+  const isFlotActive = typeof body.flotEnabled === "boolean"
+    ? body.flotEnabled
+    : (typeof body.stripeEnabled === "boolean" ? body.stripeEnabled : currentPricing.flotEnabled);
+
   const mergedPayload = {
     currency: body.currency ?? currentPricing.currency,
     shippingFee: typeof body.shippingFee === "number" ? body.shippingFee : currentPricing.shippingFee,
     codEnabled: typeof body.codEnabled === "boolean" ? body.codEnabled : currentPricing.codEnabled,
-    stripeEnabled: typeof body.stripeEnabled === "boolean" ? body.stripeEnabled : currentPricing.stripeEnabled,
+    flotEnabled: isFlotActive,
+    stripeEnabled: isFlotActive,
     tiers: {
       STANDARD_PVC: {
         ...currentPricing.tiers.STANDARD_PVC,

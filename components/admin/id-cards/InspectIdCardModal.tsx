@@ -128,7 +128,11 @@ export default function InspectIdCardModal({
               <div>
                 <p className="text-on-surface-variant text-[11px]">Payment Method</p>
                 <p className="font-bold text-on-surface">
-                  {order.paymentMethod === "STRIPE" ? "Stripe Online Payment" : "Cash on Delivery (COD)"}
+                  {order.paymentMethod === "FLOT"
+                    ? "Flot Online Payment"
+                    : order.paymentMethod === "STRIPE"
+                    ? "Stripe Online Payment"
+                    : "Cash on Delivery (COD)"}
                 </p>
               </div>
               <div>

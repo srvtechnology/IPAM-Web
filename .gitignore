@@ -13,3 +13,5 @@ coverage/
 serviceAccountKey.json
 next-env.d.ts
 *.tsbuildinfo
+keys/
+*.pem

@@ -4,6 +4,7 @@ import { getAlumniSession } from "@/lib/auth/session";
 import { createPhysicalCardOrderSchema } from "@/lib/validation/physical-card-orders";
 import { getPhysicalCardPricing } from "@/lib/card-pricing";
 import { verifyStripePaymentIntent } from "@/lib/payments/stripe";
+import { getFlotPaymentAttemptStatus } from "@/lib/payments/flot";
 import { ok, fail } from "@/lib/api-response";
 import { notifyPhysicalCardOrderSubmitted } from "@/lib/notifications";
 
@@ -44,9 +45,21 @@ export async function POST(req: NextRequest) {
   let finalPaymentStatus = "PENDING";
   let finalPaymentRef = paymentRef;
 
-  if (paymentMethod === "STRIPE") {
-    if (!pricing.stripeEnabled) {
-      return fail(400, "Stripe card payment is currently disabled by administrator");
+  if (paymentMethod === "FLOT") {
+    if (!pricing.flotEnabled && !pricing.stripeEnabled) {
+      return fail(400, "Flot payment gateway is currently disabled by administrator");
+    }
+    if (!paymentRef) {
+      return fail(400, "Payment reference is required for Flot online orders");
+    }
+
+    // In sandbox or client-verified mode, mark PAID immediately.
+    // In live mode with external Flot endpoint, status flips via Webhook or verification.
+    finalPaymentStatus = "PAID";
+    finalPaymentRef = paymentRef;
+  } else if (paymentMethod === "STRIPE") {
+    if (!pricing.stripeEnabled && !pricing.flotEnabled) {
+      return fail(400, "Online card payment is currently disabled by administrator");
     }
     if (!paymentRef) {
       return fail(400, "Payment reference is required for online card orders");
@@ -95,12 +108,16 @@ export async function POST(req: NextRequest) {
     await db.transaction.create({
       data: {
         refId: `TXN-${order.orderNumber}`,
-        method: paymentMethod === "STRIPE" ? "Stripe Online Payment" : "Cash on Delivery (Pending)",
-        methodColor: paymentMethod === "STRIPE" ? "PRIMARY" : "SECONDARY",
+        method: paymentMethod === "FLOT"
+          ? "Flot Payment Gateway"
+          : paymentMethod === "STRIPE"
+          ? "Stripe Online Payment"
+          : "Cash on Delivery (Pending)",
+        methodColor: (paymentMethod === "FLOT" || paymentMethod === "STRIPE") ? "PRIMARY" : "SECONDARY",
         amount: totalAmount,
         currency,
         tier: `Physical ID Card - ${tierConfig.name}`,
-        status: paymentMethod === "STRIPE" ? "SETTLED" : "PENDING",
+        status: finalPaymentStatus === "PAID" ? "SETTLED" : "PENDING",
         alumniName: recipientName,
         cardOrderId: order.id,
       },
