@@ -197,9 +197,10 @@ export async function createFlotPaymentLink(
 
   if (isLive && merchantId && privateKey) {
     try {
+      // Flot API accepts type: "in-app" for payment link generation
       const requestBody = {
         merchantId,
-        type: paymentType,
+        type: "in-app",
         payload: {
           orderId: params.orderId,
           currency,
@@ -226,10 +227,12 @@ export async function createFlotPaymentLink(
         throw new Error(`Flot API error (${res.status}): ${errorText || res.statusText}`);
       }
 
-      const data = await res.json().catch(() => ({}));
-      const paymentAttemptId = data.internalOrderId || data.paymentAttemptId || data.id || data.data?.internalOrderId;
-      const paymentLink = data.paymentLink || data.link || data.url || data.data?.paymentLink || `https://app.flotme.ai/pay?orderId=${params.orderId}`;
-      const qrCodeData = data.qrCodeData || data.qrCode || paymentLink;
+      const raw = await res.json().catch(() => ({}));
+      const resData = raw.data || raw;
+
+      const paymentAttemptId = resData.id || resData.internalOrderId || resData.paymentAttemptId || raw.id;
+      const paymentLink = resData.link || resData.paymentLink || resData.url || `https://app.flotme.ai/pay?orderId=${params.orderId}`;
+      const qrCodeData = resData.code || resData.qrCodeData || paymentLink;
 
       return {
         orderId: params.orderId,
@@ -302,7 +305,8 @@ export async function getFlotPaymentAttemptStatus(
     }
 
     const json = await res.json().catch(() => ({}));
-    return { status: json.status || "pending", data: json };
+    const resData = json.data || json;
+    return { status: resData.status || "pending", data: resData };
   } catch (err: unknown) {
     return { status: "unknown", error: err instanceof Error ? err.message : "Error checking Flot status" };
   }

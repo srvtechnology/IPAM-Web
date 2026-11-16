@@ -15,7 +15,9 @@
     "prisma:seed": "tsx prisma/seed.ts",
     "test:e2e": "tsx tests/e2e-auth-approval.test.ts",
     "test:card-orders": "tsx tests/physical-card-orders.test.ts",
-    "test:flot": "tsx tests/flot-payment-gateway.test.ts"
+    "test:flot": "tsx tests/flot-payment-gateway.test.ts",
+    "test:flot-live": "node scripts/test-flot-live.mjs",
+    "test:flot-webhook": "node scripts/simulate-flot-webhook.mjs"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
