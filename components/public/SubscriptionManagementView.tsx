@@ -313,7 +313,7 @@ export default function SubscriptionManagementView({
                 <div className="border-t border-b border-slate-800 py-4">
                   <div className="flex items-baseline gap-1">
                     <span className="text-3xl font-black text-white">
-                      {plan.isFree ? "Free" : `$${price}`}
+                      {plan.isFree ? "Free" : `NLe ${price}`}
                     </span>
                     {!plan.isFree && (
                       <span className="text-xs font-semibold text-slate-400">
@@ -390,7 +390,7 @@ export default function SubscriptionManagementView({
               <p className="text-slate-300">
                 Total Due:{" "}
                 <span className="font-black text-amber-400 text-sm">
-                  ${billingCycle === "LIFETIME" ? selectedUpgradePlan.lifetimePrice : selectedUpgradePlan.annualPrice} USD
+                  NLe {billingCycle === "LIFETIME" ? selectedUpgradePlan.lifetimePrice : selectedUpgradePlan.annualPrice}
                 </span>{" "}
                 ({billingCycle === "LIFETIME" ? "Lifetime Endowment" : "Annual Renewal"})
               </p>
@@ -470,7 +470,7 @@ export default function SubscriptionManagementView({
                   </p>
                 </div>
                 <div className="text-left sm:text-right">
-                  <p className="font-black text-white text-sm">${item.amountPaid.toFixed(2)} {item.currency}</p>
+                  <p className="font-black text-white text-sm">NLe {item.amountPaid.toFixed(2)}</p>
                   <p className="text-[11px] text-slate-500">
                     {new Date(item.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
                   </p>

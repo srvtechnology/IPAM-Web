@@ -321,7 +321,7 @@ export default function SubscriptionManagementModal({
                       <div className="border-t border-b border-slate-800/80 py-3">
                         <div className="flex items-baseline gap-1">
                           <span className="text-2xl font-black text-white">
-                            {plan.isFree ? "Free" : `$${price}`}
+                            {plan.isFree ? "Free" : `NLe ${price}`}
                           </span>
                           {!plan.isFree && (
                             <span className="text-xs font-semibold text-slate-400">
@@ -398,7 +398,7 @@ export default function SubscriptionManagementModal({
                     <p className="text-slate-300">
                       Amount:{" "}
                       <span className="font-bold text-amber-400">
-                        ${billingCycle === "LIFETIME" ? selectedUpgradePlan.lifetimePrice : selectedUpgradePlan.annualPrice} USD
+                        NLe {billingCycle === "LIFETIME" ? selectedUpgradePlan.lifetimePrice : selectedUpgradePlan.annualPrice}
                       </span>{" "}
                       ({billingCycle === "LIFETIME" ? "Lifetime One-Time" : "Billed Annually"})
                     </p>
@@ -476,7 +476,7 @@ export default function SubscriptionManagementModal({
                         </p>
                       </div>
                       <div className="text-left sm:text-right">
-                        <p className="font-extrabold text-white">${item.amountPaid.toFixed(2)} {item.currency}</p>
+                        <p className="font-extrabold text-white">NLe {item.amountPaid.toFixed(2)}</p>
                         <p className="text-[10px] text-slate-500">
                           {new Date(item.createdAt).toLocaleDateString()}
                         </p>

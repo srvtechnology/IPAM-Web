@@ -85,7 +85,7 @@ export default function CardPricingManager({
     );
   }
 
-  const currencySymbol = current.currency === "SLE" ? "SLE" : "$";
+  const currencySymbol = current.currency === "USD" ? "$" : "NLe ";
 
   return (
     <div className="space-y-6">
@@ -140,8 +140,8 @@ export default function CardPricingManager({
             }
             className="w-full rounded-lg bg-surface-container-high border border-outline-variant/30 px-3 py-2 text-sm font-semibold text-on-surface focus:outline-hidden focus:ring-2 focus:ring-primary"
           >
+            <option value="SLE">NLe (Sierra Leonean New Leone)</option>
             <option value="USD">USD ($ - United States Dollar)</option>
-            <option value="SLE">SLE (Le - Sierra Leonean Leone)</option>
           </select>
           <p className="text-[11px] text-on-surface-variant mt-1.5">
             Default billing currency applied to all member card orders.

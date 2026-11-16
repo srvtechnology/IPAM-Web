@@ -53,7 +53,7 @@ export default function InspectIdCardModal({
   }
 
   async function handleMarkCodPaid() {
-    if (!confirm(`Confirm collection of ${order.currency ?? "USD"} ${order.amount} for COD order ${order.orderNumber}?`)) {
+    if (!confirm(`Confirm collection of NLe ${order.amount} for COD order ${order.orderNumber}?`)) {
       return;
     }
     setCollectingCod(true);
@@ -138,7 +138,7 @@ export default function InspectIdCardModal({
               <div>
                 <p className="text-on-surface-variant text-[11px]">Total Order Price</p>
                 <p className="font-bold text-primary text-sm">
-                  {order.currency ?? "USD"} {parseFloat(order.amount ?? "0").toFixed(2)}
+                  NLe {parseFloat(order.amount ?? "0").toFixed(2)}
                 </p>
               </div>
             </div>
@@ -153,7 +153,7 @@ export default function InspectIdCardModal({
                   className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 text-white px-3 py-2 text-xs font-bold shadow-xs hover:bg-emerald-700 transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-[16px]">payments</span>
-                  <span>Mark COD Payment Collected & Settle ({order.currency ?? "USD"} {parseFloat(order.amount ?? "0").toFixed(2)})</span>
+                  <span>Mark COD Payment Collected & Settle (NLe {parseFloat(order.amount ?? "0").toFixed(2)})</span>
                 </button>
               </div>
             )}

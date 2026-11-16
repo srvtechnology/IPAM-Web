@@ -33,7 +33,7 @@ export default function FlotPaymentSection({
   const [expiry, setExpiry] = useState("");
   const [cvc, setCvc] = useState("");
 
-  const currencySymbol = currency === "SLE" ? "SLE " : "$";
+  const currencySymbol = "NLe ";
 
   // Initiate Flot payment link
   async function handleStartPayment() {
@@ -307,7 +307,7 @@ export default function FlotPaymentSection({
 
           <div>
             <p className="text-sm font-bold text-slate-900">
-              Amount Due: {currencySymbol}{amount.toFixed(2)} {currency}
+              Amount Due: {currencySymbol}{amount.toFixed(2)}
             </p>
             <p className="text-xs text-slate-500 mt-0.5">
               Scan with the Flot App or click the link below to pay.

@@ -42,7 +42,7 @@ export default function PhysicalCardOrderForm({
   const subtotal = currentTierConfig.price;
   const shippingFee = pricing.shippingFee;
   const totalAmount = subtotal + shippingFee;
-  const currencySymbol = pricing.currency === "SLE" ? "SLE " : "$";
+  const currencySymbol = "NLe ";
 
   const isOnlinePaymentEnabled = pricing.flotEnabled || pricing.stripeEnabled;
 
@@ -243,7 +243,7 @@ export default function PhysicalCardOrderForm({
                         {currencySymbol}{tier.price.toFixed(2)}
                       </p>
                       <p className="text-[10px] uppercase font-bold text-slate-400">
-                        {pricing.currency}
+                        NLe
                       </p>
                     </div>
                   </div>
@@ -339,7 +339,7 @@ export default function PhysicalCardOrderForm({
         <div className="flex items-center justify-between border-t border-slate-800 pt-2 text-sm font-bold text-white">
           <span>Total Order Due</span>
           <span className="font-mono text-base font-black text-emerald-400">
-            {currencySymbol}{totalAmount.toFixed(2)} {pricing.currency}
+            {currencySymbol}{totalAmount.toFixed(2)}
           </span>
         </div>
       </div>

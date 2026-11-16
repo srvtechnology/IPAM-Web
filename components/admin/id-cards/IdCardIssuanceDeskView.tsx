@@ -256,12 +256,12 @@ export default function IdCardIssuanceDeskView({ orders }: { orders: IdCardOrder
                         </span>
                         {o.paymentStatus === "PAID" && (
                           <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-600">
-                            Paid {o.currency} {parseFloat(o.amount ?? "0").toFixed(0)} ({o.paymentMethod === "FLOT" ? "Flot" : o.paymentMethod === "STRIPE" ? "Stripe" : "Online"})
+                            Paid NLe {parseFloat(o.amount ?? "0").toFixed(0)} ({o.paymentMethod === "FLOT" ? "Flot" : o.paymentMethod === "STRIPE" ? "Stripe" : "Online"})
                           </span>
                         )}
                         {o.paymentStatus === "PENDING_COD" && (
                           <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/20 text-amber-700">
-                            COD Pending: {o.currency} {parseFloat(o.amount ?? "0").toFixed(0)}
+                            COD Pending: NLe {parseFloat(o.amount ?? "0").toFixed(0)}
                           </span>
                         )}
                       </>

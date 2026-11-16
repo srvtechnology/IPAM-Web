@@ -22,7 +22,7 @@ export interface PhysicalCardPricingSettings {
 }
 
 export const DEFAULT_CARD_PRICING: PhysicalCardPricingSettings = {
-  currency: "USD",
+  currency: "SLE",
   shippingFee: 0,
   codEnabled: true,
   flotEnabled: true,
@@ -81,7 +81,7 @@ export async function getPhysicalCardPricing(): Promise<PhysicalCardPricingSetti
     const val = record.value as Partial<PhysicalCardPricingSettings>;
     const isFlotActive = val.flotEnabled ?? val.stripeEnabled ?? DEFAULT_CARD_PRICING.flotEnabled;
     return {
-      currency: val.currency === "SLE" ? "SLE" : "USD",
+      currency: val.currency === "USD" ? "USD" : "SLE",
       shippingFee: typeof val.shippingFee === "number" ? val.shippingFee : DEFAULT_CARD_PRICING.shippingFee,
       codEnabled: val.codEnabled ?? DEFAULT_CARD_PRICING.codEnabled,
       flotEnabled: isFlotActive,

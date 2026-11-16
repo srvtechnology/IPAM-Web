@@ -101,7 +101,7 @@ async function handleUpdate(req: NextRequest) {
     ipAddress,
     location,
     deviceInfo,
-    details: `Updated physical card tier pricing: PVC $${parsed.data.tiers.STANDARD_PVC.price}, Gold $${parsed.data.tiers.GOLD_RFID_SMART.price}, Titanium $${parsed.data.tiers.EXECUTIVE_TITANIUM.price} (${parsed.data.currency}). COD: ${parsed.data.codEnabled}, Stripe: ${parsed.data.stripeEnabled}.`,
+    details: `Updated physical card tier pricing: PVC NLe ${parsed.data.tiers.STANDARD_PVC.price}, Gold NLe ${parsed.data.tiers.GOLD_RFID_SMART.price}, Titanium NLe ${parsed.data.tiers.EXECUTIVE_TITANIUM.price} (${parsed.data.currency}). COD: ${parsed.data.codEnabled}, Flot: ${parsed.data.flotEnabled ?? parsed.data.stripeEnabled}.`,
     beforeState: (before?.value as Prisma.InputJsonValue) ?? (DEFAULT_CARD_PRICING as unknown as Prisma.InputJsonValue),
     afterState: parsed.data as unknown as Prisma.InputJsonValue,
   });

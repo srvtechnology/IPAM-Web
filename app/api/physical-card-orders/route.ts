@@ -104,7 +104,7 @@ export async function POST(req: NextRequest) {
 
   // Track financial transaction in Finance
   try {
-    const currency = pricing.currency === "SLE" ? "SLE" : "USD";
+    const currency = pricing.currency === "USD" ? "USD" : "SLE";
     await db.transaction.create({
       data: {
         refId: `TXN-${order.orderNumber}`,
