@@ -7,6 +7,7 @@ import { verifyStripePaymentIntent } from "@/lib/payments/stripe";
 import { getFlotPaymentAttemptStatus } from "@/lib/payments/flot";
 import { ok, fail } from "@/lib/api-response";
 import { notifyPhysicalCardOrderSubmitted } from "@/lib/notifications";
+import { writeAuditLog, requestMeta } from "@/lib/audit";
 
 function generateOrderNumber() {
   return `PVC-${Date.now().toString(36).toUpperCase()}`;
@@ -124,6 +125,37 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     console.error("Failed to record finance transaction for card order:", err);
+  }
+
+  // Record Admin Audit Log
+  try {
+    const { ipAddress, location, deviceInfo } = requestMeta(req);
+    await writeAuditLog({
+      actorName: recipientName || session.email || "Alumni Member",
+      actorEmail: session.email || "alumni@ipam.edu.sl",
+      actorRole: "ALUMNI_USER",
+      action: "PHYSICAL_CARD_ORDER_PLACED",
+      actionLabel: paymentMethod === "FLOT" ? "Card Order Placed (Flot Pay)" : "Card Order Placed (COD)",
+      category: "SMART_ID_BUREAU",
+      target: `Physical Card Order #${order.orderNumber}`,
+      targetType: "PhysicalCardOrder",
+      status: "SUCCESS",
+      severity: "INFO",
+      ipAddress,
+      location,
+      deviceInfo,
+      details: `Order #${order.orderNumber} placed for ${tierConfig.name} (Amount: NLe ${totalAmount.toFixed(2)}, Payment: ${paymentMethod}, Status: ${finalPaymentStatus}).`,
+      afterState: {
+        orderNumber: order.orderNumber,
+        cardTier,
+        amount: totalAmount,
+        currency: pricing.currency,
+        paymentMethod,
+        paymentStatus: finalPaymentStatus,
+      },
+    });
+  } catch (auditErr) {
+    console.error("Failed to write audit log for card order placement:", auditErr);
   }
 
   // Dispatch order confirmation email to alumnus

@@ -126,6 +126,41 @@ async function runTests() {
   assert(!!linkResult.paymentAttemptId, "Payment attempt ID is assigned");
   assert(linkResult.status === "pending", "Initial order status is pending");
 
+  // -------------------------------------------------------------------
+  // Test 6: Admin Panel Payment Audit Log
+  // -------------------------------------------------------------------
+  console.log("\n[Test 6] Admin Panel Payment Audit Log Generation...");
+  const { writeAuditLog } = await import("../lib/audit");
+  const auditEntry = await writeAuditLog({
+    actorName: "Flot Payment Gateway",
+    actorEmail: "gateway@flotme.ai",
+    actorRole: "PAYMENT_GATEWAY",
+    action: "FLOT_PAYMENT_SETTLED",
+    actionLabel: "Flot Payment Settled",
+    category: "COMMERCIAL_FINANCE",
+    target: "Physical Card Order #PVC-TEST-12345",
+    targetType: "PhysicalCardOrder",
+    status: "SUCCESS",
+    severity: "INFO",
+    ipAddress: "127.0.0.1",
+    location: "Freetown, Sierra Leone",
+    deviceInfo: "Flot Webhook Service",
+    details: "Payment of NLe 35.00 settled via Flot Payment Gateway. Order #PVC-TEST-12345 marked as PAID. Flot Ref: FLOT-REQ-9988.",
+    beforeState: { paymentStatus: "PENDING" },
+    afterState: { paymentStatus: "PAID", paymentRef: "FLOT-REQ-9988", paymentMethod: "FLOT" },
+  });
+  assert(!!auditEntry?.id, "Audit log entry created in database");
+  assert(auditEntry?.action === "FLOT_PAYMENT_SETTLED", "Audit action is FLOT_PAYMENT_SETTLED");
+  assert(auditEntry?.category === "COMMERCIAL_FINANCE", "Audit category is COMMERCIAL_FINANCE");
+  assert(!!auditEntry?.tamperHash, "HMAC-SHA256 tamperHash was computed and stored");
+
+  // Clean up test audit entry
+  if (auditEntry?.id) {
+    const { db } = await import("../lib/db");
+    await db.auditLogEntry.delete({ where: { id: auditEntry.id } });
+    console.log("Cleaned up test audit log entry.");
+  }
+
   console.log("\n========================================================");
   console.log(`🎉 ALL TESTS PASSED: ${passedCount}/${totalCount} assertions verified!`);
   console.log("========================================================\n");

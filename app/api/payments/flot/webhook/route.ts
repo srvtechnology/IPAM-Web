@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyFlotBasicAuth, type FlotWebhookPayload } from "@/lib/payments/flot";
+import { writeAuditLog, requestMeta } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
 
@@ -49,6 +50,7 @@ export async function POST(req: NextRequest) {
   }
 
   console.log(`[Flot Webhook] Received notification for orderId=${orderId}, flotRequestId=${flotRequestId}, status=${status}`);
+  const { ipAddress, location, deviceInfo } = requestMeta(req);
 
   // 3. Process status asynchronously / synchronously before sending 200 OK
   try {
@@ -57,6 +59,25 @@ export async function POST(req: NextRequest) {
       // "If a webhook arrives with status = failed, the end-user experienced a payment error while paying with credit card.
       //  They can retry later — when your backend receives this status, leave the order in pending state rather than marking it failed."
       console.log(`[Flot Webhook] Payment failed for orderId=${orderId}. Keeping in PENDING state to allow retry.`);
+
+      // Record audit log for admin visibility
+      await writeAuditLog({
+        actorName: "Flot Payment Gateway",
+        actorEmail: "gateway@flotme.ai",
+        actorRole: "PAYMENT_GATEWAY",
+        action: "FLOT_PAYMENT_FAILED",
+        actionLabel: "Flot Payment Error",
+        category: "COMMERCIAL_FINANCE",
+        target: `Order #${orderId}`,
+        targetType: "PaymentGateway",
+        status: "WARNING",
+        severity: "WARNING",
+        ipAddress,
+        location,
+        deviceInfo,
+        details: `Payment failure reported by Flot for order #${orderId} (Flot Request ID: ${flotRequestId || "N/A"}). Order retained in PENDING state to allow customer retry.`,
+      });
+
       return NextResponse.json({ received: true, orderId, status: "pending_retry" }, { status: 200 });
     }
 
@@ -93,6 +114,26 @@ export async function POST(req: NextRequest) {
           },
         });
 
+        // Write Admin Audit Log Entry
+        await writeAuditLog({
+          actorName: "Flot Payment Gateway",
+          actorEmail: "gateway@flotme.ai",
+          actorRole: "PAYMENT_GATEWAY",
+          action: "FLOT_PAYMENT_SETTLED",
+          actionLabel: "Flot Payment Settled",
+          category: "COMMERCIAL_FINANCE",
+          target: `Physical Card Order #${physicalCardOrder.orderNumber}`,
+          targetType: "PhysicalCardOrder",
+          status: "SUCCESS",
+          severity: "INFO",
+          ipAddress,
+          location,
+          deviceInfo,
+          details: `Payment of NLe ${Number(physicalCardOrder.amount).toFixed(2)} settled via Flot Payment Gateway. Order #${physicalCardOrder.orderNumber} marked as PAID. Flot Ref: ${flotRequestId}.`,
+          beforeState: { paymentStatus: physicalCardOrder.paymentStatus, status: physicalCardOrder.status },
+          afterState: { paymentStatus: "PAID", paymentRef: flotRequestId, paymentMethod: "FLOT" },
+        });
+
         console.log(`[Flot Webhook] Successfully marked PhysicalCardOrder #${physicalCardOrder.orderNumber} as PAID and SETTLED`);
         return NextResponse.json({ received: true, orderId, type: "physical_card", status: "completed" }, { status: 200 });
       }
@@ -114,6 +155,26 @@ export async function POST(req: NextRequest) {
           },
         });
 
+        // Write Admin Audit Log Entry
+        await writeAuditLog({
+          actorName: "Flot Payment Gateway",
+          actorEmail: "gateway@flotme.ai",
+          actorRole: "PAYMENT_GATEWAY",
+          action: "SUBSCRIPTION_PAYMENT_COMPLETED",
+          actionLabel: "Flot Subscription Activated",
+          category: "COMMERCIAL_FINANCE",
+          target: `Membership Subscription #${orderId}`,
+          targetType: "MembershipSubscription",
+          status: "SUCCESS",
+          severity: "INFO",
+          ipAddress,
+          location,
+          deviceInfo,
+          details: `Flot subscription payment of NLe ${Number(subscription.amountPaid).toFixed(2)} completed (Tier: ${subscription.tier}, Cycle: ${subscription.billingCycle}). User: ${subscription.userId}. Flot Ref: ${flotRequestId}.`,
+          beforeState: { status: subscription.status },
+          afterState: { status: "ACTIVE", paymentMethod: "FLOT", paymentReference: flotRequestId || orderId },
+        });
+
         console.log(`[Flot Webhook] Successfully activated Subscription for user ${subscription.userId}`);
         return NextResponse.json({ received: true, orderId, type: "subscription", status: "completed" }, { status: 200 });
       }
@@ -133,6 +194,26 @@ export async function POST(req: NextRequest) {
             paymentMethod: "FLOT",
             paymentRef: flotRequestId || orderId,
           },
+        });
+
+        // Write Admin Audit Log Entry
+        await writeAuditLog({
+          actorName: "Flot Payment Gateway",
+          actorEmail: "gateway@flotme.ai",
+          actorRole: "PAYMENT_GATEWAY",
+          action: "EVENT_BOOKING_PAYMENT_COMPLETED",
+          actionLabel: "Flot Event Booking Paid",
+          category: "COMMERCIAL_FINANCE",
+          target: `Event Booking #${registration.bookingReference}`,
+          targetType: "EventRegistration",
+          status: "SUCCESS",
+          severity: "INFO",
+          ipAddress,
+          location,
+          deviceInfo,
+          details: `Flot payment of NLe ${Number(registration.totalAmount).toFixed(2)} completed for event booking #${registration.bookingReference}. Flot Ref: ${flotRequestId}.`,
+          beforeState: { paymentStatus: registration.paymentStatus },
+          afterState: { paymentStatus: "PAID", paymentMethod: "FLOT", paymentRef: flotRequestId || orderId },
         });
 
         console.log(`[Flot Webhook] Successfully marked Event Registration #${registration.bookingReference} as PAID`);
