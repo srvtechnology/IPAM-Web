@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
       methodColor: "TERTIARY",
       amount: donation.amount,
       currency,
-      tier: donation.fund,
+      tier: `University Giving - ${donation.fund}`,
       status: "SETTLED",
       alumniName: donation.donorName,
       donationId: donation.id,

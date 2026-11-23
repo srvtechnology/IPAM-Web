@@ -9,11 +9,32 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const status = searchParams.get("status");
+  const type = searchParams.get("type");
+  const q = searchParams.get("q");
+
+  const whereClause: Record<string, unknown> = {};
+
+  if (status && status !== "ALL") {
+    whereClause.status = status as "SETTLED" | "PENDING" | "RECONCILED";
+  }
+
+  if (type && type !== "ALL") {
+    whereClause.tier = { contains: type };
+  }
+
+  if (q && q.trim()) {
+    whereClause.OR = [
+      { refId: { contains: q } },
+      { alumniName: { contains: q } },
+      { tier: { contains: q } },
+      { method: { contains: q } },
+    ];
+  }
 
   const transactions = await db.transaction.findMany({
-    where: status ? { status: status as "SETTLED" | "PENDING" | "RECONCILED" } : undefined,
+    where: Object.keys(whereClause).length > 0 ? whereClause : undefined,
     orderBy: { date: "desc" },
-    include: { donation: true },
+    include: { donation: true, cardOrder: true },
   });
   return ok(transactions);
 }

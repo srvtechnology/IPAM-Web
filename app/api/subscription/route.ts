@@ -118,6 +118,26 @@ export async function POST(req: NextRequest) {
 
   const { passwordHash: _omit, ...safeUser } = updatedUser;
 
+  // Record in Finance Transactions ledger for Admin Panel
+  if (amountPaid > 0) {
+    try {
+      await db.transaction.create({
+        data: {
+          refId: `TXN-${ref}`,
+          method: paymentMethod === "FLOT" ? "Flot Payment Gateway" : "Online Card Payment",
+          methodColor: "PRIMARY",
+          amount: amountPaid,
+          currency: "USD",
+          tier: `Membership Subscription - ${targetPlan.name}`,
+          status: "SETTLED",
+          alumniName: updatedUser.profile?.name || updatedUser.email,
+        },
+      });
+    } catch (err) {
+      console.error("Failed to record transaction for subscription:", err);
+    }
+  }
+
   return ok({
     user: safeUser,
     subscription: newSubscription,

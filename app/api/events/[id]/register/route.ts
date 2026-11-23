@@ -88,6 +88,26 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     data: { registeredCount: { increment: ticketCount } },
   });
 
+  // Record in Finance Transactions ledger for Admin Panel
+  if (totalAmount > 0) {
+    try {
+      await db.transaction.create({
+        data: {
+          refId: `TXN-${registration.bookingReference}`,
+          method: paymentMethod === "FLOT" ? "Flot Payment Gateway" : "Online Card Payment",
+          methodColor: "PRIMARY",
+          amount: totalAmount,
+          currency: event.currency === "SLE" ? "SLE" : "USD",
+          tier: `Event Registration - ${event.title}`,
+          status: paymentStatus === "PAID" ? "SETTLED" : "PENDING",
+          alumniName: attendeeName,
+        },
+      });
+    } catch (err) {
+      console.error("Failed to record transaction for event registration:", err);
+    }
+  }
+
   // Dispatch push, in-app, and email confirmation notification to alumni
   notifyEventRegistrationConfirmed({
     userId: session.sub,

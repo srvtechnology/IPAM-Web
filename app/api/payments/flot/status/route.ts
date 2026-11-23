@@ -87,19 +87,35 @@ export async function GET(req: NextRequest) {
             where: { id: donation.id },
             data: { status: "SUCCEEDED", paymentRef: attemptId, paymentMethod: "FLOT" },
           });
-          await db.transaction.create({
-            data: {
-              refId: `TXN-${donation.paymentRef}`,
-              method: "Flot Online Giving",
-              methodColor: "TERTIARY",
-              amount: donation.amount,
-              currency: donation.currency === "SLE" ? "SLE" : "USD",
-              tier: donation.fund,
-              status: "SETTLED",
-              alumniName: donation.donorName,
-              donationId: donation.id,
-            },
+
+          const existingTxn = await db.transaction.findFirst({
+            where: { OR: [{ donationId: donation.id }, { refId: `TXN-${donation.paymentRef}` }] },
           });
+          if (existingTxn) {
+            await db.transaction.update({
+              where: { id: existingTxn.id },
+              data: {
+                status: "SETTLED",
+                method: "Flot Online Giving",
+                tier: `University Giving - ${donation.fund}`,
+              },
+            });
+          } else {
+            await db.transaction.create({
+              data: {
+                refId: `TXN-${donation.paymentRef}`,
+                method: "Flot Online Giving",
+                methodColor: "TERTIARY",
+                amount: donation.amount,
+                currency: donation.currency === "SLE" ? "SLE" : "USD",
+                tier: `University Giving - ${donation.fund}`,
+                status: "SETTLED",
+                alumniName: donation.donorName,
+                donationId: donation.id,
+              },
+            });
+          }
+
           await writeAuditLog({
             actorName: "Flot Payment Gateway",
             actorEmail: "gateway@flotme.ai",
@@ -126,6 +142,41 @@ export async function GET(req: NextRequest) {
             where: { id: subscription.id },
             data: { status: "ACTIVE", paymentMethod: "FLOT", paymentReference: attemptId },
           });
+
+          const subUser = await db.alumniUser.findUnique({
+            where: { id: subscription.userId },
+            include: { profile: true },
+          });
+
+          const subTxnRef = `TXN-${subscription.paymentReference || orderId}`;
+          const existingSubTxn = await db.transaction.findFirst({
+            where: { refId: subTxnRef },
+          });
+
+          if (existingSubTxn) {
+            await db.transaction.update({
+              where: { id: existingSubTxn.id },
+              data: {
+                status: "SETTLED",
+                method: "Flot Subscription",
+                tier: `Membership Subscription - ${subscription.tier}`,
+              },
+            });
+          } else {
+            await db.transaction.create({
+              data: {
+                refId: subTxnRef,
+                method: "Flot Subscription",
+                methodColor: "PRIMARY",
+                amount: subscription.amountPaid,
+                currency: subscription.currency === "SLE" ? "SLE" : "USD",
+                tier: `Membership Subscription - ${subscription.tier}`,
+                status: "SETTLED",
+                alumniName: subUser?.profile?.name || subUser?.email || "Alumni Subscriber",
+              },
+            });
+          }
+
           return NextResponse.json({ status: "completed", orderId, type: "subscription" });
         }
 
@@ -134,6 +185,41 @@ export async function GET(req: NextRequest) {
             where: { id: registration.id },
             data: { paymentStatus: "PAID", paymentMethod: "FLOT", paymentRef: attemptId },
           });
+
+          const targetEvent = await db.alumniEvent.findUnique({
+            where: { id: registration.eventId },
+            select: { title: true },
+          });
+
+          const evtTxnRef = `TXN-${registration.bookingReference}`;
+          const existingEvtTxn = await db.transaction.findFirst({
+            where: { refId: evtTxnRef },
+          });
+
+          if (existingEvtTxn) {
+            await db.transaction.update({
+              where: { id: existingEvtTxn.id },
+              data: {
+                status: "SETTLED",
+                method: "Flot Event Booking",
+                tier: `Event Registration - ${targetEvent?.title || "Ticket"}`,
+              },
+            });
+          } else {
+            await db.transaction.create({
+              data: {
+                refId: evtTxnRef,
+                method: "Flot Event Booking",
+                methodColor: "PRIMARY",
+                amount: registration.totalAmount,
+                currency: registration.currency === "SLE" ? "SLE" : "USD",
+                tier: `Event Registration - ${targetEvent?.title || "Ticket"}`,
+                status: "SETTLED",
+                alumniName: registration.attendeeName || "Event Attendee",
+              },
+            });
+          }
+
           return NextResponse.json({ status: "completed", orderId, type: "event_registration" });
         }
 

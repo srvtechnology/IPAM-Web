@@ -217,11 +217,9 @@ async function main() {
     report("Cryptographic Tamper Hash Generated", !!audit?.tamperHash, `Hash: ${audit?.tamperHash?.slice(0, 16)}...`);
 
     // Verify entry in database
-    const dbRecord = await db.auditLogEntry.findUnique({ where: { id: audit.id } });
-    report("Audit Log Confirmed in Prisma DB", dbRecord !== null && dbRecord.action === "FLOT_PAYMENT_SETTLED");
-
-    // Clean up
     if (audit?.id) {
+      const dbRecord = await db.auditLogEntry.findUnique({ where: { id: audit.id } });
+      report("Audit Log Confirmed in Prisma DB", dbRecord !== null && dbRecord.action === "FLOT_PAYMENT_SETTLED");
       await db.auditLogEntry.delete({ where: { id: audit.id } });
       console.log("   (Cleaned up verification audit log entry)");
     }

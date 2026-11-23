@@ -94,6 +94,8 @@ export default function FinanceView({
   // Transactions State
   const [transactions] = useState<TransactionRow[]>(initialTransactions);
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [transactionTypeFilter, setTransactionTypeFilter] = useState("ALL");
+  const [transactionSearch, setTransactionSearch] = useState("");
 
   // Donations State
   const [donations, setDonations] = useState<DonationRecordRow[]>(initialDonations);
@@ -183,6 +185,78 @@ export default function FinanceView({
     document.body.removeChild(link);
   }
 
+  function getTransactionCategory(tier: string): { label: string; badgeClass: string; icon: string } {
+    const lower = (tier || "").toLowerCase();
+    if (lower.includes("card") || lower.includes("pvc") || lower.includes("rfid") || lower.includes("titanium")) {
+      return {
+        label: "Physical ID Card",
+        badgeClass: "bg-blue-500/15 text-blue-400 border-blue-500/30",
+        icon: "badge",
+      };
+    }
+    if (lower.includes("giving") || lower.includes("donation") || lower.includes("fund") || lower.includes("endowment") || lower.includes("gift")) {
+      return {
+        label: "Donation / Giving",
+        badgeClass: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+        icon: "volunteer_activism",
+      };
+    }
+    if (lower.includes("sub") || lower.includes("member") || lower.includes("patron") || lower.includes("silver") || lower.includes("gold")) {
+      return {
+        label: "Membership Subscription",
+        badgeClass: "bg-purple-500/15 text-purple-400 border-purple-500/30",
+        icon: "military_tech",
+      };
+    }
+    if (lower.includes("event") || lower.includes("ticket") || lower.includes("booking") || lower.includes("gala")) {
+      return {
+        label: "Event Registration",
+        badgeClass: "bg-amber-500/15 text-amber-400 border-amber-500/30",
+        icon: "event",
+      };
+    }
+    return {
+      label: "Payment Transaction",
+      badgeClass: "bg-slate-500/15 text-slate-300 border-slate-500/30",
+      icon: "receipt",
+    };
+  }
+
+  function exportTransactionsCSV() {
+    const headers = [
+      "Reference",
+      "Alumni Member",
+      "Transaction Type",
+      "Item / Details",
+      "Payment Method",
+      "Amount",
+      "Currency",
+      "Status",
+      "Date",
+    ];
+
+    const rows = filteredTransactions.map((t) => [
+      `"${t.refId}"`,
+      `"${t.alumniName.replace(/"/g, '""')}"`,
+      `"${getTransactionCategory(t.tier).label}"`,
+      `"${t.tier.replace(/"/g, '""')}"`,
+      `"${t.method.replace(/"/g, '""')}"`,
+      t.amount,
+      t.currency,
+      t.status,
+      `"${new Date(t.date).toISOString()}"`,
+    ]);
+
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `IPAM_Transactions_Ledger_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
   const filteredSubscribers = subscribers.filter((s) => {
     if (subscriberTierFilter !== "ALL" && s.tier !== subscriberTierFilter) return false;
     if (subscriberSearch.trim()) {
@@ -220,9 +294,26 @@ export default function FinanceView({
     .filter((d) => d.currency === "USD")
     .reduce((sum, d) => sum + Number(d.amount), 0);
 
-  const filteredTransactions = transactions.filter(
-    (t) => statusFilter === "ALL" || t.status === statusFilter
-  );
+  const filteredTransactions = transactions.filter((t) => {
+    if (statusFilter !== "ALL" && t.status !== statusFilter) return false;
+    if (transactionTypeFilter !== "ALL") {
+      const lower = (t.tier || "").toLowerCase();
+      if (transactionTypeFilter === "CARD" && !lower.includes("card") && !lower.includes("pvc") && !lower.includes("rfid") && !lower.includes("titanium")) return false;
+      if (transactionTypeFilter === "DONATION" && !lower.includes("giving") && !lower.includes("donation") && !lower.includes("fund")) return false;
+      if (transactionTypeFilter === "SUBSCRIPTION" && !lower.includes("sub") && !lower.includes("patron") && !lower.includes("silver") && !lower.includes("gold")) return false;
+      if (transactionTypeFilter === "EVENT" && !lower.includes("event") && !lower.includes("ticket") && !lower.includes("booking")) return false;
+    }
+    if (transactionSearch.trim()) {
+      const q = transactionSearch.toLowerCase();
+      return (
+        t.refId.toLowerCase().includes(q) ||
+        t.alumniName.toLowerCase().includes(q) ||
+        t.tier.toLowerCase().includes(q) ||
+        t.method.toLowerCase().includes(q)
+      );
+    }
+    return true;
+  });
   const totalSettled = transactions
     .filter((t) => t.status !== "PENDING")
     .reduce((sum, t) => sum + Number(t.amount), 0);
@@ -612,23 +703,51 @@ export default function FinanceView({
       {/* TAB 3: TRANSACTIONS & SETTLEMENT */}
       {activeTab === "transactions" && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h2 className="font-headline-sm text-on-surface">Payment Transactions &amp; Audit</h2>
               <p className="font-body-compact text-on-surface-variant">
-                Reconciliation ledger for subscription fees, physical card orders, and endowments.
+                Official financial ledger for all payment types: physical ID cards, university giving, subscriptions, and events.
               </p>
             </div>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="rounded-lg bg-surface-container-low border border-outline-variant/30 px-3 py-2 text-xs text-on-surface outline-hidden"
-            >
-              <option value="ALL">All statuses</option>
-              <option value="SETTLED">Settled</option>
-              <option value="PENDING">Pending</option>
-              <option value="RECONCILED">Reconciled</option>
-            </select>
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                type="text"
+                placeholder="Search ref, alumni, type, method..."
+                value={transactionSearch}
+                onChange={(e) => setTransactionSearch(e.target.value)}
+                className="w-56 rounded-lg bg-surface-container-low border border-outline-variant/30 px-3 py-1.5 text-xs text-on-surface outline-hidden focus:border-primary"
+              />
+              <select
+                value={transactionTypeFilter}
+                onChange={(e) => setTransactionTypeFilter(e.target.value)}
+                className="rounded-lg bg-surface-container-low border border-outline-variant/30 px-3 py-1.5 text-xs text-on-surface outline-hidden"
+              >
+                <option value="ALL">All Types</option>
+                <option value="CARD">Physical ID Cards</option>
+                <option value="DONATION">Giving &amp; Donations</option>
+                <option value="SUBSCRIPTION">Subscriptions</option>
+                <option value="EVENT">Event Registrations</option>
+              </select>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="rounded-lg bg-surface-container-low border border-outline-variant/30 px-3 py-1.5 text-xs text-on-surface outline-hidden"
+              >
+                <option value="ALL">All Statuses</option>
+                <option value="SETTLED">Settled</option>
+                <option value="PENDING">Pending</option>
+                <option value="RECONCILED">Reconciled</option>
+              </select>
+              <button
+                type="button"
+                onClick={exportTransactionsCSV}
+                className="flex items-center gap-1.5 rounded-lg border border-outline-variant/30 bg-surface-container px-3 py-1.5 font-body-compact text-xs font-bold text-on-surface hover:bg-surface-container-high transition-colors cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[16px]">file_download</span>
+                <span>Export CSV</span>
+              </button>
+            </div>
           </div>
 
           <div className="rounded-xl border border-outline-variant/20 bg-surface-container overflow-hidden overflow-x-auto">
@@ -637,43 +756,63 @@ export default function FinanceView({
                 <tr className="font-table-header uppercase text-on-surface-variant text-[11px] border-b border-outline-variant/20 bg-surface-container-lowest/40">
                   <th className="px-4 py-3">Reference</th>
                   <th className="px-4 py-3">Alumni</th>
-                  <th className="px-4 py-3">Method</th>
+                  <th className="px-4 py-3">Transaction Type</th>
+                  <th className="px-4 py-3">Payment Method</th>
                   <th className="px-4 py-3">Amount</th>
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3 text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/10 text-xs">
-                {filteredTransactions.map((t) => (
-                  <tr key={t.id} className="hover:bg-surface-container-high/50 transition-colors">
-                    <td className="px-4 py-3 font-body-medium text-on-surface">{t.refId}</td>
-                    <td className="px-4 py-3 font-body-default text-on-surface-variant">{t.alumniName}</td>
-                    <td className="px-4 py-3 font-body-default text-on-surface-variant">{t.method}</td>
-                    <td className="px-4 py-3 font-code-compact font-bold text-secondary">
-                      {t.amount} {t.currency}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 rounded-full font-body-compact ${STATUS_STYLES[t.status] ?? ""}`}>
-                        {t.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {canApprove && t.status !== "RECONCILED" && (
-                        <button
-                          type="button"
-                          disabled={reconcileLoading}
-                          onClick={() => reconcile(t.id)}
-                          className="font-body-compact text-primary hover:underline disabled:opacity-50"
-                        >
-                          Reconcile
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                {filteredTransactions.map((t) => {
+                  const cat = getTransactionCategory(t.tier);
+                  return (
+                    <tr key={t.id} className="hover:bg-surface-container-high/50 transition-colors">
+                      <td className="px-4 py-3 font-mono text-[11px] font-bold text-on-surface">{t.refId}</td>
+                      <td className="px-4 py-3 font-body-default text-on-surface-variant font-medium">{t.alumniName}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-col gap-0.5">
+                          <span className={`inline-flex items-center gap-1 w-fit px-2 py-0.5 rounded-full font-bold text-[10px] border ${cat.badgeClass}`}>
+                            <span className="material-symbols-outlined text-[12px]">{cat.icon}</span>
+                            <span>{cat.label}</span>
+                          </span>
+                          <span className="text-[11px] font-medium text-on-surface-variant truncate max-w-[220px]" title={t.tier}>
+                            {t.tier}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 font-body-default text-on-surface-variant">
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className="material-symbols-outlined text-[14px] text-primary">payments</span>
+                          <span className="font-medium">{t.method}</span>
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 font-code-compact font-bold text-secondary">
+                        {t.currency === "USD" ? `$ ${Number(t.amount).toFixed(2)} USD` : `NLe ${Number(t.amount).toFixed(2)} SLE`}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2.5 py-0.5 rounded-full font-body-compact font-bold text-[10px] ${STATUS_STYLES[t.status] ?? ""}`}>
+                          {t.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {canApprove && t.status !== "RECONCILED" && (
+                          <button
+                            type="button"
+                            disabled={reconcileLoading}
+                            onClick={() => reconcile(t.id)}
+                            className="font-body-compact text-primary hover:underline disabled:opacity-50"
+                          >
+                            Reconcile
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
                 {filteredTransactions.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center font-body-default text-on-surface-variant">
+                    <td colSpan={7} className="px-4 py-8 text-center font-body-default text-on-surface-variant">
                       No transactions recorded.
                     </td>
                   </tr>

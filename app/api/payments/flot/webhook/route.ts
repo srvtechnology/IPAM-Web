@@ -155,6 +155,41 @@ export async function POST(req: NextRequest) {
           },
         });
 
+        // Record in Admin Transactions ledger
+        const subUser = await db.alumniUser.findUnique({
+          where: { id: subscription.userId },
+          include: { profile: true },
+        });
+
+        const subTxnRef = `TXN-${subscription.paymentReference || orderId}`;
+        const existingSubTxn = await db.transaction.findFirst({
+          where: { refId: subTxnRef },
+        });
+
+        if (existingSubTxn) {
+          await db.transaction.update({
+            where: { id: existingSubTxn.id },
+            data: {
+              status: "SETTLED",
+              method: "Flot Subscription",
+              methodColor: "PRIMARY",
+            },
+          });
+        } else {
+          await db.transaction.create({
+            data: {
+              refId: subTxnRef,
+              method: "Flot Subscription",
+              methodColor: "PRIMARY",
+              amount: subscription.amountPaid,
+              currency: subscription.currency === "SLE" ? "SLE" : "USD",
+              tier: `Membership Subscription - ${subscription.tier}`,
+              status: "SETTLED",
+              alumniName: subUser?.profile?.name || subUser?.email || "Alumni Subscriber",
+            },
+          });
+        }
+
         // Write Admin Audit Log Entry
         await writeAuditLog({
           actorName: "Flot Payment Gateway",
@@ -195,6 +230,41 @@ export async function POST(req: NextRequest) {
             paymentRef: flotRequestId || orderId,
           },
         });
+
+        const targetEvent = await db.alumniEvent.findUnique({
+          where: { id: registration.eventId },
+          select: { title: true },
+        });
+
+        // Record in Admin Transactions ledger
+        const evtTxnRef = `TXN-${registration.bookingReference}`;
+        const existingEvtTxn = await db.transaction.findFirst({
+          where: { refId: evtTxnRef },
+        });
+
+        if (existingEvtTxn) {
+          await db.transaction.update({
+            where: { id: existingEvtTxn.id },
+            data: {
+              status: "SETTLED",
+              method: "Flot Event Booking",
+              methodColor: "PRIMARY",
+            },
+          });
+        } else {
+          await db.transaction.create({
+            data: {
+              refId: evtTxnRef,
+              method: "Flot Event Booking",
+              methodColor: "PRIMARY",
+              amount: registration.totalAmount,
+              currency: registration.currency === "SLE" ? "SLE" : "USD",
+              tier: `Event Registration - ${targetEvent?.title || "Ticket"}`,
+              status: "SETTLED",
+              alumniName: registration.attendeeName || "Event Attendee",
+            },
+          });
+        }
 
         // Write Admin Audit Log Entry
         await writeAuditLog({
@@ -251,6 +321,7 @@ export async function POST(req: NextRequest) {
               status: "SETTLED",
               method: "Flot Online Giving",
               methodColor: "TERTIARY",
+              tier: `University Giving - ${donation.fund}`,
             },
           });
         } else {
@@ -261,7 +332,7 @@ export async function POST(req: NextRequest) {
               methodColor: "TERTIARY",
               amount: donation.amount,
               currency: donation.currency === "SLE" ? "SLE" : "USD",
-              tier: donation.fund,
+              tier: `University Giving - ${donation.fund}`,
               status: "SETTLED",
               alumniName: donation.donorName,
               donationId: donation.id,
