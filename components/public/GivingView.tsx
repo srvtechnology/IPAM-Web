@@ -164,9 +164,6 @@ export default function GivingView({ funds, recentDonations }: GivingViewProps) 
   const [copiedLink, setCopiedLink] = useState(false);
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
 
-  // Quick contribution widget states (matching Image 1 & 2)
-  const [quickAmount, setQuickAmount] = useState<number>(10);
-  const [quickCurrency, setQuickCurrency] = useState<"SLE" | "USD">("SLE");
   const [isFlotModalOpen, setIsFlotModalOpen] = useState(false);
   const [modalAmount, setModalAmount] = useState<number>(10);
   const [modalCurrency, setModalCurrency] = useState<"SLE" | "USD">("SLE");
@@ -181,12 +178,6 @@ export default function GivingView({ funds, recentDonations }: GivingViewProps) 
 
   const currentFund = funds.find((f) => f.id === selectedFund) ?? funds[0];
   const activeAmount = customAmount ? parseFloat(customAmount) : selectedAmount;
-
-  function handleOpenQuickContribution() {
-    setModalAmount(quickAmount);
-    setModalCurrency(quickCurrency);
-    setIsFlotModalOpen(true);
-  }
 
   async function handleDonate(e: FormEvent) {
     e.preventDefault();
@@ -350,67 +341,6 @@ export default function GivingView({ funds, recentDonations }: GivingViewProps) 
             >
               Community Honor Roll
             </a>
-          </div>
-
-          {/* Quick Contribution Widget */}
-          <div className="mt-6 rounded-3xl border border-white/10 bg-white/95 p-6 shadow-2xl backdrop-blur-md max-w-lg text-slate-900">
-            <h3 className="text-xl font-extrabold text-slate-900">Make your contribution</h3>
-            <p className="text-xs text-slate-500 mt-0.5">Instant online donation via Flot payment gateway</p>
-            <div className="mt-4 space-y-3.5">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">Currency</label>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setQuickCurrency("SLE")}
-                    className={`flex-1 py-2 px-3 rounded-full text-xs font-bold border transition-all cursor-pointer ${
-                      quickCurrency === "SLE"
-                        ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
-                        : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
-                    }`}
-                  >
-                    SLE
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setQuickCurrency("USD")}
-                    className={`flex-1 py-2 px-3 rounded-full text-xs font-bold border transition-all cursor-pointer ${
-                      quickCurrency === "USD"
-                        ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
-                        : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
-                    }`}
-                  >
-                    USD
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">Amount</label>
-                <div className="flex flex-col sm:flex-row gap-2.5">
-                  <div className="relative flex-1 flex rounded-xl border border-slate-300 bg-white focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-500/20 overflow-hidden">
-                    <span className="flex items-center px-3.5 bg-slate-50 text-xs font-black text-slate-600 border-r border-slate-200">
-                      {quickCurrency}
-                    </span>
-                    <input
-                      type="number"
-                      min="1"
-                      value={quickAmount || ""}
-                      onChange={(e) => setQuickAmount(Number(e.target.value))}
-                      className="w-full py-2.5 px-3 text-base font-bold text-slate-900 focus:outline-hidden"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleOpenQuickContribution}
-                    className="rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-98 px-6 py-2.5 text-sm font-extrabold text-white shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5"
-                  >
-                    <span>Contribute now</span>
-                    <ArrowRight className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4 border-t border-slate-800 pt-6 sm:grid-cols-4">
