@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { getAlumniSession } from "@/lib/auth/session";
 import { getPhysicalCardPricing } from "@/lib/card-pricing";
 import { createFlotPaymentLink } from "@/lib/payments/flot";
+import { sleToUsd } from "@/lib/payments/currency";
 import { ok, fail } from "@/lib/api-response";
 
 export async function POST(req: NextRequest) {
@@ -26,10 +27,12 @@ export async function POST(req: NextRequest) {
     if (!tierConfig || !tierConfig.enabled) {
       return fail(400, "Selected card tier is currently unavailable");
     }
-    amount = tierConfig.price + pricing.shippingFee;
-    // Allow user to request in SLE or USD
-    if (currency !== "USD" && currency !== "SLE") {
-      currency = pricing.currency;
+    const baseSleAmount = tierConfig.price + pricing.shippingFee;
+    if (currency === "USD") {
+      amount = sleToUsd(baseSleAmount);
+    } else {
+      amount = baseSleAmount;
+      currency = "SLE";
     }
     description = `IPAM Alumni Physical ID Card: ${tierConfig.name}`;
   }
@@ -43,19 +46,21 @@ export async function POST(req: NextRequest) {
     currency = "SLE";
   }
 
+  // For USD currency, Flot only accepts card payments
+  let paymentType: "in-app" | "momo" | "card" = "in-app";
+  if (currency === "USD") {
+    paymentType = "card";
+  } else if (body?.type === "momo" || body?.type === "mobile-money") {
+    paymentType = "momo";
+  } else if (body?.type === "card" || body?.type === "credit-card") {
+    paymentType = "card";
+  }
+
   // Generate unique order ID or use provided orderNumber
   const orderId =
     body?.orderNumber ||
     body?.orderId ||
     `IPAM-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
-
-  // Normalize requested type
-  let paymentType: "in-app" | "momo" | "card" = "in-app";
-  if (body?.type === "momo" || body?.type === "mobile-money") {
-    paymentType = "momo";
-  } else if (body?.type === "card" || body?.type === "credit-card") {
-    paymentType = "card";
-  }
 
   const result = await createFlotPaymentLink({
     orderId,

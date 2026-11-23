@@ -352,9 +352,9 @@ export default function GivingView({ funds, recentDonations }: GivingViewProps) 
             </a>
           </div>
 
-          {/* Quick Contribution Widget (Reference: Image 1 & 2) */}
+          {/* Quick Contribution Widget */}
           <div className="mt-6 rounded-3xl border border-white/10 bg-white/95 p-6 shadow-2xl backdrop-blur-md max-w-lg text-slate-900">
-            <h3 className="text-xl font-extrabold text-[#0d3b2e]">Make your contribution</h3>
+            <h3 className="text-xl font-extrabold text-slate-900">Make your contribution</h3>
             <p className="text-xs text-slate-500 mt-0.5">Instant online donation via Flot payment gateway</p>
             <div className="mt-4 space-y-3.5">
               <div>
@@ -365,7 +365,7 @@ export default function GivingView({ funds, recentDonations }: GivingViewProps) 
                     onClick={() => setQuickCurrency("SLE")}
                     className={`flex-1 py-2 px-3 rounded-full text-xs font-bold border transition-all cursor-pointer ${
                       quickCurrency === "SLE"
-                        ? "bg-[#0d3b2e] text-white border-[#0d3b2e] shadow-xs"
+                        ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
                         : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
                     }`}
                   >
@@ -376,7 +376,7 @@ export default function GivingView({ funds, recentDonations }: GivingViewProps) 
                     onClick={() => setQuickCurrency("USD")}
                     className={`flex-1 py-2 px-3 rounded-full text-xs font-bold border transition-all cursor-pointer ${
                       quickCurrency === "USD"
-                        ? "bg-[#0d3b2e] text-white border-[#0d3b2e] shadow-xs"
+                        ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
                         : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
                     }`}
                   >
@@ -388,7 +388,7 @@ export default function GivingView({ funds, recentDonations }: GivingViewProps) 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">Amount</label>
                 <div className="flex flex-col sm:flex-row gap-2.5">
-                  <div className="relative flex-1 flex rounded-xl border-2 border-amber-500/80 bg-white focus-within:ring-2 focus-within:ring-amber-500/30 overflow-hidden">
+                  <div className="relative flex-1 flex rounded-xl border border-slate-300 bg-white focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-500/20 overflow-hidden">
                     <span className="flex items-center px-3.5 bg-slate-50 text-xs font-black text-slate-600 border-r border-slate-200">
                       {quickCurrency}
                     </span>
@@ -403,7 +403,7 @@ export default function GivingView({ funds, recentDonations }: GivingViewProps) 
                   <button
                     type="button"
                     onClick={handleOpenQuickContribution}
-                    className="rounded-xl bg-[#d49c24] hover:bg-[#c28c1d] active:scale-98 px-6 py-2.5 text-sm font-extrabold text-white shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                    className="rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-98 px-6 py-2.5 text-sm font-extrabold text-white shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5"
                   >
                     <span>Contribute now</span>
                     <ArrowRight className="h-4 w-4" />

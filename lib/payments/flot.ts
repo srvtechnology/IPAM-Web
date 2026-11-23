@@ -194,8 +194,11 @@ export async function createFlotPaymentLink(
   const currency = (params.currency || "SLE").toUpperCase();
 
   // Normalize payment type to Flot API specifications ("in-app" | "momo" | "card")
+  // Note: For USD currency, Flot only accepts card payments.
   let normalizedType: "in-app" | "momo" | "card" = "in-app";
-  if (params.type === "momo" || (params.type as string) === "mobile-money") {
+  if (currency === "USD") {
+    normalizedType = "card";
+  } else if (params.type === "momo" || (params.type as string) === "mobile-money") {
     normalizedType = "momo";
   } else if (params.type === "card" || params.type === "credit-card") {
     normalizedType = "card";
@@ -255,8 +258,9 @@ export async function createFlotPaymentLink(
         isSandbox: false,
         type: normalizedType,
       };
-    } catch (err) {
-      console.error("[Flot] Failed to create payment link via live API, using sandbox fallback:", err);
+    } catch (err: unknown) {
+      console.error("[Flot] Live API request failed:", err);
+      throw err;
     }
   }
 
@@ -305,9 +309,8 @@ export async function getFlotPaymentAttemptStatus(
   const privateKey = getFlotPrivateKey();
   const baseUrl = getFlotBaseUrl();
 
-  if (internalOrderId.startsWith("flot_attempt_") || !merchantId || !privateKey) {
-    // Sandbox attempt simulation
-    return { status: "completed" };
+  if (!merchantId || !privateKey) {
+    return { status: "unknown", error: "Flot Merchant credentials not configured." };
   }
 
   try {

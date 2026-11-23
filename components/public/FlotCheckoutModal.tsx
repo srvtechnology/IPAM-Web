@@ -13,11 +13,11 @@ import {
   ExternalLink,
   Loader2,
   X,
-  ArrowRight,
   AlertCircle,
-  RefreshCw,
+  Lock,
 } from "lucide-react";
 import type { FlotPaymentLinkResult } from "@/lib/payments/flot";
+import { sleToUsd, usdToSle } from "@/lib/payments/currency";
 
 export interface FlotCheckoutModalProps {
   isOpen: boolean;
@@ -64,6 +64,7 @@ export default function FlotCheckoutModal({
     if (isOpen) {
       setAmount(defaultAmount);
       setCurrency(initialCurrency);
+      setPaymentType(initialCurrency === "USD" ? "card" : "in-app");
       setStep("select");
       setPaymentResult(null);
       setError(null);
@@ -85,6 +86,23 @@ export default function FlotCheckoutModal({
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     };
   }, []);
+
+  const handleCurrencyToggle = (newCurr: "SLE" | "USD") => {
+    if (newCurr === currency) return;
+    setCurrency(newCurr);
+
+    // Convert amount when switching between SLE and USD
+    if (amount > 0) {
+      if (newCurr === "USD") {
+        setAmount(sleToUsd(amount));
+        setPaymentType("card");
+      } else {
+        setAmount(usdToSle(amount));
+      }
+    } else {
+      if (newCurr === "USD") setPaymentType("card");
+    }
+  };
 
   const handlePaymentSuccess = useCallback(
     async (ref: string) => {
@@ -153,7 +171,7 @@ export default function FlotCheckoutModal({
           orderNumber: activeOrderId,
           amount,
           currency,
-          type: paymentType,
+          type: currency === "USD" ? "card" : paymentType,
           recipientName,
           description: description || title,
         }),
@@ -168,7 +186,7 @@ export default function FlotCheckoutModal({
       setPaymentResult(result);
       setStep("paying");
 
-      // For Bank Card, open Flot secure card page in new tab if a link was returned
+      // For Bank Card, open Flot secure card page in new tab
       if (paymentType === "card" && result.paymentLink) {
         window.open(result.paymentLink, "_blank", "noopener,noreferrer");
       }
@@ -203,7 +221,7 @@ export default function FlotCheckoutModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl border border-slate-100 transition-all">
+      <div className="relative w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl border border-slate-200 transition-all">
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -213,13 +231,13 @@ export default function FlotCheckoutModal({
           <X className="h-5 w-5" />
         </button>
 
-        {/* STEP 1: Select Currency, Amount & Payment Method (Ref: Image 1 & 2) */}
+        {/* STEP 1: Select Currency, Amount & Payment Method */}
         {step === "select" && (
           <div className="p-6 sm:p-7 space-y-5">
             <div>
               <h3 className="text-xl font-extrabold text-slate-900">{title}</h3>
               <p className="text-xs text-slate-500 mt-0.5">
-                Powered by Flot — Sierra Leone&apos;s Next-Gen Payment Gateway
+                Official IPAM Payment Gateway powered by Flot
               </p>
             </div>
 
@@ -230,28 +248,28 @@ export default function FlotCheckoutModal({
               </div>
             )}
 
-            {/* Currency Selector (Pills) */}
+            {/* Currency Selector (Pills matching IPAM theme) */}
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-slate-700">Currency</label>
               <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={() => setCurrency("SLE")}
+                  onClick={() => handleCurrencyToggle("SLE")}
                   className={`flex-1 py-2 px-3 rounded-full text-xs font-bold border transition-all cursor-pointer ${
                     currency === "SLE"
-                      ? "bg-[#0d3b2e] text-white border-[#0d3b2e] shadow-xs"
-                      : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
+                      ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
+                      : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
                   }`}
                 >
                   Leones (SLE)
                 </button>
                 <button
                   type="button"
-                  onClick={() => setCurrency("USD")}
+                  onClick={() => handleCurrencyToggle("USD")}
                   className={`flex-1 py-2 px-3 rounded-full text-xs font-bold border transition-all cursor-pointer ${
                     currency === "USD"
-                      ? "bg-[#0d3b2e] text-white border-[#0d3b2e] shadow-xs"
-                      : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
+                      ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
+                      : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
                   }`}
                 >
                   US Dollars (USD)
@@ -261,16 +279,21 @@ export default function FlotCheckoutModal({
 
             {/* Amount Field */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-slate-700">
-                Enter an amount <span className="text-slate-400 font-normal">(required)</span>
-              </label>
-              <div className="relative flex rounded-xl border-2 border-amber-500/80 bg-white focus-within:ring-2 focus-within:ring-amber-500/30 overflow-hidden">
-                <span className="flex items-center px-3.5 bg-slate-50 text-xs font-black text-slate-600 border-r border-slate-200">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-slate-700">
+                  Enter an amount <span className="text-slate-400 font-normal">(required)</span>
+                </label>
+                {currency === "USD" && (
+                  <span className="text-[11px] text-slate-500 font-medium">1 USD ≈ 22.50 SLE</span>
+                )}
+              </div>
+              <div className="relative flex rounded-xl border border-slate-300 bg-white focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-500/20 overflow-hidden">
+                <span className="flex items-center px-3.5 bg-slate-50 text-xs font-bold text-slate-600 border-r border-slate-200">
                   {currency}
                 </span>
                 <input
                   type="number"
-                  min="1"
+                  min="0.1"
                   step="any"
                   disabled={!allowAmountEdit}
                   value={amount || ""}
@@ -281,63 +304,109 @@ export default function FlotCheckoutModal({
               </div>
             </div>
 
-            {/* Choose How to Pay (Ref: Image 2) */}
+            {/* Choose How to Pay */}
             <div className="space-y-2 pt-1">
-              <label className="block text-xs font-bold text-slate-700">Choose how to pay</label>
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-slate-700">Choose how to pay</label>
+                {currency === "USD" && (
+                  <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                    USD accepts Card only
+                  </span>
+                )}
+              </div>
+
               <div className="space-y-2">
                 {/* 1. Flot App */}
-                <button
-                  type="button"
-                  onClick={() => setPaymentType("in-app")}
-                  className={`w-full flex items-start gap-3 rounded-2xl border p-3.5 text-left transition-all cursor-pointer ${
-                    paymentType === "in-app"
-                      ? "border-emerald-600 bg-emerald-50/70 ring-2 ring-emerald-500/20"
-                      : "border-slate-200/90 bg-slate-50/50 hover:bg-slate-100/70"
-                  }`}
-                >
-                  <div
-                    className={`mt-0.5 rounded-xl p-2 ${
+                {currency === "USD" ? (
+                  <div className="w-full flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-3.5 text-left opacity-50 cursor-not-allowed">
+                    <div className="mt-0.5 rounded-xl p-2 bg-slate-200 text-slate-400">
+                      <Smartphone className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-bold text-slate-500">Flot App</h4>
+                        <span className="text-[10px] font-semibold text-slate-400 bg-slate-200/80 px-2 py-0.5 rounded-full">
+                          Leones (SLE) Only
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        Open the Flot app wallet or scan a QR code.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setPaymentType("in-app")}
+                    className={`w-full flex items-start gap-3 rounded-2xl border p-3.5 text-left transition-all cursor-pointer ${
                       paymentType === "in-app"
-                        ? "bg-emerald-600 text-white"
-                        : "bg-white text-slate-600 border border-slate-200"
+                        ? "border-emerald-600 bg-emerald-50/70 ring-2 ring-emerald-500/20"
+                        : "border-slate-200 bg-slate-50/50 hover:bg-slate-100/70"
                     }`}
                   >
-                    <Smartphone className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-extrabold text-slate-900">Flot App</h4>
-                    <p className="text-[11px] text-slate-500 mt-0.5">
-                      Open the Flot app or scan a QR code.
-                    </p>
-                  </div>
-                </button>
+                    <div
+                      className={`mt-0.5 rounded-xl p-2 ${
+                        paymentType === "in-app"
+                          ? "bg-emerald-600 text-white"
+                          : "bg-white text-slate-600 border border-slate-200"
+                      }`}
+                    >
+                      <Smartphone className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-extrabold text-slate-900">Flot App</h4>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        Open the Flot app or scan a QR code.
+                      </p>
+                    </div>
+                  </button>
+                )}
 
                 {/* 2. Mobile Money */}
-                <button
-                  type="button"
-                  onClick={() => setPaymentType("momo")}
-                  className={`w-full flex items-start gap-3 rounded-2xl border p-3.5 text-left transition-all cursor-pointer ${
-                    paymentType === "momo"
-                      ? "border-emerald-600 bg-emerald-50/70 ring-2 ring-emerald-500/20"
-                      : "border-slate-200/90 bg-slate-50/50 hover:bg-slate-100/70"
-                  }`}
-                >
-                  <div
-                    className={`mt-0.5 rounded-xl p-2 ${
+                {currency === "USD" ? (
+                  <div className="w-full flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-3.5 text-left opacity-50 cursor-not-allowed">
+                    <div className="mt-0.5 rounded-xl p-2 bg-slate-200 text-slate-400">
+                      <Phone className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-bold text-slate-500">Mobile Money</h4>
+                        <span className="text-[10px] font-semibold text-slate-400 bg-slate-200/80 px-2 py-0.5 rounded-full">
+                          Leones (SLE) Only
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        Pay with Orange / AfriMoney USSD dial code.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setPaymentType("momo")}
+                    className={`w-full flex items-start gap-3 rounded-2xl border p-3.5 text-left transition-all cursor-pointer ${
                       paymentType === "momo"
-                        ? "bg-emerald-600 text-white"
-                        : "bg-white text-slate-600 border border-slate-200"
+                        ? "border-emerald-600 bg-emerald-50/70 ring-2 ring-emerald-500/20"
+                        : "border-slate-200 bg-slate-50/50 hover:bg-slate-100/70"
                     }`}
                   >
-                    <Phone className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-extrabold text-slate-900">Mobile Money</h4>
-                    <p className="text-[11px] text-slate-500 mt-0.5">
-                      Pay with a Mobile Money code.
-                    </p>
-                  </div>
-                </button>
+                    <div
+                      className={`mt-0.5 rounded-xl p-2 ${
+                        paymentType === "momo"
+                          ? "bg-emerald-600 text-white"
+                          : "bg-white text-slate-600 border border-slate-200"
+                      }`}
+                    >
+                      <Phone className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-extrabold text-slate-900">Mobile Money</h4>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        Pay with Orange or AfriMoney USSD code.
+                      </p>
+                    </div>
+                  </button>
+                )}
 
                 {/* 3. Bank Card */}
                 <button
@@ -346,7 +415,7 @@ export default function FlotCheckoutModal({
                   className={`w-full flex items-start gap-3 rounded-2xl border p-3.5 text-left transition-all cursor-pointer ${
                     paymentType === "card"
                       ? "border-emerald-600 bg-emerald-50/70 ring-2 ring-emerald-500/20"
-                      : "border-slate-200/90 bg-slate-50/50 hover:bg-slate-100/70"
+                      : "border-slate-200 bg-slate-50/50 hover:bg-slate-100/70"
                   }`}
                 >
                   <div
@@ -358,22 +427,29 @@ export default function FlotCheckoutModal({
                   >
                     <CreditCard className="h-4 w-4" />
                   </div>
-                  <div>
-                    <h4 className="text-xs font-extrabold text-slate-900">Bank Card</h4>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-extrabold text-slate-900">Bank Card</h4>
+                      {currency === "USD" && (
+                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                          Supported in USD
+                        </span>
+                      )}
+                    </div>
                     <p className="text-[11px] text-slate-500 mt-0.5">
-                      Pay on Flot&apos;s secure card page.
+                      Pay securely with Visa, MasterCard or Debit Card on Flot.
                     </p>
                   </div>
                 </button>
               </div>
             </div>
 
-            {/* Action Button (Ref: Image 1 & 2) */}
+            {/* Action Button */}
             <button
               type="button"
               onClick={handleInitiatePayment}
               disabled={loading}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#d49c24] hover:bg-[#c28c1d] active:scale-98 py-3.5 text-sm font-extrabold text-white shadow-md transition-all cursor-pointer disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-98 py-3.5 text-sm font-bold text-white shadow-md transition-all cursor-pointer disabled:opacity-50"
             >
               {loading ? (
                 <>
@@ -381,13 +457,16 @@ export default function FlotCheckoutModal({
                   <span>Preparing Flot Payment…</span>
                 </>
               ) : (
-                <span>Continue to payment</span>
+                <>
+                  <Lock className="h-4 w-4" />
+                  <span>Continue to payment</span>
+                </>
               )}
             </button>
           </div>
         )}
 
-        {/* STEP 2: Complete Payment Modal (Ref: Image 3 for Mobile Money, Image 4 for Flot App) */}
+        {/* STEP 2: Complete Payment Modal */}
         {step === "paying" && paymentResult && (
           <div className="p-6 sm:p-7 space-y-4">
             <div>
@@ -395,32 +474,32 @@ export default function FlotCheckoutModal({
               <p className="text-xs text-slate-600 mt-1 leading-relaxed">
                 {paymentType === "momo" && (
                   <>
-                    Pay {currency} {amount} through Flot. Dial the code below on your phone and follow
+                    Pay {currency} {amount.toFixed(2)} through Flot. Dial the code below on your phone and follow
                     the Mobile Money prompts. Keep this window open while we confirm it.
                   </>
                 )}
                 {paymentType === "in-app" && (
                   <>
-                    Pay {currency} {amount} through Flot. Open the Flot app on this device, or scan the
+                    Pay {currency} {amount.toFixed(2)} through Flot. Open the Flot app on this device, or scan the
                     QR code with a device that has the app installed. Keep this window open while we
                     confirm it.
                   </>
                 )}
                 {paymentType === "card" && (
                   <>
-                    Pay {currency} {amount} through Flot. Complete your card payment on Flot&apos;s
+                    Pay {currency} {amount.toFixed(2)} through Flot. Complete your card payment on Flot&apos;s
                     secure checkout portal. Keep this window open while we confirm it.
                   </>
                 )}
               </p>
             </div>
 
-            {/* Mobile Money View (Ref: Image 3) */}
+            {/* Mobile Money View */}
             {paymentType === "momo" && (
               <div className="space-y-3">
-                <div className="rounded-2xl bg-stone-50 border border-stone-200/80 p-5 text-center space-y-2">
+                <div className="rounded-2xl bg-slate-50 border border-slate-200 p-5 text-center space-y-2">
                   <p className="text-xs font-semibold text-slate-600">Mobile Money code</p>
-                  <p className="font-mono text-2xl sm:text-3xl font-black tracking-wider text-[#0d3b2e]">
+                  <p className="font-mono text-2xl font-black tracking-wider text-emerald-800">
                     {paymentResult.code || "*715*0000000000#"}
                   </p>
                 </div>
@@ -429,7 +508,7 @@ export default function FlotCheckoutModal({
                   <button
                     type="button"
                     onClick={handleCopyCode}
-                    className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl bg-[#d49c24] hover:bg-[#c28c1d] active:scale-98 py-3 text-xs font-bold text-white shadow-sm transition-all cursor-pointer"
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-98 py-3 text-xs font-bold text-white shadow-sm transition-all cursor-pointer"
                   >
                     {copiedCode ? (
                       <>
@@ -456,16 +535,16 @@ export default function FlotCheckoutModal({
               </div>
             )}
 
-            {/* Flot App QR View (Ref: Image 4) */}
+            {/* Flot App QR View */}
             {paymentType === "in-app" && (
               <div className="space-y-3">
-                <div className="flex justify-center rounded-2xl bg-stone-50 border border-stone-200/80 p-5">
+                <div className="flex justify-center rounded-2xl bg-slate-50 border border-slate-200 p-5">
                   <div className="p-3 bg-white rounded-xl shadow-xs border border-slate-100">
                     <QRCodeSVG
                       value={paymentResult.qrCodeData || paymentResult.paymentLink || activeOrderId}
                       size={170}
                       level="M"
-                      fgColor="#0d3b2e"
+                      fgColor="#047857"
                       includeMargin={false}
                     />
                   </div>
@@ -475,14 +554,14 @@ export default function FlotCheckoutModal({
                   href={paymentResult.paymentLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#d49c24] hover:bg-[#c28c1d] active:scale-98 py-3.5 text-xs font-extrabold text-white shadow-sm transition-all"
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-98 py-3.5 text-xs font-bold text-white shadow-sm transition-all"
                 >
                   <ExternalLink className="h-4 w-4" />
                   <span>Open Flot App</span>
                 </a>
 
                 {/* Deep link copy box */}
-                <div className="flex items-center justify-between rounded-xl bg-stone-50 border border-stone-200 px-3 py-2 text-xs">
+                <div className="flex items-center justify-between rounded-xl bg-slate-50 border border-slate-200 px-3 py-2 text-xs">
                   <span className="font-mono text-[11px] text-slate-600 truncate max-w-[220px]">
                     {paymentResult.paymentLink}
                   </span>
@@ -501,7 +580,7 @@ export default function FlotCheckoutModal({
             {/* Bank Card View */}
             {paymentType === "card" && (
               <div className="space-y-3">
-                <div className="rounded-2xl bg-stone-50 border border-stone-200/80 p-5 text-center space-y-2">
+                <div className="rounded-2xl bg-slate-50 border border-slate-200 p-5 text-center space-y-2">
                   <CreditCard className="mx-auto h-8 w-8 text-emerald-700" />
                   <p className="text-xs font-bold text-slate-800">Secure Flot Card Portal</p>
                   <p className="text-[11px] text-slate-500 max-w-xs mx-auto">
@@ -513,7 +592,7 @@ export default function FlotCheckoutModal({
                   href={paymentResult.paymentLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#d49c24] hover:bg-[#c28c1d] active:scale-98 py-3.5 text-xs font-extrabold text-white shadow-sm transition-all"
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-98 py-3.5 text-xs font-bold text-white shadow-sm transition-all"
                 >
                   <ExternalLink className="h-4 w-4" />
                   <span>Open Flot Card Page Again</span>
@@ -521,9 +600,9 @@ export default function FlotCheckoutModal({
               </div>
             )}
 
-            {/* Polling Timer Indicator (Ref: Image 3 & 4) */}
+            {/* Polling Timer Indicator */}
             <div className="flex items-center justify-center gap-2 text-xs text-slate-600 pt-1">
-              <span className="inline-block h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+              <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
               <span>Waiting for Flot to confirm your payment…</span>
               <span className="font-mono text-slate-500">{elapsedSeconds}s elapsed</span>
             </div>
@@ -535,7 +614,7 @@ export default function FlotCheckoutModal({
               </p>
             </div>
 
-            {/* Fallback actions */}
+            {/* Actions */}
             <div className="space-y-2 pt-1">
               <button
                 type="button"
@@ -566,7 +645,7 @@ export default function FlotCheckoutModal({
             <div>
               <h3 className="text-xl font-extrabold text-slate-900">Payment Confirmed!</h3>
               <p className="text-xs text-slate-500 mt-1">
-                Your payment of <strong>{currency} {amount}</strong> has been received and verified via Flot.
+                Your payment of <strong>{currency} {amount.toFixed(2)}</strong> has been received and verified via Flot.
               </p>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3.5 text-xs">
