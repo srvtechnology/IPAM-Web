@@ -220,6 +220,79 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ received: true, orderId, type: "event_registration", status: "completed" }, { status: 200 });
       }
 
+      // 3d. Check for University Giving / Donation
+      const donation = await db.donation.findFirst({
+        where: {
+          OR: [{ paymentRef: orderId }, { id: orderId }],
+        },
+      });
+
+      if (donation) {
+        await db.donation.update({
+          where: { id: donation.id },
+          data: {
+            status: "SUCCEEDED",
+            paymentRef: flotRequestId || donation.paymentRef,
+            paymentMethod: "FLOT",
+          },
+        });
+
+        // Settle or create finance transaction
+        const existingTxn = await db.transaction.findFirst({
+          where: {
+            OR: [{ donationId: donation.id }, { refId: `TXN-${donation.paymentRef}` }],
+          },
+        });
+
+        if (existingTxn) {
+          await db.transaction.update({
+            where: { id: existingTxn.id },
+            data: {
+              status: "SETTLED",
+              method: "Flot Online Giving",
+              methodColor: "TERTIARY",
+            },
+          });
+        } else {
+          await db.transaction.create({
+            data: {
+              refId: `TXN-${donation.paymentRef}`,
+              method: "Flot Online Giving",
+              methodColor: "TERTIARY",
+              amount: donation.amount,
+              currency: donation.currency === "SLE" ? "SLE" : "USD",
+              tier: donation.fund,
+              status: "SETTLED",
+              alumniName: donation.donorName,
+              donationId: donation.id,
+            },
+          });
+        }
+
+        // Write Admin Audit Log Entry
+        await writeAuditLog({
+          actorName: "Flot Payment Gateway",
+          actorEmail: "gateway@flotme.ai",
+          actorRole: "PAYMENT_GATEWAY",
+          action: "FLOT_PAYMENT_SETTLED",
+          actionLabel: "Flot Donation Settled",
+          category: "COMMERCIAL_FINANCE",
+          target: `Donation #${donation.paymentRef}`,
+          targetType: "Donation",
+          status: "SUCCESS",
+          severity: "INFO",
+          ipAddress,
+          location,
+          deviceInfo,
+          details: `Philanthropic donation of ${donation.currency} ${Number(donation.amount).toFixed(2)} to ${donation.fund} settled via Flot Payment Gateway. Donor: ${donation.donorName}. Flot Ref: ${flotRequestId}.`,
+          beforeState: { status: donation.status },
+          afterState: { status: "SUCCEEDED", paymentMethod: "FLOT", paymentRef: flotRequestId || donation.paymentRef },
+        });
+
+        console.log(`[Flot Webhook] Successfully marked Donation #${donation.paymentRef} as SUCCEEDED`);
+        return NextResponse.json({ received: true, orderId, type: "donation", status: "completed" }, { status: 200 });
+      }
+
       console.warn(`[Flot Webhook] No matching order found for orderId=${orderId}`);
     }
 

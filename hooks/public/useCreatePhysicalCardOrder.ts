@@ -30,6 +30,7 @@ export interface FlotPaymentInitResult {
   paymentAttemptId: string;
   paymentLink: string;
   qrCodeData?: string;
+  code?: string | null;
   amount: number;
   currency: string;
   isSandbox: boolean;
@@ -67,14 +68,15 @@ export function useCreatePhysicalCardOrder() {
   async function createFlotPaymentLink(
     cardTier: string,
     recipientName?: string,
-    type: "in-app" | "credit-card" = "in-app"
+    type: "in-app" | "momo" | "card" | "credit-card" = "in-app",
+    currency: "SLE" | "USD" = "SLE"
   ): Promise<FlotPaymentInitResult | null> {
     setError(null);
     try {
       const res = await fetch("/api/payments/flot/create-payment-link", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cardTier, recipientName, type }),
+        body: JSON.stringify({ cardTier, recipientName, type, currency }),
       });
       const json = await res.json();
       if (!res.ok) {

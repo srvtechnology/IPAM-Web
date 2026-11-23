@@ -17,7 +17,7 @@ export interface CreateFlotPaymentLinkParams {
   orderId: string;
   amount: number;
   currency?: string; // "SLE" or "USD"
-  type?: "in-app" | "credit-card" | "web";
+  type?: "in-app" | "momo" | "card" | "credit-card" | "web";
   recipientName?: string;
   description?: string;
 }
@@ -28,11 +28,12 @@ export interface FlotPaymentLinkResult {
   paymentAttemptId?: string;
   paymentLink: string;
   qrCodeData?: string;
+  code?: string | null; // USSD code for Mobile Money (e.g. *715*...#)
   amount: number;
   currency: string;
   status: string;
   isSandbox: boolean;
-  type: string;
+  type: "in-app" | "momo" | "card";
 }
 
 export interface FlotWebhookPayload {
@@ -191,16 +192,22 @@ export async function createFlotPaymentLink(
   const privateKey = getFlotPrivateKey();
   const baseUrl = getFlotBaseUrl();
   const currency = (params.currency || "SLE").toUpperCase();
-  const paymentType = params.type || "in-app";
+
+  // Normalize payment type to Flot API specifications ("in-app" | "momo" | "card")
+  let normalizedType: "in-app" | "momo" | "card" = "in-app";
+  if (params.type === "momo" || (params.type as string) === "mobile-money") {
+    normalizedType = "momo";
+  } else if (params.type === "card" || params.type === "credit-card") {
+    normalizedType = "card";
+  }
 
   const isLive = Boolean(merchantId && privateKey);
 
   if (isLive && merchantId && privateKey) {
     try {
-      // Flot API accepts type: "in-app" for payment link generation
       const requestBody = {
         merchantId,
-        type: "in-app",
+        type: normalizedType,
         payload: {
           orderId: params.orderId,
           currency,
@@ -231,8 +238,9 @@ export async function createFlotPaymentLink(
       const resData = raw.data || raw;
 
       const paymentAttemptId = resData.id || resData.internalOrderId || resData.paymentAttemptId || raw.id;
-      const paymentLink = resData.link || resData.paymentLink || resData.url || `https://app.flotme.ai/pay?orderId=${params.orderId}`;
-      const qrCodeData = resData.code || resData.qrCodeData || paymentLink;
+      const paymentLink = resData.link || (normalizedType === "in-app" ? `flot://wallet.merchants/orders?id=${paymentAttemptId}` : "");
+      const qrCodeData = resData.link || paymentLink;
+      const code = resData.code || null;
 
       return {
         orderId: params.orderId,
@@ -240,11 +248,12 @@ export async function createFlotPaymentLink(
         paymentAttemptId,
         paymentLink,
         qrCodeData,
+        code,
         amount: params.amount,
         currency,
         status: "pending",
         isSandbox: false,
-        type: paymentType,
+        type: normalizedType,
       };
     } catch (err) {
       console.error("[Flot] Failed to create payment link via live API, using sandbox fallback:", err);
@@ -253,19 +262,34 @@ export async function createFlotPaymentLink(
 
   // Sandbox / local development mode fallback
   const fakeAttemptId = `flot_attempt_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-  const fakePaymentLink = `https://app.flotme.ai/pay/sandbox?orderId=${encodeURIComponent(params.orderId)}&attempt=${fakeAttemptId}&amount=${params.amount}&currency=${currency}`;
+  let fakePaymentLink = "";
+  let fakeQrCodeData = "";
+  let fakeCode: string | null = null;
+
+  if (normalizedType === "momo") {
+    const randomSuffix = Math.floor(1000000000 + Math.random() * 9000000000);
+    fakeCode = `*715*${randomSuffix}#`;
+    fakePaymentLink = `tel:${encodeURIComponent(fakeCode)}`;
+  } else if (normalizedType === "card") {
+    fakePaymentLink = `https://pay.leogcltd.com/auth/sandbox?orderId=${encodeURIComponent(params.orderId)}&attempt=${fakeAttemptId}&amount=${params.amount}&currency=${currency}`;
+  } else {
+    // in-app
+    fakePaymentLink = `flot://wallet.merchants/orders?id=${fakeAttemptId}`;
+    fakeQrCodeData = fakePaymentLink;
+  }
 
   return {
     orderId: params.orderId,
     flotRequestId: fakeAttemptId,
     paymentAttemptId: fakeAttemptId,
     paymentLink: fakePaymentLink,
-    qrCodeData: fakePaymentLink,
+    qrCodeData: fakeQrCodeData || fakePaymentLink,
+    code: fakeCode,
     amount: params.amount,
     currency,
     status: "pending",
     isSandbox: true,
-    type: paymentType,
+    type: normalizedType,
   };
 }
 

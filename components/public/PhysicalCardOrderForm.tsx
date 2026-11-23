@@ -92,7 +92,10 @@ export default function PhysicalCardOrderForm({
   }
 
   // Handle Flot Payment Gateway initiation
-  async function handleFlotInitiate(type: "in-app" | "credit-card") {
+  async function handleFlotInitiate(
+    type: "in-app" | "momo" | "card",
+    selectedCurrency: "SLE" | "USD" = "SLE"
+  ) {
     setError(null);
 
     if (!deliveryAddress.trim()) {
@@ -104,7 +107,12 @@ export default function PhysicalCardOrderForm({
       return null;
     }
 
-    const linkResult = await createFlotPaymentLink(cardTier, recipientName || memberName, type);
+    const linkResult = await createFlotPaymentLink(
+      cardTier,
+      recipientName || memberName,
+      type,
+      selectedCurrency
+    );
     return linkResult;
   }
 

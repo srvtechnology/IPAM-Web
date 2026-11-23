@@ -110,9 +110,9 @@ async function runTests() {
   assert(verifyFlotBasicAuth("Bearer token123") === false, "Non-Basic auth header is rejected");
 
   // -------------------------------------------------------------------
-  // Test 5: Flot Payment Link Creation Service
+  // Test 5: Flot Payment Link Creation Service (in-app, momo, card; SLE & USD)
   // -------------------------------------------------------------------
-  console.log("\n[Test 5] Payment Link Generation Service...");
+  console.log("\n[Test 5] Payment Link Generation Service (in-app, momo, card; SLE & USD)...");
   const linkResult = await createFlotPaymentLink({
     orderId: "PVC-TEST-12345",
     amount: 35,
@@ -125,6 +125,28 @@ async function runTests() {
   assert(!!linkResult.paymentLink, "Payment link is generated");
   assert(!!linkResult.paymentAttemptId, "Payment attempt ID is assigned");
   assert(linkResult.status === "pending", "Initial order status is pending");
+
+  // Test Mobile Money (momo)
+  const momoResult = await createFlotPaymentLink({
+    orderId: "MOMO-TEST-12345",
+    amount: 10,
+    currency: "SLE",
+    type: "momo",
+  });
+  assert(momoResult.type === "momo", "Type is momo");
+  assert(!!momoResult.code, "USSD code is generated for mobile money");
+  assert(momoResult.code?.startsWith("*715*"), "USSD code starts with *715*");
+
+  // Test Bank Card (card with USD)
+  const cardResult = await createFlotPaymentLink({
+    orderId: "CARD-TEST-12345",
+    amount: 25,
+    currency: "USD",
+    type: "card",
+  });
+  assert(cardResult.type === "card", "Type is card");
+  assert(cardResult.currency === "USD", "Currency is USD");
+  assert(!!cardResult.paymentLink, "Payment link is generated for card");
 
   // -------------------------------------------------------------------
   // Test 6: Admin Panel Payment Audit Log

@@ -29,6 +29,7 @@ import {
 import { useApp } from "@/lib/public/context";
 import { useCreateDonation } from "@/hooks/public/useCreateDonation";
 import type { FundId, FundMeta } from "@/lib/public/giving-funds";
+import FlotCheckoutModal from "./FlotCheckoutModal";
 
 const FUND_ICONS: Record<FundId, ElementType> = {
   scholarship: GraduationCap,
@@ -39,8 +40,8 @@ const FUND_ICONS: Record<FundId, ElementType> = {
 
 const PRESET_AMOUNTS = [25, 50, 100, 250, 500, 1000];
 const CURRENCIES = [
-  { value: "USD", label: "USD ($) - US Dollar" },
-  { value: "SLE", label: "SLE (NLe) - Sierra Leone Leone" },
+  { value: "SLE", label: "Leones (SLE) - Sierra Leone" },
+  { value: "USD", label: "US Dollars (USD) - United States" },
   { value: "GBP", label: "GBP (£) - British Pound" },
   { value: "EUR", label: "EUR (€) - Euro" },
 ];
@@ -150,7 +151,7 @@ export default function GivingView({ funds, recentDonations }: GivingViewProps) 
   const [frequency, setFrequency] = useState<"one-time" | "monthly">("one-time");
   const [selectedAmount, setSelectedAmount] = useState<number>(100);
   const [customAmount, setCustomAmount] = useState("");
-  const [currency, setCurrency] = useState("USD");
+  const [currency, setCurrency] = useState("SLE");
   const [paymentMethod, setPaymentMethod] = useState<"card" | "momo" | "bank" | "paypal">("card");
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [isDedication, setIsDedication] = useState(false);
@@ -163,6 +164,13 @@ export default function GivingView({ funds, recentDonations }: GivingViewProps) 
   const [copiedLink, setCopiedLink] = useState(false);
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
 
+  // Quick contribution widget states (matching Image 1 & 2)
+  const [quickAmount, setQuickAmount] = useState<number>(10);
+  const [quickCurrency, setQuickCurrency] = useState<"SLE" | "USD">("SLE");
+  const [isFlotModalOpen, setIsFlotModalOpen] = useState(false);
+  const [modalAmount, setModalAmount] = useState<number>(10);
+  const [modalCurrency, setModalCurrency] = useState<"SLE" | "USD">("SLE");
+
   useEffect(() => {
     if (session) {
       if (!donorName && session.profile?.name) setDonorName(session.profile.name);
@@ -174,6 +182,12 @@ export default function GivingView({ funds, recentDonations }: GivingViewProps) 
   const currentFund = funds.find((f) => f.id === selectedFund) ?? funds[0];
   const activeAmount = customAmount ? parseFloat(customAmount) : selectedAmount;
 
+  function handleOpenQuickContribution() {
+    setModalAmount(quickAmount);
+    setModalCurrency(quickCurrency);
+    setIsFlotModalOpen(true);
+  }
+
   async function handleDonate(e: FormEvent) {
     e.preventDefault();
     if (!currentFund || isNaN(activeAmount) || activeAmount <= 0) return;
@@ -183,16 +197,27 @@ export default function GivingView({ funds, recentDonations }: GivingViewProps) 
       return;
     }
 
+    setModalAmount(activeAmount);
+    setModalCurrency((currency === "USD" ? "USD" : "SLE") as "SLE" | "USD");
+    setIsFlotModalOpen(true);
+  }
+
+  async function handleFlotPaymentSuccess(paymentRef: string, paidCurrency: string, paidAmount: number) {
+    const finalDonorName = donorName.trim() || session?.profile?.name || "Alumni Supporter";
+    const finalDonorEmail = donorEmail.trim() || session?.email || "donor@ipamalumni.org";
+    const finalDonorPhone = donorPhone.trim() || "+232 76 000000";
+
     const result = await createDonation({
-      donorName,
-      donorEmail,
-      donorPhone: donorPhone.trim(),
+      donorName: finalDonorName,
+      donorEmail: finalDonorEmail,
+      donorPhone: finalDonorPhone,
       donorClass: donorClass.trim() || undefined,
-      amount: activeAmount,
-      currency,
+      amount: paidAmount,
+      currency: paidCurrency,
       fund: currentFund.title,
       frequency: frequency === "monthly" ? "MONTHLY" : "ONE_TIME",
-      paymentMethod: paymentMethod.toUpperCase(),
+      paymentMethod: "FLOT",
+      paymentRef,
       isDedication,
       dedicationName: isDedication && dedicationName ? dedicationName : undefined,
       isAnonymous,
@@ -200,21 +225,22 @@ export default function GivingView({ funds, recentDonations }: GivingViewProps) 
 
     if (result) {
       setReceiptData({
-        amount: activeAmount,
-        currency,
+        amount: paidAmount,
+        currency: paidCurrency,
         fund: currentFund.title,
         frequency: frequency === "monthly" ? "Monthly Sustaining" : "One-Time Contribution",
-        ref: result.paymentRef,
+        ref: paymentRef,
         date: new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }),
-        donorName: isAnonymous ? "Anonymous Donor" : donorName,
-        donorEmail,
-        donorPhone: donorPhone.trim(),
+        donorName: isAnonymous ? "Anonymous Donor" : finalDonorName,
+        donorEmail: finalDonorEmail,
+        donorPhone: finalDonorPhone,
         donorClass: donorClass.trim() || undefined,
-        paymentMethod: paymentMethod.toUpperCase(),
+        paymentMethod: "FLOT",
         isAnonymous,
         dedication: isDedication && dedicationName ? dedicationName : undefined,
       });
     }
+    setIsFlotModalOpen(false);
   }
 
   function handleDownloadReceipt() {
@@ -324,6 +350,67 @@ export default function GivingView({ funds, recentDonations }: GivingViewProps) 
             >
               Community Honor Roll
             </a>
+          </div>
+
+          {/* Quick Contribution Widget (Reference: Image 1 & 2) */}
+          <div className="mt-6 rounded-3xl border border-white/10 bg-white/95 p-6 shadow-2xl backdrop-blur-md max-w-lg text-slate-900">
+            <h3 className="text-xl font-extrabold text-[#0d3b2e]">Make your contribution</h3>
+            <p className="text-xs text-slate-500 mt-0.5">Instant online donation via Flot payment gateway</p>
+            <div className="mt-4 space-y-3.5">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">Currency</label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setQuickCurrency("SLE")}
+                    className={`flex-1 py-2 px-3 rounded-full text-xs font-bold border transition-all cursor-pointer ${
+                      quickCurrency === "SLE"
+                        ? "bg-[#0d3b2e] text-white border-[#0d3b2e] shadow-xs"
+                        : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
+                    }`}
+                  >
+                    SLE
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setQuickCurrency("USD")}
+                    className={`flex-1 py-2 px-3 rounded-full text-xs font-bold border transition-all cursor-pointer ${
+                      quickCurrency === "USD"
+                        ? "bg-[#0d3b2e] text-white border-[#0d3b2e] shadow-xs"
+                        : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
+                    }`}
+                  >
+                    USD
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">Amount</label>
+                <div className="flex flex-col sm:flex-row gap-2.5">
+                  <div className="relative flex-1 flex rounded-xl border-2 border-amber-500/80 bg-white focus-within:ring-2 focus-within:ring-amber-500/30 overflow-hidden">
+                    <span className="flex items-center px-3.5 bg-slate-50 text-xs font-black text-slate-600 border-r border-slate-200">
+                      {quickCurrency}
+                    </span>
+                    <input
+                      type="number"
+                      min="1"
+                      value={quickAmount || ""}
+                      onChange={(e) => setQuickAmount(Number(e.target.value))}
+                      className="w-full py-2.5 px-3 text-base font-bold text-slate-900 focus:outline-hidden"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleOpenQuickContribution}
+                    className="rounded-xl bg-[#d49c24] hover:bg-[#c28c1d] active:scale-98 px-6 py-2.5 text-sm font-extrabold text-white shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <span>Contribute now</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4 border-t border-slate-800 pt-6 sm:grid-cols-4">
@@ -739,27 +826,25 @@ export default function GivingView({ funds, recentDonations }: GivingViewProps) 
               </div>
 
               <div className="space-y-3 border-t border-slate-100 pt-2">
-                <label className="block text-xs font-extrabold text-slate-900 sm:text-sm">Step 4: Secure Payment Channel</label>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <label className="block text-xs font-extrabold text-slate-900 sm:text-sm">Step 4: Flot Payment Method</label>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                   {[
-                    { id: "card" as const, label: "Credit / Debit Card", icon: CreditCard },
-                    { id: "momo" as const, label: "Orange / AfriMoney", icon: Smartphone },
-                    { id: "bank" as const, label: "Bank Wire (SWIFT)", icon: Landmark },
-                    { id: "paypal" as const, label: "PayPal / Digital", icon: Lock },
+                    { id: "in-app", label: "Flot App", desc: "Open app or scan QR code", icon: Smartphone },
+                    { id: "momo", label: "Mobile Money", desc: "Pay with Mobile Money USSD code", icon: Phone },
+                    { id: "card", label: "Bank Card", desc: "Pay on Flot's secure card portal", icon: CreditCard },
                   ].map((method) => (
-                    <button
+                    <div
                       key={method.id}
-                      type="button"
-                      onClick={() => setPaymentMethod(method.id)}
-                      className={`flex items-center gap-2 rounded-xl border p-3 text-left text-xs font-bold transition-all ${
-                        paymentMethod === method.id
-                          ? "border-emerald-600 bg-emerald-50 text-emerald-900 shadow-2xs"
-                          : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
-                      }`}
+                      className="flex items-center gap-3 rounded-2xl border border-emerald-600/60 bg-emerald-50/40 p-3.5 text-left text-xs"
                     >
-                      <method.icon className="h-4 w-4 shrink-0 text-emerald-600" />
-                      <span>{method.label}</span>
-                    </button>
+                      <div className="rounded-xl bg-emerald-600 p-2 text-white">
+                        <method.icon className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <h4 className="font-extrabold text-slate-900">{method.label}</h4>
+                        <p className="text-[11px] text-slate-500">{method.desc}</p>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -1119,6 +1204,18 @@ export default function GivingView({ funds, recentDonations }: GivingViewProps) 
           </div>
         </section>
       </div>
+
+      <FlotCheckoutModal
+        isOpen={isFlotModalOpen}
+        onClose={() => setIsFlotModalOpen(false)}
+        title="Make your contribution"
+        defaultAmount={modalAmount}
+        initialCurrency={modalCurrency}
+        orderNumber={`IPAM-C-${Date.now().toString(36).toUpperCase()}`}
+        recipientName={donorName || session?.profile?.name || session?.email || "Alumni Contributor"}
+        description={`IPAM Philanthropy Gift: ${currentFund.title}`}
+        onSuccess={handleFlotPaymentSuccess}
+      />
     </div>
   );
 }
