@@ -28,11 +28,20 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+    env_file:
+      - .env
+    volumes:
+      - ./keys:/app/keys:ro
     environment:
       DATABASE_URL: mysql://ipam:${MYSQL_PASSWORD:-ipam_dev_password}@mysql:3306/ipam_alumni
       JWT_ALUMNI_SECRET: ${JWT_ALUMNI_SECRET:-dev-alumni-secret-change-me}
       JWT_ADMIN_SECRET: ${JWT_ADMIN_SECRET:-dev-admin-secret-change-me}
       AUDIT_HMAC_SECRET: ${AUDIT_HMAC_SECRET:-dev-audit-hmac-secret-change-me}
+      FLOT_MERCHANT_ID: ${FLOT_MERCHANT_ID:-68ba690f-7499-404a-a2bf-c0d5b2cda7be}
+      FLOT_API_BASE_URL: ${FLOT_API_BASE_URL:-https://api.app.flotme.ai}
+      FLOT_WEBHOOK_USERNAME: ${FLOT_WEBHOOK_USERNAME:-ipam_flot_webhook}
+      FLOT_WEBHOOK_PASSWORD: ${FLOT_WEBHOOK_PASSWORD:-QqfeSwVmCKCSf82l6ku_GC1UtA4ZLVYD}
+      FLOT_PRIVATE_KEY_PATH: keys/flot/private_key.pem
       NODE_ENV: production
       SEED_DEMO_USERS: ${SEED_DEMO_USERS:-true}
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
