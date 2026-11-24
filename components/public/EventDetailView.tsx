@@ -29,9 +29,15 @@ import {
   ChevronUp,
   PartyPopper,
   GraduationCap,
+  CreditCard,
+  Plus,
+  Minus,
+  Phone,
+  Lock,
 } from "lucide-react";
 import { useRegisterForEvent } from "@/hooks/public/useEventActions";
 import { useApp } from "@/lib/public/context";
+import FlotCheckoutModal from "@/components/public/FlotCheckoutModal";
 
 export interface EventDetail {
   id: string;
@@ -55,6 +61,9 @@ export interface EventDetail {
   capacity: number;
   registeredCount: number;
   registered: boolean;
+  registrationRef?: string | null;
+  registrationTicketCount?: number;
+  registrationPaymentStatus?: string | null;
   bannerImage?: string | null;
   bannerImages?: string[] | null;
 }
@@ -94,6 +103,23 @@ export default function EventDetailView({ event, relatedEvents }: { event: Event
   const [copiedLink, setCopiedLink] = useState(false);
   const [downloadedCalendar, setDownloadedCalendar] = useState(false);
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+
+  const isPaid = Number(event.ticketPrice) > 0;
+  const unitPrice = isPaid ? Number(event.ticketPrice) : 0;
+  const remainingSeats = Math.max(0, event.capacity - event.registeredCount);
+  const maxAllowedTickets = Math.min(10, Math.max(1, remainingSeats));
+
+  const [isRegistered, setIsRegistered] = useState(event.registered);
+  const [bookingRef, setBookingRef] = useState<string>(
+    event.registrationRef ||
+      `BK-EVT-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`
+  );
+  const [ticketCount, setTicketCount] = useState<number>(event.registrationTicketCount || 1);
+  const [attendeePhone, setAttendeePhone] = useState<string>("");
+  const [isFlotModalOpen, setIsFlotModalOpen] = useState(false);
+  const [isPreRegistering, setIsPreRegistering] = useState(false);
+
+  const totalAmount = unitPrice * ticketCount;
 
   const allBanners: string[] = useMemo(() => {
     const list: string[] = [];
@@ -148,6 +174,55 @@ export default function EventDetailView({ event, relatedEvents }: { event: Event
     window.URL.revokeObjectURL(url);
     setDownloadedCalendar(true);
     setTimeout(() => setDownloadedCalendar(false), 3000);
+  }
+
+  async function handleInitiatePaidRegistration() {
+    if (!session) {
+      window.location.href = "/login";
+      return;
+    }
+    setIsPreRegistering(true);
+    try {
+      const res = await register({
+        ticketCount,
+        attendeePhone: attendeePhone.trim() || undefined,
+        bookingReference: bookingRef,
+        paymentMethod: "FLOT",
+      });
+      if (res) {
+        if (res.bookingReference) {
+          setBookingRef(res.bookingReference);
+        }
+        setIsFlotModalOpen(true);
+      }
+    } finally {
+      setIsPreRegistering(false);
+    }
+  }
+
+  async function handlePaidSuccess(paymentRef: string) {
+    try {
+      await register({
+        bookingReference: bookingRef,
+        paymentRef,
+        paymentMethod: "FLOT",
+        ticketCount,
+        attendeePhone: attendeePhone.trim() || undefined,
+      });
+    } catch (err) {
+      console.error("Error finalizing paid registration:", err);
+    } finally {
+      setIsRegistered(true);
+      setIsFlotModalOpen(false);
+    }
+  }
+
+  async function handleFreeRegister() {
+    const res = await register({ ticketCount: 1 });
+    if (res) {
+      if (res.bookingReference) setBookingRef(res.bookingReference);
+      setIsRegistered(true);
+    }
   }
 
   return (
@@ -361,10 +436,10 @@ export default function EventDetailView({ event, relatedEvents }: { event: Event
                     In-Person Gathering
                   </span>
                 )}
-                {event.registered && (
+                {isRegistered && (
                   <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800">
                     <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                    RSVP Confirmed
+                    {isPaid ? "Ticket Confirmed" : "RSVP Confirmed"}
                   </span>
                 )}
               </div>
@@ -399,7 +474,7 @@ export default function EventDetailView({ event, relatedEvents }: { event: Event
                 className="flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-7 py-3.5 text-center text-sm font-extrabold text-white shadow-xs transition-all hover:bg-emerald-700 active:scale-98"
               >
                 <Ticket className="h-4 w-4" />
-                <span>{event.registered ? "View Digital Pass" : "RSVP & Register"}</span>
+                <span>{isRegistered ? "View Digital Pass" : isPaid ? "Book Tickets" : "RSVP & Register"}</span>
               </a>
               <button
                 onClick={handleDownloadIcs}
@@ -554,7 +629,7 @@ export default function EventDetailView({ event, relatedEvents }: { event: Event
           {/* Sidebar */}
           <div className="space-y-6 lg:sticky lg:top-32">
             <div id="registration-hub" className="space-y-5 rounded-3xl border border-slate-200/90 bg-white p-6 shadow-xs sm:p-7">
-              {event.registered ? (
+              {isRegistered ? (
                 <div className="space-y-5">
                   <div className="space-y-4 rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 p-6 text-white shadow-md">
                     <div className="flex items-start justify-between">
@@ -575,7 +650,7 @@ export default function EventDetailView({ event, relatedEvents }: { event: Event
                       </div>
                       <div>
                         <span className="block text-slate-400">STUDENT ID</span>
-                        <span className="font-bold text-white">{session?.studentId}</span>
+                        <span className="font-bold text-white">{session?.studentId || "Verified"}</span>
                       </div>
                       <div>
                         <span className="block text-slate-400">DATE &amp; TIME</span>
@@ -583,8 +658,22 @@ export default function EventDetailView({ event, relatedEvents }: { event: Event
                       </div>
                       <div>
                         <span className="block text-slate-400">PASS REF</span>
-                        <span className="font-mono font-bold text-emerald-400">TKT-{event.id.toUpperCase()}</span>
+                        <span className="font-mono font-bold text-emerald-400">{bookingRef}</span>
                       </div>
+                      {isPaid && (
+                        <div>
+                          <span className="block text-slate-400">RESERVED SEATS</span>
+                          <span className="font-bold text-white">{ticketCount} {ticketCount > 1 ? "Seats" : "Seat"}</span>
+                        </div>
+                      )}
+                      {isPaid && (
+                        <div>
+                          <span className="block text-slate-400">PAYMENT</span>
+                          <span className="inline-flex items-center gap-1 font-bold text-emerald-400">
+                            <CheckCircle2 className="h-3.5 w-3.5" /> Flot Settled
+                          </span>
+                        </div>
+                      )}
                     </div>
                     <div className="flex flex-col gap-2 border-t border-slate-800 pt-2">
                       <button
@@ -610,7 +699,7 @@ export default function EventDetailView({ event, relatedEvents }: { event: Event
                   <div className="space-y-1 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-xs text-emerald-900">
                     <div className="flex items-center gap-1.5 font-bold text-emerald-800">
                       <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                      <span>Registration Confirmed</span>
+                      <span>{isPaid ? "Tickets & Admission Confirmed" : "Registration Confirmed"}</span>
                     </div>
                     <p className="text-[11px] text-emerald-700">
                       A confirmation ticket with calendar invite has been delivered to <strong>{session?.email}</strong>.
@@ -625,7 +714,11 @@ export default function EventDetailView({ event, relatedEvents }: { event: Event
                       Online Registration
                     </div>
                     <h3 className="text-xl font-bold text-slate-900">Reserve Your Spot</h3>
-                    <p className="mt-0.5 text-xs text-slate-500">Fast-track admission for verified alumni and distinguished guests</p>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      {isPaid
+                        ? "Instant checkout with dual SLE & USD support via Flot payment gateway"
+                        : "Fast-track admission for verified alumni and distinguished guests"}
+                    </p>
                   </div>
 
                   {session ? (
@@ -662,24 +755,115 @@ export default function EventDetailView({ event, relatedEvents }: { event: Event
                     </div>
                   )}
 
-                  <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-4">
-                    <p className="text-xs font-bold text-slate-900">Admission</p>
-                    <p className="text-xs text-slate-500">
-                      {Number(event.ticketPrice) === 0 ? "Free Alumni Pass" : `${event.ticketPrice} ${event.currency} per seat`}
-                    </p>
-                  </div>
+                  {isPaid ? (
+                    <div className="space-y-3.5 rounded-2xl border border-slate-200/80 bg-slate-50 p-4">
+                      {/* Ticket quantity stepper */}
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-bold text-slate-900">Seat Quantity</p>
+                          <p className="text-[11px] text-slate-500">
+                            {event.ticketPrice} {event.currency} per seat
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-1">
+                          <button
+                            type="button"
+                            onClick={() => setTicketCount((prev) => Math.max(1, prev - 1))}
+                            disabled={ticketCount <= 1}
+                            className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600 transition-colors hover:bg-slate-100 disabled:opacity-40"
+                          >
+                            <Minus className="h-3 w-3" />
+                          </button>
+                          <span className="w-6 text-center text-xs font-extrabold text-slate-900">{ticketCount}</span>
+                          <button
+                            type="button"
+                            onClick={() => setTicketCount((prev) => Math.min(maxAllowedTickets, prev + 1))}
+                            disabled={ticketCount >= maxAllowedTickets}
+                            className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600 transition-colors hover:bg-slate-100 disabled:opacity-40"
+                          >
+                            <Plus className="h-3 w-3" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Attendee Phone Input */}
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          Mobile Number (Optional, for Mobile Money / SMS Pass)
+                        </label>
+                        <div className="relative">
+                          <Phone className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
+                          <input
+                            type="tel"
+                            value={attendeePhone}
+                            onChange={(e) => setAttendeePhone(e.target.value)}
+                            placeholder="+232 76 000 000"
+                            className="w-full rounded-xl border border-slate-200 bg-white pl-8 pr-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:border-emerald-600 focus:outline-none"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Price Breakdown */}
+                      <div className="border-t border-slate-200/80 pt-2.5">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-semibold text-slate-600">
+                            {ticketCount}x Ticket{ticketCount > 1 ? "s" : ""} ({event.ticketPrice} {event.currency})
+                          </span>
+                          <span className="font-bold text-slate-900">
+                            {event.currency} {totalAmount.toFixed(2)}
+                          </span>
+                        </div>
+                        <div className="mt-1 flex items-center justify-between border-t border-slate-200/60 pt-1.5 text-xs font-extrabold text-emerald-800">
+                          <span>Total Payable</span>
+                          <span className="text-sm font-black text-emerald-700">
+                            {event.currency} {totalAmount.toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Gateway note */}
+                      <div className="flex items-center gap-1.5 pt-1 text-[11px] text-slate-500">
+                        <Lock className="h-3 w-3 text-emerald-600" />
+                        <span>Flot Gateway: In-App, Mobile Money (*715#), or Card</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-4">
+                      <p className="text-xs font-bold text-slate-900">Admission</p>
+                      <p className="text-xs text-slate-500">Free Alumni Pass</p>
+                    </div>
+                  )}
 
                   {error && <p className="text-xs font-semibold text-rose-600">{error}</p>}
 
                   {session && (
-                    <button
-                      onClick={() => register()}
-                      disabled={loading || full}
-                      className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-3.5 text-sm font-extrabold text-white shadow-xs transition-all hover:bg-emerald-700 disabled:opacity-60"
-                    >
-                      <Ticket className="h-4 w-4" />
-                      <span>{full ? "Event Full" : loading ? "Confirming Registration..." : "Confirm Free RSVP Registration"}</span>
-                    </button>
+                    isPaid ? (
+                      <button
+                        type="button"
+                        onClick={handleInitiatePaidRegistration}
+                        disabled={loading || isPreRegistering || full}
+                        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-3.5 text-sm font-extrabold text-white shadow-xs transition-all hover:bg-emerald-700 disabled:opacity-60"
+                      >
+                        <CreditCard className="h-4 w-4" />
+                        <span>
+                          {full
+                            ? "Event Sold Out"
+                            : loading || isPreRegistering
+                            ? "Securing Reservation..."
+                            : `Pay & Reserve Seats (${event.currency} ${totalAmount.toFixed(2)})`}
+                        </span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleFreeRegister}
+                        disabled={loading || full}
+                        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-3.5 text-sm font-extrabold text-white shadow-xs transition-all hover:bg-emerald-700 disabled:opacity-60"
+                      >
+                        <Ticket className="h-4 w-4" />
+                        <span>{full ? "Event Full" : loading ? "Confirming Registration..." : "Confirm Free RSVP Registration"}</span>
+                      </button>
+                    )
                   )}
 
                   <p className="text-center text-[11px] text-slate-500">Admission passes are non-transferable without prior verification.</p>
@@ -780,6 +964,21 @@ export default function EventDetailView({ event, relatedEvents }: { event: Event
           </div>
         )}
       </div>
+
+      {isPaid && (
+        <FlotCheckoutModal
+          isOpen={isFlotModalOpen}
+          onClose={() => setIsFlotModalOpen(false)}
+          title={`Ticket Checkout: ${event.title}`}
+          defaultAmount={totalAmount}
+          allowAmountEdit={false}
+          initialCurrency={event.currency === "USD" ? "USD" : "SLE"}
+          orderNumber={bookingRef}
+          recipientName={session?.profile?.name || session?.email}
+          description={`${ticketCount} ticket(s) for ${event.title}`}
+          onSuccess={handlePaidSuccess}
+        />
+      )}
     </div>
   );
 }

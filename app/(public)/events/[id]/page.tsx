@@ -15,11 +15,21 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
 
   const session = await getAlumniSession();
   let registered = false;
+  let registrationRef: string | null = null;
+  let registrationTicketCount = 1;
+  let registrationPaymentStatus: string | null = null;
+
   if (session) {
     const reg = await db.eventRegistration.findFirst({
       where: { eventId: id, userId: session.sub, bookingStatus: { not: "CANCELLED" } },
     });
-    registered = !!reg;
+    if (reg) {
+      registrationRef = reg.bookingReference;
+      registrationTicketCount = reg.ticketCount;
+      registrationPaymentStatus = reg.paymentStatus;
+      // Confirmed only if paid (for paid events) or free (for free events)
+      registered = reg.paymentStatus === "PAID" || reg.paymentStatus === "FREE";
+    }
   }
 
   const relatedEventsRaw = await db.alumniEvent.findMany({
@@ -61,6 +71,9 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
         capacity: event.capacity,
         registeredCount: event._count.registrations,
         registered,
+        registrationRef,
+        registrationTicketCount,
+        registrationPaymentStatus,
         bannerImage: event.bannerImage || null,
         bannerImages: (event.bannerImages as string[] | null) || null,
       }}

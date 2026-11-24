@@ -30,10 +30,124 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     },
   });
   if (existing) {
+    // If existing registration is already PAID or FREE
+    if (existing.paymentStatus === "PAID" || existing.paymentStatus === "FREE") {
+      return ok({
+        registered: true,
+        alreadyRegistered: true,
+        bookingReference: existing.bookingReference,
+        ticketCount: existing.ticketCount,
+        totalAmount: Number(existing.totalAmount),
+        paymentStatus: existing.paymentStatus,
+        paymentMethod: existing.paymentMethod,
+      });
+    }
+
+    // If existing registration is PENDING and user has now completed payment
+    if (body.paymentRef) {
+      const updated = await db.eventRegistration.update({
+        where: { id: existing.id },
+        data: {
+          paymentStatus: "PAID",
+          paymentMethod: body.paymentMethod || "FLOT",
+          paymentRef: body.paymentRef,
+          attendeePhone: body.attendeePhone || existing.attendeePhone,
+        },
+      });
+
+      await db.transaction.updateMany({
+        where: {
+          OR: [
+            { refId: `TXN-${existing.bookingReference}` },
+            { refId: `TXN-${body.bookingReference}` },
+          ],
+        },
+        data: {
+          status: "SETTLED",
+          method: "Flot Event Booking",
+          methodColor: "PRIMARY",
+        },
+      });
+
+      const attendeeName = body.attendeeName || existing.attendeeName;
+      const attendeeEmail = body.attendeeEmail || existing.attendeeEmail;
+
+      notifyEventRegistrationConfirmed({
+        userId: session.sub,
+        attendeeEmail: attendeeEmail || session.email,
+        attendeeName: attendeeName || null,
+        eventTitle: event.title,
+        eventDate: event.date,
+        bookingReference: updated.bookingReference,
+        location: event.location,
+        ticketCount: updated.ticketCount,
+        totalAmount: Number(updated.totalAmount),
+        currency: updated.currency,
+        paymentStatus: updated.paymentStatus,
+      }).catch((err) => console.error("[Events] RSVP Notification error:", err));
+
+      return ok({
+        registered: true,
+        alreadyRegistered: true,
+        bookingReference: updated.bookingReference,
+        ticketCount: updated.ticketCount,
+        totalAmount: Number(updated.totalAmount),
+        paymentStatus: updated.paymentStatus,
+        paymentMethod: updated.paymentMethod,
+      });
+    }
+
+    // If existing registration is PENDING and user is updating ticket count or reference
+    const newBookingReference = body.bookingReference || existing.bookingReference;
+    const newTotalAmount = (event.isPaid ? Number(event.ticketPrice) : 0) * ticketCount;
+    const updated = await db.eventRegistration.update({
+      where: { id: existing.id },
+      data: {
+        bookingReference: newBookingReference,
+        ticketCount,
+        totalAmount: newTotalAmount,
+        attendeePhone: body.attendeePhone || existing.attendeePhone,
+        paymentMethod: body.paymentMethod || "FLOT",
+      },
+    });
+
+    const txnRef = `TXN-${newBookingReference}`;
+    const existingTxn = await db.transaction.findFirst({
+      where: { OR: [{ refId: txnRef }, { refId: `TXN-${existing.bookingReference}` }] },
+    });
+    if (existingTxn) {
+      await db.transaction.update({
+        where: { id: existingTxn.id },
+        data: {
+          refId: txnRef,
+          amount: newTotalAmount,
+          method: "Flot Event Booking",
+          status: "PENDING",
+        },
+      });
+    } else {
+      await db.transaction.create({
+        data: {
+          refId: txnRef,
+          method: "Flot Event Booking",
+          methodColor: "PRIMARY",
+          amount: newTotalAmount,
+          currency: event.currency === "SLE" ? "SLE" : "USD",
+          tier: `Event Registration - ${event.title}`,
+          status: "PENDING",
+          alumniName: existing.attendeeName || "Alumni Attendee",
+        },
+      });
+    }
+
     return ok({
-      registered: true,
-      alreadyRegistered: true,
-      bookingReference: existing.bookingReference,
+      registered: false,
+      alreadyRegistered: false,
+      bookingReference: updated.bookingReference,
+      ticketCount: updated.ticketCount,
+      totalAmount: Number(updated.totalAmount),
+      paymentStatus: updated.paymentStatus,
+      paymentMethod: updated.paymentMethod,
     });
   }
 
@@ -58,9 +172,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const unitPrice = event.isPaid ? Number(event.ticketPrice) : 0;
   const totalAmount = unitPrice * ticketCount;
   const paymentStatus = event.isPaid ? (body.paymentRef ? "PAID" : "PENDING") : "FREE";
-  const paymentMethod = event.isPaid ? (body.paymentMethod || "STRIPE") : "FREE";
+  const paymentMethod = event.isPaid ? (body.paymentMethod || "FLOT") : "FREE";
 
-  const bookingReference = `BK-EVT-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+  const bookingReference =
+    body.bookingReference ||
+    `BK-EVT-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
 
   const registration = await db.eventRegistration.create({
     data: {
@@ -94,7 +210,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       await db.transaction.create({
         data: {
           refId: `TXN-${registration.bookingReference}`,
-          method: paymentMethod === "FLOT" ? "Flot Payment Gateway" : "Online Card Payment",
+          method: paymentMethod === "FLOT" ? "Flot Event Booking" : "Online Card Payment",
           methodColor: "PRIMARY",
           amount: totalAmount,
           currency: event.currency === "SLE" ? "SLE" : "USD",

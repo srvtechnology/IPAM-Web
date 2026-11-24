@@ -220,6 +220,25 @@ export async function GET(req: NextRequest) {
             });
           }
 
+          await writeAuditLog({
+            actorName: "Flot Payment Gateway",
+            actorEmail: "gateway@flotme.ai",
+            actorRole: "PAYMENT_GATEWAY",
+            action: "EVENT_BOOKING_PAYMENT_COMPLETED",
+            actionLabel: "Flot Event Booking Paid",
+            category: "COMMERCIAL_FINANCE",
+            target: `Event Booking #${registration.bookingReference}`,
+            targetType: "EventRegistration",
+            status: "SUCCESS",
+            severity: "INFO",
+            ipAddress,
+            location,
+            deviceInfo,
+            details: `Flot payment of ${registration.currency} ${Number(registration.totalAmount).toFixed(2)} settled via status check for event booking #${registration.bookingReference}. Flot Ref: ${attemptId}.`,
+            beforeState: { paymentStatus: registration.paymentStatus },
+            afterState: { paymentStatus: "PAID", paymentMethod: "FLOT", paymentRef: attemptId },
+          });
+
           return NextResponse.json({ status: "completed", orderId, type: "event_registration" });
         }
 
