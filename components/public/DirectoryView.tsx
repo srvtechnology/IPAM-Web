@@ -1,9 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search, Mail, Linkedin, X, MapPin, GraduationCap, Sparkles, UserPlus, Check, MessageSquare, Users, Share2 } from "lucide-react";
+import { Search, Mail, Linkedin, X, MapPin, GraduationCap, Sparkles, Users, Share2 } from "lucide-react";
 import { useApp } from "@/lib/public/context";
-import { useConnect } from "@/hooks/public/useConnect";
 import ShareModal from "@/components/public/ShareModal";
 
 export interface DirectoryAlumnus {
@@ -50,15 +49,12 @@ export default function DirectoryView({
   currentUserId?: string | null;
 }) {
   const { session } = useApp();
-  const { connect } = useConnect();
   const [query, setQuery] = useState("");
   const [industry, setIndustry] = useState("all");
   const [country, setCountry] = useState("all");
   const [decade, setDecade] = useState("all");
   const [mentorOnly, setMentorOnly] = useState(false);
   const [selected, setSelected] = useState<DirectoryAlumnus | null>(null);
-  const [connectedIds, setConnectedIds] = useState<string[]>([]);
-  const [toast, setToast] = useState<string | null>(null);
   const [sharingAlumnus, setSharingAlumnus] = useState<DirectoryAlumnus | null>(null);
 
   function isOwnProfile(a: DirectoryAlumnus) {
@@ -103,27 +99,6 @@ export default function DirectoryView({
     setCountry("all");
     setDecade("all");
     setMentorOnly(false);
-  }
-
-  async function handleConnect(e: React.MouseEvent, a: DirectoryAlumnus) {
-    e.stopPropagation();
-    if (isOwnProfile(a)) {
-      setToast("You cannot send a connection request to your own profile.");
-      setTimeout(() => setToast(null), 3000);
-      return;
-    }
-    if (!session) {
-      setToast("Sign in to connect with alumni.");
-      setTimeout(() => setToast(null), 3000);
-      return;
-    }
-    if (connectedIds.includes(a.id)) return;
-    const success = await connect(a.id);
-    if (success) {
-      setConnectedIds((prev) => [...prev, a.id]);
-      setToast(`Connection request sent to ${a.name}!`);
-      setTimeout(() => setToast(null), 3000);
-    }
   }
 
   const mentorCount = visibleAlumni.filter((a) => a.isMentor).length;
@@ -182,12 +157,6 @@ export default function DirectoryView({
       </section>
 
       <div className="relative z-20 mx-auto -mt-8 max-w-7xl space-y-8 px-4 sm:px-6 lg:px-8">
-        {toast && (
-          <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-xl border border-emerald-500/40 bg-slate-900 px-5 py-3 text-white shadow-2xl">
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-xs font-black text-slate-950">✓</div>
-            <span className="text-sm font-semibold">{toast}</span>
-          </div>
-        )}
 
       <div className="space-y-4 rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs md:p-6">
         <div className="relative">
@@ -271,7 +240,6 @@ export default function DirectoryView({
       ) : (
         <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((a) => {
-            const isConnected = connectedIds.includes(a.id);
             return (
               <div
                 key={a.id}
@@ -329,31 +297,27 @@ export default function DirectoryView({
                 </div>
 
                 <div className="mt-6 flex items-center gap-2 border-t border-slate-200 pt-4">
-                  {isOwnProfile(a) ? (
-                    <span className="flex-1 rounded-lg bg-slate-100 py-2 text-center text-xs font-bold text-slate-500">
-                      Your Profile
-                    </span>
-                  ) : (
-                    <>
-                      <button
-                        onClick={(e) => handleConnect(e, a)}
-                        className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition-all ${
-                          isConnected
-                            ? "border border-emerald-300 bg-emerald-100 text-emerald-800"
-                            : "bg-emerald-600 text-white shadow-sm hover:bg-emerald-700"
-                        }`}
-                      >
-                        {isConnected ? (<><Check className="h-3.5 w-3.5" /><span>Pending</span></>) : (<><UserPlus className="h-3.5 w-3.5" /><span>Connect</span></>)}
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setSelected(a); }}
-                        title="View Full Profile"
-                        className="rounded-lg bg-slate-100 p-2 text-slate-900 transition-colors hover:bg-slate-200"
-                      >
-                        <MessageSquare className="h-4 w-4 text-emerald-600" />
-                      </button>
-                    </>
-                  )}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelected(a);
+                    }}
+                    className="flex-1 rounded-xl border border-slate-200 bg-slate-50 py-2 text-center text-xs font-bold text-slate-800 transition-all group-hover:border-emerald-600 group-hover:bg-emerald-600 group-hover:text-white"
+                  >
+                    {isOwnProfile(a) ? "Your Profile" : "View Profile"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSharingAlumnus(a);
+                    }}
+                    title="Share Alumni Profile"
+                    className="rounded-xl border border-slate-200 bg-slate-50 p-2 text-slate-600 transition-colors hover:border-emerald-500 hover:bg-emerald-50 hover:text-emerald-700"
+                  >
+                    <Share2 className="h-4 w-4" />
+                  </button>
                 </div>
               </div>
             );
@@ -419,18 +383,6 @@ export default function DirectoryView({
                 >
                   <Share2 className="h-4 w-4 text-emerald-600" /> Share
                 </button>
-                {!isOwnProfile(selected) && (
-                  <button
-                    onClick={(e) => handleConnect(e, selected)}
-                    className={`ml-auto flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-bold transition-all ${
-                      connectedIds.includes(selected.id)
-                        ? "border border-slate-300 bg-slate-100 text-slate-700"
-                        : "border border-slate-200 text-slate-700 hover:bg-slate-50"
-                    }`}
-                  >
-                    {connectedIds.includes(selected.id) ? (<><Check className="h-4 w-4" /> Pending</>) : (<><UserPlus className="h-4 w-4" /> Connect</>)}
-                  </button>
-                )}
               </div>
             </div>
           </div>
@@ -445,7 +397,7 @@ export default function DirectoryView({
           subtitle={`${sharingAlumnus.company} • Class of ${sharingAlumnus.classYear}`}
           categoryLabel="IPAM Alumni Profile"
           url={`/directory?q=${encodeURIComponent(sharingAlumnus.name)}`}
-          shareText={`Connect with ${sharingAlumnus.name} (${sharingAlumnus.currentRole} at ${sharingAlumnus.company}, IPAM Class of ${sharingAlumnus.classYear}) on the IPAM Alumni Network!`}
+          shareText={`Explore ${sharingAlumnus.name}'s alumni profile (${sharingAlumnus.currentRole} at ${sharingAlumnus.company}, IPAM Class of ${sharingAlumnus.classYear}) on the IPAM Alumni Network!`}
           imageUrl={sharingAlumnus.avatar}
         />
       )}
