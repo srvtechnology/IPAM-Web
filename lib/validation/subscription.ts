@@ -5,6 +5,7 @@ export const updateSubscriptionSchema = z.object({
   billingCycle: z.enum(["ANNUAL", "LIFETIME", "MONTHLY"]).default("ANNUAL"),
   paymentMethod: z.enum(["CARD", "FLOT", "STRIPE", "SIMULATED", "COMPLIMENTARY"]).default("FLOT"),
   paymentReference: z.string().optional(),
+  currency: z.enum(["SLE", "USD"]).optional(),
 });
 
 export const toggleAutoRenewSchema = z.object({

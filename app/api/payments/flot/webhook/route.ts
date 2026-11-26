@@ -155,6 +155,18 @@ export async function POST(req: NextRequest) {
           },
         });
 
+        // Upgrade user's membership tier automatically
+        await db.alumniUser.update({
+          where: { id: subscription.userId },
+          data: {
+            membershipTier: subscription.tier,
+            subscriptionBillingCycle: subscription.billingCycle,
+            subscriptionAutoRenew: subscription.autoRenew,
+            membershipValidUntil: subscription.validUntil,
+            subscriptionUpdatedAt: new Date(),
+          },
+        });
+
         // Record in Admin Transactions ledger
         const subUser = await db.alumniUser.findUnique({
           where: { id: subscription.userId },

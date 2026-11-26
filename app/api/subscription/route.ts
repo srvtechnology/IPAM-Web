@@ -4,12 +4,13 @@ import { getAlumniSession } from "@/lib/auth/session";
 import { ok, fail } from "@/lib/api-response";
 import { type MembershipTierKey } from "@/lib/subscription-pricing";
 import { getDynamicSubscriptionTiers } from "@/lib/subscription-service";
+import { sleToUsd } from "@/lib/payments/currency";
 import { updateSubscriptionSchema, toggleAutoRenewSchema } from "@/lib/validation/subscription";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  const session = await getAlumniSession();
+export async function GET(req: NextRequest) {
+  const session = await getAlumniSession(req);
   if (!session) return fail(401, "Authentication required");
 
   const [user, dynamicTiers] = await Promise.all([
@@ -44,7 +45,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getAlumniSession();
+  const session = await getAlumniSession(req);
   if (!session) return fail(401, "Authentication required");
 
   const body = await req.json().catch(() => null);
@@ -55,27 +56,30 @@ export async function POST(req: NextRequest) {
     return fail(400, "Validation failed", { issues: parsed.error.flatten() });
   }
 
-  const { tier, billingCycle, paymentMethod, paymentReference } = parsed.data;
+  const { tier, billingCycle, paymentMethod, paymentReference, currency: requestedCurrency } = parsed.data;
   const dynamicTiers = await getDynamicSubscriptionTiers();
   const targetPlan = dynamicTiers[tier as MembershipTierKey];
   if (!targetPlan) return fail(400, "Invalid subscription tier");
 
-  let amountPaid = 0;
+  let baseSleAmount = 0;
   if (!targetPlan.isFree) {
     if (billingCycle === "LIFETIME") {
-      amountPaid = targetPlan.lifetimePrice;
+      baseSleAmount = targetPlan.lifetimePrice;
     } else if (billingCycle === "MONTHLY") {
-      amountPaid = targetPlan.monthlyPrice;
+      baseSleAmount = targetPlan.monthlyPrice;
     } else {
-      amountPaid = targetPlan.annualPrice;
+      baseSleAmount = targetPlan.annualPrice;
     }
   }
+
+  const finalCurrency = requestedCurrency === "USD" ? "USD" : "SLE";
+  const amountPaid = finalCurrency === "USD" ? sleToUsd(baseSleAmount) : baseSleAmount;
 
   let validUntil: Date | null = null;
   if (!targetPlan.isFree) {
     const now = new Date();
     if (billingCycle === "LIFETIME") {
-      validUntil = null; // No expiration
+      validUntil = null;
     } else if (billingCycle === "MONTHLY") {
       validUntil = new Date(now.setMonth(now.getMonth() + 1));
     } else {
@@ -85,58 +89,95 @@ export async function POST(req: NextRequest) {
 
   const ref = paymentReference || `IPAM-SUB-${tier.substring(0, 3)}-${Date.now()}`;
 
-  // Perform subscription upgrade transaction
-  const [updatedUser, newSubscription] = await db.$transaction([
-    db.alumniUser.update({
-      where: { id: session.sub },
-      data: {
-        membershipTier: tier as never,
-        subscriptionBillingCycle: billingCycle,
-        subscriptionAutoRenew: billingCycle !== "LIFETIME",
-        membershipValidUntil: validUntil,
-        subscriptionUpdatedAt: new Date(),
-      },
-      include: {
-        profile: true,
-      },
-    }),
-    db.membershipSubscription.create({
-      data: {
-        userId: session.sub,
-        tier: tier as never,
-        billingCycle,
-        amountPaid,
-        currency: "USD",
-        status: "ACTIVE",
-        paymentMethod,
-        paymentReference: ref,
-        autoRenew: billingCycle !== "LIFETIME",
-        validUntil,
-      },
-    }),
-  ]);
+  // If Flot already created a PENDING or ACTIVE subscription for this reference, update it cleanly
+  const existingSub = paymentReference
+    ? await db.membershipSubscription.findFirst({ where: { paymentReference } })
+    : null;
 
-  const { passwordHash: _omit, ...safeUser } = updatedUser;
+  let updatedUser;
+  let newSubscription;
 
-  // Record in Finance Transactions ledger for Admin Panel
-  if (amountPaid > 0) {
-    try {
-      await db.transaction.create({
+  if (existingSub) {
+    [updatedUser, newSubscription] = await db.$transaction([
+      db.alumniUser.update({
+        where: { id: session.sub },
         data: {
-          refId: `TXN-${ref}`,
-          method: paymentMethod === "FLOT" ? "Flot Payment Gateway" : "Online Card Payment",
-          methodColor: "PRIMARY",
-          amount: amountPaid,
-          currency: "USD",
-          tier: `Membership Subscription - ${targetPlan.name}`,
-          status: "SETTLED",
-          alumniName: updatedUser.profile?.name || updatedUser.email,
+          membershipTier: tier as never,
+          subscriptionBillingCycle: billingCycle,
+          subscriptionAutoRenew: billingCycle !== "LIFETIME",
+          membershipValidUntil: validUntil,
+          subscriptionUpdatedAt: new Date(),
         },
-      });
-    } catch (err) {
-      console.error("Failed to record transaction for subscription:", err);
+        include: { profile: true },
+      }),
+      db.membershipSubscription.update({
+        where: { id: existingSub.id },
+        data: {
+          status: "ACTIVE",
+          paymentMethod,
+        },
+      }),
+    ]);
+
+    if (amountPaid > 0) {
+      await db.transaction
+        .updateMany({
+          where: { refId: `TXN-${existingSub.paymentReference}` },
+          data: {
+            status: "SETTLED",
+            method: paymentMethod === "FLOT" ? "Flot Subscription" : "Online Card Payment",
+          },
+        })
+        .catch(() => {});
+    }
+  } else {
+    [updatedUser, newSubscription] = await db.$transaction([
+      db.alumniUser.update({
+        where: { id: session.sub },
+        data: {
+          membershipTier: tier as never,
+          subscriptionBillingCycle: billingCycle,
+          subscriptionAutoRenew: billingCycle !== "LIFETIME",
+          membershipValidUntil: validUntil,
+          subscriptionUpdatedAt: new Date(),
+        },
+        include: { profile: true },
+      }),
+      db.membershipSubscription.create({
+        data: {
+          userId: session.sub,
+          tier: tier as never,
+          billingCycle,
+          amountPaid,
+          currency: finalCurrency,
+          status: "ACTIVE",
+          paymentMethod,
+          paymentReference: ref,
+          autoRenew: billingCycle !== "LIFETIME",
+          validUntil,
+        },
+      }),
+    ]);
+
+    if (amountPaid > 0) {
+      await db.transaction
+        .create({
+          data: {
+            refId: `TXN-${ref}`,
+            method: paymentMethod === "FLOT" ? "Flot Subscription" : "Online Card Payment",
+            methodColor: "PRIMARY",
+            amount: amountPaid,
+            currency: finalCurrency,
+            tier: `Membership Subscription - ${targetPlan.name}`,
+            status: "SETTLED",
+            alumniName: updatedUser.profile?.name || updatedUser.email,
+          },
+        })
+        .catch((err) => console.error("Failed to record transaction for subscription:", err));
     }
   }
+
+  const { passwordHash: _omit, ...safeUser } = updatedUser;
 
   return ok({
     user: safeUser,
@@ -148,7 +189,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  const session = await getAlumniSession();
+  const session = await getAlumniSession(req);
   if (!session) return fail(401, "Authentication required");
 
   const body = await req.json().catch(() => null);

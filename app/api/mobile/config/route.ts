@@ -1,12 +1,13 @@
 import { ok } from "@/lib/api-response";
+import { getUsdToSleRate } from "@/lib/payments/currency";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   return ok({
     appName: "IPAM Alumni Mobile",
-    version: "1.0.0",
-    buildNumber: 1,
+    version: "1.1.0",
+    buildNumber: 2,
     minSupportedVersion: "1.0.0",
     forceUpdate: false,
     maintenanceMode: false,
@@ -17,11 +18,25 @@ export async function GET() {
       donations: true,
       jobBoard: true,
       events: true,
+      paidEventTicketing: true,
       mentoring: true,
       commercialMarketplace: true,
+      bottomBanners: true,
       biometricScanner: true,
-      stripePayments: true,
+      flotPayments: true,
+      flotDualCurrency: true,
+      stripePayments: false,
       pushNotifications: true,
+    },
+    payments: {
+      primaryGateway: "FLOT",
+      currencies: ["SLE", "USD"],
+      defaultCurrency: "SLE",
+      usdToSleRate: getUsdToSleRate(),
+      methodsByCurrency: {
+        SLE: ["in-app", "momo", "card"],
+        USD: ["card"],
+      },
     },
     notifications: {
       firebaseProjectId: "auratrade-p93c",

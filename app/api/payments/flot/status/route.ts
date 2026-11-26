@@ -143,6 +143,18 @@ export async function GET(req: NextRequest) {
             data: { status: "ACTIVE", paymentMethod: "FLOT", paymentReference: attemptId },
           });
 
+          // Activate the user's membership tier on AlumniUser as well
+          await db.alumniUser.update({
+            where: { id: subscription.userId },
+            data: {
+              membershipTier: subscription.tier,
+              subscriptionBillingCycle: subscription.billingCycle,
+              subscriptionAutoRenew: subscription.autoRenew,
+              membershipValidUntil: subscription.validUntil,
+              subscriptionUpdatedAt: new Date(),
+            },
+          });
+
           const subUser = await db.alumniUser.findUnique({
             where: { id: subscription.userId },
             include: { profile: true },

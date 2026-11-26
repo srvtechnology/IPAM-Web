@@ -224,24 +224,26 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     }
   }
 
-  // Dispatch push, in-app, and email confirmation notification to alumni
-  notifyEventRegistrationConfirmed({
-    userId: session.sub,
-    attendeeEmail: attendeeEmail || session.email,
-    attendeeName: attendeeName || null,
-    eventTitle: event.title,
-    eventDate: event.date,
-    bookingReference: registration.bookingReference,
-    location: event.location,
-    ticketCount: registration.ticketCount,
-    totalAmount: Number(registration.totalAmount),
-    currency: registration.currency,
-    paymentStatus: registration.paymentStatus,
-  }).catch((err) => console.error("[Events] RSVP Notification error:", err));
+  // Dispatch push, in-app, and email confirmation notification when free or already paid
+  if (paymentStatus !== "PENDING") {
+    notifyEventRegistrationConfirmed({
+      userId: session.sub,
+      attendeeEmail: attendeeEmail || session.email,
+      attendeeName: attendeeName || null,
+      eventTitle: event.title,
+      eventDate: event.date,
+      bookingReference: registration.bookingReference,
+      location: event.location,
+      ticketCount: registration.ticketCount,
+      totalAmount: Number(registration.totalAmount),
+      currency: registration.currency,
+      paymentStatus: registration.paymentStatus,
+    }).catch((err) => console.error("[Events] RSVP Notification error:", err));
+  }
 
   return ok(
     {
-      registered: true,
+      registered: paymentStatus === "PAID" || paymentStatus === "FREE",
       alreadyRegistered: false,
       bookingReference: registration.bookingReference,
       ticketCount: registration.ticketCount,

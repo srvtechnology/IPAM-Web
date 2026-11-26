@@ -1490,10 +1490,13 @@ Official API documentation and testing sandbox for **IPAM Alumni Web** and the *
     "/api/banners": {
       get: {
         tags: ["Content & Banners"],
-        summary: "Commercial & Partner Banners",
-        description: "Active sponsor banners and university campaign ads.",
+        summary: "Bottom Commercial & Partner Banners",
+        description: "Returns active commercial/sponsor banners rendered at the bottom of web screens (defaults to page='/', or pass ?page=/events, ?page=ALL, etc.).",
+        parameters: [
+          { name: "page", in: "query", required: false, schema: { type: "string", default: "/" } },
+        ],
         responses: {
-          200: { description: "List of active banners" },
+          200: { description: "List of active bottom banners matching page" },
         },
       },
     },
@@ -1501,7 +1504,7 @@ Official API documentation and testing sandbox for **IPAM Alumni Web** and the *
       post: {
         tags: ["Content & Banners"],
         summary: "Track Banner Impression",
-        description: "Records view metric for sponsor analytics.",
+        description: "Records view metrics for sponsor analytics. Accepts { ids: [...] } or { bannerIds: [...] }.",
         responses: {
           200: { description: "Impression logged" },
         },
@@ -1520,15 +1523,35 @@ Official API documentation and testing sandbox for **IPAM Alumni Web** and the *
         },
       },
     },
+    "/api/giving": {
+      get: {
+        tags: ["Donations & Giving"],
+        summary: "Get Giving Hub Summary, Funds & Honor Roll",
+        description: "Returns all giving funds with live raised amounts & donor counts, aggregate statistics, recent community donations, and /giving bottom banners.",
+        responses: {
+          200: { description: "Giving hub payload" },
+        },
+      },
+    },
 
     // -------------------------------------------------------------
     // PAYMENTS (FLOT PAYMENT GATEWAY)
     // -------------------------------------------------------------
+    "/api/payments/flot/config": {
+      get: {
+        tags: ["Payments"],
+        summary: "Get Flot Gateway Configuration & Rates",
+        description: "Returns Flot currencies (SLE, USD), USD-to-SLE rate, allowed payment methods per currency, physical card pricing, and subscription plans in both SLE and USD.",
+        responses: {
+          200: { description: "Flot gateway config & pricing" },
+        },
+      },
+    },
     "/api/payments/flot/create-payment-link": {
       post: {
         tags: ["Payments"],
         summary: "Create Flot Payment Link",
-        description: "Initializes a cryptographically signed Flot Payment Link for in-app wallet or credit-card checkout.",
+        description: "Initializes a cryptographically signed Flot Payment Link across all 4 IPAM payment flows (physical_card, event_registration, subscription, donation) with dual SLE/USD currency support.",
         security: [{ BearerAuth: [] }, { CookieAuth: [] }],
         requestBody: {
           required: true,
@@ -1537,10 +1560,19 @@ Official API documentation and testing sandbox for **IPAM Alumni Web** and the *
               schema: {
                 type: "object",
                 properties: {
+                  purpose: { type: "string", enum: ["physical_card", "event_registration", "subscription", "donation"] },
+                  currency: { type: "string", enum: ["SLE", "USD"], default: "SLE" },
+                  type: { type: "string", enum: ["in-app", "momo", "card"], default: "in-app" },
+                  amount: { type: "number" },
                   cardTier: { type: "string", enum: ["STANDARD_PVC", "GOLD_RFID_SMART", "EXECUTIVE_TITANIUM"] },
+                  eventId: { type: "string" },
+                  ticketCount: { type: "integer" },
+                  subscriptionTier: { type: "string", enum: ["SILVER_LIFETIME", "GOLD_PATRON"] },
+                  billingCycle: { type: "string", enum: ["ANNUAL", "MONTHLY", "LIFETIME"] },
+                  fund: { type: "string" },
                   orderNumber: { type: "string" },
-                  type: { type: "string", enum: ["in-app", "credit-card"], default: "in-app" },
                   recipientName: { type: "string" },
+                  description: { type: "string" },
                 },
               },
             },
@@ -1550,6 +1582,21 @@ Official API documentation and testing sandbox for **IPAM Alumni Web** and the *
           200: { description: "Flot Payment Link created successfully" },
           400: { description: "Invalid tier or invalid amount" },
           401: { description: "Authentication required" },
+        },
+      },
+    },
+    "/api/payments/flot/status": {
+      get: {
+        tags: ["Payments"],
+        summary: "Poll Flot Payment Status",
+        description: "Polls payment status by orderId and optional attemptId. Automatically marks physical cards, donations, subscriptions, or paid event registrations as settled when completed.",
+        parameters: [
+          { name: "orderId", in: "query", required: true, schema: { type: "string" } },
+          { name: "attemptId", in: "query", required: false, schema: { type: "string" } },
+        ],
+        responses: {
+          200: { description: "Payment status response ({ status: 'pending' | 'completed' | 'failed', type })" },
+          400: { description: "Missing orderId" },
         },
       },
     },
@@ -1602,6 +1649,19 @@ Official API documentation and testing sandbox for **IPAM Alumni Web** and the *
     // -------------------------------------------------------------
     // MOBILE APP
     // -------------------------------------------------------------
+    "/api/mobile/banners": {
+      get: {
+        tags: ["Mobile App", "Content & Banners"],
+        summary: "Get Home Hero & Bottom Banners",
+        description: "Returns top heroSlides and bottomBanners matching the web home screen (or requested ?page=/events, ?page=ALL, etc.).",
+        parameters: [
+          { name: "page", in: "query", required: false, schema: { type: "string", default: "/" } },
+        ],
+        responses: {
+          200: { description: "Returns { page, heroSlides, bottomBanners }" },
+        },
+      },
+    },
     "/api/mobile/home": {
       get: {
         tags: ["Mobile App"],

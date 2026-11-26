@@ -1,6 +1,8 @@
 import type { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { getAlumniSession } from "@/lib/auth/session";
+import { getHeroSlides } from "@/lib/hero-slides";
+import { getBannersForPage } from "@/lib/commercial-banners";
 import { ok } from "@/lib/api-response";
 
 export const dynamic = "force-dynamic";
@@ -10,25 +12,18 @@ export async function GET(req: NextRequest) {
 
   const [
     heroSlides,
-    banners,
+    bottomBanners,
     featuredEvents,
     latestJobs,
     councilLeaders,
+    featuredBusinesses,
     totalAlumni,
     totalJobs,
     totalEvents,
     totalBusinesses,
   ] = await Promise.all([
-    ((db as any).heroSlide?.findMany({
-      where: { active: true },
-      orderBy: { order: "asc" },
-      take: 5,
-    }) ?? Promise.resolve([])) as Promise<any[]>,
-    ((db as any).commercialBanner?.findMany({
-      where: { active: true },
-      orderBy: { order: "asc" },
-      take: 6,
-    }) ?? Promise.resolve([])) as Promise<any[]>,
+    getHeroSlides(),
+    getBannersForPage("/"),
     db.alumniEvent.findMany({
       where: { status: "PUBLISHED" },
       orderBy: { date: "asc" },
@@ -43,6 +38,13 @@ export async function GET(req: NextRequest) {
       },
     }),
     db.leadershipMember.findMany({
+      include: { initiatives: true },
+      orderBy: { classYear: "asc" },
+      take: 6,
+    }),
+    db.alumniBusiness.findMany({
+      where: { status: "APPROVED" },
+      orderBy: [{ featured: "desc" }, { createdAt: "desc" }],
       take: 6,
     }),
     db.alumniUser.count({ where: { status: "APPROVED" } }),
@@ -62,11 +64,17 @@ export async function GET(req: NextRequest) {
         db.savedJob.count({ where: { userId: session.sub } }),
         db.jobOpeningApplication.count({ where: { alumniUserId: session.sub } }),
         db.eventRegistration.count({
-          where: { userId: session.sub, bookingStatus: { not: "CANCELLED" } },
+          where: {
+            userId: session.sub,
+            bookingStatus: { not: "CANCELLED" },
+            paymentStatus: { in: ["PAID", "FREE"] },
+          },
         }),
-        db.alumniNotification.count({
-          where: { userId: session.sub, isRead: false },
-        }).catch(() => 0),
+        db.alumniNotification
+          .count({
+            where: { userId: session.sub, isRead: false },
+          })
+          .catch(() => 0),
       ]);
 
     if (user && user.profile) {
@@ -91,26 +99,29 @@ export async function GET(req: NextRequest) {
 
   return ok({
     heroSlides,
-    banners,
-    featuredEvents: featuredEvents.map((evt: any) => ({
+    banners: bottomBanners,
+    bottomBanners,
+    featuredEvents: featuredEvents.map((evt) => ({
       id: evt.id,
       title: evt.title,
       description: evt.description,
       date: evt.date,
+      displayDate: evt.displayDate,
+      time: evt.time,
       location: evt.location,
       category: evt.category,
       bannerImage: evt.bannerImage,
       capacity: evt.capacity,
       registeredCount: evt.registeredCount,
       isFree: !evt.isPaid,
+      isPaid: evt.isPaid,
       ticketPrice: evt.isPaid ? Number(evt.ticketPrice) : 0,
       currency: evt.currency,
     })),
-    latestJobs: latestJobs.map((job: any) => ({
+    latestJobs: latestJobs.map((job) => ({
       id: job.id,
       title: job.title,
       company: job.company,
-      companyLogo: job.companyLogo,
       location: job.location,
       type: job.type,
       workplaceType: job.workplaceType,
@@ -121,16 +132,17 @@ export async function GET(req: NextRequest) {
       postedDate: job.postedDate,
       applicationsCount: job._count?.applications ?? 0,
     })),
-    councilLeaders: councilLeaders.map((lead: any) => ({
+    councilLeaders: councilLeaders.map((lead) => ({
       id: lead.id,
       name: lead.name,
       role: lead.role,
-      title: lead.title,
       classYear: lead.classYear ? `Class of ${lead.classYear}` : "",
-      avatarUrl: lead.avatar || lead.image,
+      avatarUrl: lead.image,
       bio: lead.bio,
-      linkedin: lead.linkedin,
+      quote: lead.quote,
+      initiatives: lead.initiatives.map((i) => i.title),
     })),
+    featuredBusinesses,
     stats: {
       totalAlumni,
       totalJobs,

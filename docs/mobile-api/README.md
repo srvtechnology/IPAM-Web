@@ -20,6 +20,8 @@ This documentation suite provides production-ready, type-safe integration guides
 
 ## 📚 Module Integration Guides
 
+> **🚀 Recommended Single-File Flutter IDE Context:** Share [FLUTTER_API_MASTER_CONTEXT.md](file:///Users/pranab/workspace/IPAM-Web/docs/mobile-api/FLUTTER_API_MASTER_CONTEXT.md) directly in your Flutter IDE for complete end-to-end context (Home Bottom Banners + Flot Dual-Currency Payments + All 14 Modules).
+
 | # | Module Name | Interactive Swagger UI | Guide Document |
 |---|---|---|---|
 | 01 | **Authentication** | [Swagger Tag](https://ipam.billnbite.cloud/api-docs#/Authentication) | [01-authentication.md](file:///Users/pranab/workspace/IPAM-Web/docs/mobile-api/01-authentication.md) |
