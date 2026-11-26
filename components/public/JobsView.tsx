@@ -23,10 +23,12 @@ import {
   CheckCircle2,
   Trophy,
   ChevronRight,
+  Share2,
 } from "lucide-react";
 import { useApp } from "@/lib/public/context";
 import { useToggleSaveJob } from "@/hooks/public/useJobActions";
 import PostJobModal from "@/components/public/PostJobModal";
+import ShareModal from "@/components/public/ShareModal";
 import { COUNTRIES_DATA } from "@/lib/locations-data";
 
 export interface JobListItem {
@@ -100,11 +102,13 @@ function JobCard({
   initialSaved,
   appliedInfo,
   onToggleSave,
+  onShare,
 }: {
   job: JobListItem;
   initialSaved: boolean;
   appliedInfo?: AppliedJobMeta;
   onToggleSave?: (jobId: string, isSaved: boolean) => void;
+  onShare?: (job: JobListItem) => void;
 }) {
   const { saved, loading, toggle } = useToggleSaveJob(job.id, initialSaved, (isSaved) => {
     onToggleSave?.(job.id, isSaved);
@@ -249,6 +253,15 @@ function JobCard({
 
         <div className="flex items-center gap-2">
           <button
+            type="button"
+            onClick={() => onShare?.(job)}
+            className="p-2.5 rounded-xl bg-slate-100 hover:bg-emerald-50 hover:border-emerald-300 text-slate-700 hover:text-emerald-700 transition-colors border border-slate-200"
+            title="Share Job Opportunity"
+          >
+            <Share2 className="w-4 h-4" />
+          </button>
+
+          <button
             onClick={toggle}
             disabled={loading}
             className="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors border border-slate-200 disabled:opacity-60"
@@ -304,6 +317,7 @@ export default function JobsView({
   const [onlySaved, setOnlySaved] = useState(Boolean(initialSaved));
   const [onlyApplied, setOnlyApplied] = useState(false);
   const [currentSavedIds, setCurrentSavedIds] = useState<string[]>(savedJobIds);
+  const [sharingJob, setSharingJob] = useState<JobListItem | null>(null);
 
   useEffect(() => {
     setCurrentSavedIds(savedJobIds);
@@ -723,6 +737,7 @@ export default function JobsView({
                 initialSaved={savedSet.has(j.id)}
                 appliedInfo={myApplicationsMap[j.id]}
                 onToggleSave={handleToggleSaveJob}
+                onShare={setSharingJob}
               />
             ))
           )}
@@ -730,6 +745,18 @@ export default function JobsView({
       </div>
 
       {isPostJobOpen && <PostJobModal onClose={() => setIsPostJobOpen(false)} />}
+
+      {sharingJob && (
+        <ShareModal
+          isOpen={!!sharingJob}
+          onClose={() => setSharingJob(null)}
+          title={`${sharingJob.title} at ${sharingJob.company}`}
+          subtitle={`${sharingJob.location} • ${sharingJob.salary}`}
+          categoryLabel="IPAM Career Opportunity"
+          url={`/jobs/${sharingJob.id}`}
+          shareText={`Check out this career opportunity: ${sharingJob.title} at ${sharingJob.company} (${sharingJob.location}, ${sharingJob.salary}) on the IPAM Alumni Careers Portal!`}
+        />
+      )}
     </div>
   );
 }

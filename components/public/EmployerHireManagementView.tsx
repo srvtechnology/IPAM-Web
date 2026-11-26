@@ -31,8 +31,10 @@ import {
   AlertCircle,
   Send,
   Download,
+  Share2,
 } from "lucide-react";
 import PostJobModal from "./PostJobModal";
+import ShareModal from "./ShareModal";
 
 export interface CandidateApplication {
   id: string;
@@ -173,6 +175,7 @@ export default function EmployerHireManagementView({
   const [selectedJobId, setSelectedJobId] = useState<string>(initialJobs[0]?.id || "");
   const [selectedCandidate, setSelectedCandidate] = useState<CandidateApplication | null>(null);
   const [isPostJobOpen, setIsPostJobOpen] = useState(false);
+  const [sharingJob, setSharingJob] = useState<ManagedJob | null>(null);
   const [candidateFilter, setCandidateFilter] = useState<string>("all");
   const [candidateSearch, setCandidateSearch] = useState("");
 
@@ -796,8 +799,16 @@ export default function EmployerHireManagementView({
                       <p className="text-xs sm:text-sm font-bold text-emerald-700 mt-0.5">{selectedJob.company}</p>
                     </div>
 
-                    {/* Job Status Switcher */}
-                    <div className="flex items-center gap-2">
+                    {/* Job Status Switcher & Share */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setSharingJob(selectedJob)}
+                        className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-2xs transition-colors hover:border-emerald-500 hover:bg-emerald-50 hover:text-emerald-800"
+                      >
+                        <Share2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Share Job</span>
+                      </button>
                       <span className="text-xs font-bold text-slate-600">Job Status:</span>
                       <select
                         value={selectedJob.status}
@@ -890,10 +901,18 @@ export default function EmployerHireManagementView({
 
                   {/* Candidate List */}
                   {filteredCandidates.length === 0 ? (
-                    <div className="p-8 text-center bg-slate-50 rounded-2xl border border-slate-100">
-                      <Users className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+                    <div className="p-8 text-center bg-slate-50 rounded-2xl border border-slate-100 space-y-2.5">
+                      <Users className="w-8 h-8 text-slate-400 mx-auto" />
                       <p className="text-xs font-bold text-slate-700">No candidate applications in this view</p>
                       <p className="text-[11px] text-slate-500">Share your job opening link to receive alumni applicants.</p>
+                      <button
+                        type="button"
+                        onClick={() => setSharingJob(selectedJob)}
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition-colors"
+                      >
+                        <Share2 className="w-3.5 h-3.5" />
+                        <span>Share Job Opening</span>
+                      </button>
                     </div>
                   ) : (
                     <div className="divide-y divide-slate-100 rounded-2xl border border-slate-200/80 overflow-hidden">
@@ -1238,6 +1257,18 @@ export default function EmployerHireManagementView({
             setIsPostJobOpen(false);
             window.location.reload();
           }}
+        />
+      )}
+
+      {sharingJob && (
+        <ShareModal
+          isOpen={!!sharingJob}
+          onClose={() => setSharingJob(null)}
+          title={`${sharingJob.title} at ${sharingJob.company}`}
+          subtitle={`${sharingJob.location} • ${sharingJob.salary}`}
+          categoryLabel="IPAM Career Opportunity"
+          url={`/jobs/${sharingJob.id}`}
+          shareText={`We are hiring for ${sharingJob.title} at ${sharingJob.company} (${sharingJob.location}, ${sharingJob.salary})! Apply via the IPAM Alumni Careers Portal.`}
         />
       )}
     </div>

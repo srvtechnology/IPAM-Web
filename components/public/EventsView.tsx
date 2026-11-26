@@ -25,9 +25,11 @@ import {
   Send,
   Check,
   Building2,
+  Share2,
 } from "lucide-react";
 import { useApp } from "@/lib/public/context";
 import { useCreateEventProposal } from "@/hooks/public/useCreateEventProposal";
+import ShareModal from "@/components/public/ShareModal";
 
 export interface EventListItem {
   id: string;
@@ -110,6 +112,7 @@ export default function EventsView({ events }: { events: EventListItem[] }) {
 
   const [isProposingEvent, setIsProposingEvent] = useState(false);
   const [proposalSubmitted, setProposalSubmitted] = useState(false);
+  const [sharingEvent, setSharingEvent] = useState<EventListItem | null>(null);
   const [proposalData, setProposalData] = useState({
     title: "",
     category: "REGIONAL_MEETUP" as (typeof PROPOSAL_CATEGORIES)[number],
@@ -762,16 +765,30 @@ export default function EventsView({ events }: { events: EventListItem[] }) {
                         </span>
                       </div>
 
-                      <div
-                        className={`flex w-full items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-extrabold shadow-xs transition-all duration-200 sm:text-sm ${
-                          event.isRegistered
-                            ? "border border-emerald-200 bg-emerald-50 text-emerald-800 group-hover:bg-emerald-100"
-                            : "border border-slate-200 bg-white text-slate-800 group-hover:border-emerald-600 group-hover:bg-emerald-600 group-hover:text-white"
-                        }`}
-                      >
-                        <Ticket className="h-3.5 w-3.5" />
-                        <span>{event.isRegistered ? "View My Event Pass" : "View Details & RSVP"}</span>
-                        <ArrowRight className="h-3.5 w-3.5" />
+                      <div className="flex items-center gap-2">
+                        <div
+                          className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-extrabold shadow-xs transition-all duration-200 sm:text-sm ${
+                            event.isRegistered
+                              ? "border border-emerald-200 bg-emerald-50 text-emerald-800 group-hover:bg-emerald-100"
+                              : "border border-slate-200 bg-white text-slate-800 group-hover:border-emerald-600 group-hover:bg-emerald-600 group-hover:text-white"
+                          }`}
+                        >
+                          <Ticket className="h-3.5 w-3.5" />
+                          <span>{event.isRegistered ? "View My Event Pass" : "View Details & RSVP"}</span>
+                          <ArrowRight className="h-3.5 w-3.5" />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setSharingEvent(event);
+                          }}
+                          title="Share Event"
+                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-600 transition-colors hover:border-emerald-500 hover:bg-emerald-50 hover:text-emerald-700"
+                        >
+                          <Share2 className="h-4 w-4" />
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -1033,6 +1050,18 @@ export default function EventsView({ events }: { events: EventListItem[] }) {
             )}
           </div>
         </div>
+      )}
+      {sharingEvent && (
+        <ShareModal
+          isOpen={!!sharingEvent}
+          onClose={() => setSharingEvent(null)}
+          title={sharingEvent.title}
+          subtitle={`${sharingEvent.displayDate} • ${sharingEvent.location}`}
+          categoryLabel="IPAM Alumni Event"
+          url={`/events/${sharingEvent.id}`}
+          shareText={`Join me at "${sharingEvent.title}" on ${sharingEvent.displayDate} (${sharingEvent.location}) via the IPAM Alumni Network!`}
+          imageUrl={sharingEvent.bannerImage || null}
+        />
       )}
     </div>
   );

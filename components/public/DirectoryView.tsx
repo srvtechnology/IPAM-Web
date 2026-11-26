@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search, Mail, Linkedin, X, MapPin, GraduationCap, Sparkles, UserPlus, Check, MessageSquare, Users } from "lucide-react";
+import { Search, Mail, Linkedin, X, MapPin, GraduationCap, Sparkles, UserPlus, Check, MessageSquare, Users, Share2 } from "lucide-react";
 import { useApp } from "@/lib/public/context";
 import { useConnect } from "@/hooks/public/useConnect";
+import ShareModal from "@/components/public/ShareModal";
 
 export interface DirectoryAlumnus {
   id: string;
@@ -58,6 +59,7 @@ export default function DirectoryView({
   const [selected, setSelected] = useState<DirectoryAlumnus | null>(null);
   const [connectedIds, setConnectedIds] = useState<string[]>([]);
   const [toast, setToast] = useState<string | null>(null);
+  const [sharingAlumnus, setSharingAlumnus] = useState<DirectoryAlumnus | null>(null);
 
   function isOwnProfile(a: DirectoryAlumnus) {
     if (currentUserId && a.userId === currentUserId) return true;
@@ -401,7 +403,7 @@ export default function DirectoryView({
                   ))}
                 </div>
               )}
-              <div className="mt-5 flex gap-3">
+              <div className="mt-5 flex flex-wrap gap-3">
                 <a href={`mailto:${selected.email}`} className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white shadow-xs transition-all hover:bg-emerald-700">
                   <Mail className="h-4 w-4" /> Email
                 </a>
@@ -410,6 +412,13 @@ export default function DirectoryView({
                     <Linkedin className="h-4 w-4" /> LinkedIn
                   </a>
                 )}
+                <button
+                  type="button"
+                  onClick={() => setSharingAlumnus(selected)}
+                  className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-xs transition-all hover:bg-slate-50"
+                >
+                  <Share2 className="h-4 w-4 text-emerald-600" /> Share
+                </button>
                 {!isOwnProfile(selected) && (
                   <button
                     onClick={(e) => handleConnect(e, selected)}
@@ -426,6 +435,19 @@ export default function DirectoryView({
             </div>
           </div>
         </div>
+      )}
+
+      {sharingAlumnus && (
+        <ShareModal
+          isOpen={!!sharingAlumnus}
+          onClose={() => setSharingAlumnus(null)}
+          title={`${sharingAlumnus.name} — ${sharingAlumnus.currentRole}`}
+          subtitle={`${sharingAlumnus.company} • Class of ${sharingAlumnus.classYear}`}
+          categoryLabel="IPAM Alumni Profile"
+          url={`/directory?q=${encodeURIComponent(sharingAlumnus.name)}`}
+          shareText={`Connect with ${sharingAlumnus.name} (${sharingAlumnus.currentRole} at ${sharingAlumnus.company}, IPAM Class of ${sharingAlumnus.classYear}) on the IPAM Alumni Network!`}
+          imageUrl={sharingAlumnus.avatar}
+        />
       )}
       </div>
     </div>

@@ -39,6 +39,8 @@ export default function VirtualIdModal({
   const [recipientEmail, setRecipientEmail] = useState("");
   const [recipientName, setRecipientName] = useState("");
   const [dispatchSent, setDispatchSent] = useState(false);
+  const [dispatchLoading, setDispatchLoading] = useState(false);
+  const [dispatchError, setDispatchError] = useState<string | null>(null);
   const qrRef = useRef<HTMLDivElement>(null);
 
   const profile = session.profile;
@@ -93,10 +95,32 @@ export default function VirtualIdModal({
     img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
   }
 
-  function handleDispatch(e: FormEvent) {
+  async function handleDispatch(e: FormEvent) {
     e.preventDefault();
     if (!recipientEmail) return;
-    setDispatchSent(true);
+    setDispatchLoading(true);
+    setDispatchError(null);
+    try {
+      const res = await fetch("/api/alumni/pass/dispatch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipientEmail: recipientEmail.trim(),
+          recipientName: recipientName.trim() || undefined,
+          verifyUrl: cardUrl,
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setDispatchError(json.error || "Unable to send email right now. Please try again.");
+        return;
+      }
+      setDispatchSent(true);
+    } catch {
+      setDispatchError("Network error while dispatching digital pass.");
+    } finally {
+      setDispatchLoading(false);
+    }
   }
 
   return (
@@ -308,9 +332,9 @@ export default function VirtualIdModal({
                   </button>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
                   <button onClick={handleNativeShare} className="flex flex-col items-center gap-1 rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-bold text-slate-700 shadow-xs hover:border-emerald-600 hover:bg-slate-50">
-                    <Share2 className="h-4 w-4 text-emerald-600" /> Quick Share
+                    <Share2 className="h-4 w-4 text-emerald-600" /> {copiedLink ? "Copied!" : "Quick Share"}
                   </button>
                   <a
                     href={`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`}
@@ -320,12 +344,19 @@ export default function VirtualIdModal({
                     <MessageCircle className="h-4 w-4 text-emerald-600" /> WhatsApp
                   </a>
                   <a
+                    href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(cardUrl)}`}
+                    target="_blank" rel="noopener noreferrer"
+                    className="flex flex-col items-center gap-1 rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-bold text-slate-700 shadow-xs hover:border-emerald-600 hover:bg-slate-50"
+                  >
+                    <Linkedin className="h-4 w-4 text-sky-600" /> LinkedIn
+                  </a>
+                  <a
                     href={`mailto:?subject=${encodeURIComponent(shareTitle)}&body=${encodeURIComponent(shareText)}`}
                     className="flex flex-col items-center gap-1 rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-bold text-slate-700 shadow-xs hover:border-emerald-600 hover:bg-slate-50"
                   >
                     <Mail className="h-4 w-4 text-blue-600" /> Email Pass
                   </a>
-                  <button onClick={handleDownloadQR} className="flex flex-col items-center gap-1 rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-bold text-slate-700 shadow-xs hover:border-emerald-600 hover:bg-slate-50">
+                  <button onClick={handleDownloadQR} className="col-span-2 sm:col-span-1 flex flex-col items-center gap-1 rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-bold text-slate-700 shadow-xs hover:border-emerald-600 hover:bg-slate-50">
                     <Download className="h-4 w-4 text-purple-600" /> Save QR PNG
                   </button>
                 </div>
@@ -362,8 +393,15 @@ export default function VirtualIdModal({
                         className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-900 focus:outline-emerald-600"
                       />
                     </div>
-                    <button type="submit" className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-emerald-600 py-2 text-xs font-bold text-white hover:bg-emerald-700">
-                      <Send className="h-3.5 w-3.5" /> Dispatch Official Digital Pass
+                    {dispatchError && (
+                      <p className="text-[11px] font-semibold text-rose-600">{dispatchError}</p>
+                    )}
+                    <button
+                      type="submit"
+                      disabled={dispatchLoading}
+                      className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-emerald-600 py-2 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-60"
+                    >
+                      <Send className="h-3.5 w-3.5" /> {dispatchLoading ? "Sending Email..." : "Dispatch Official Digital Pass"}
                     </button>
                   </form>
                 )}

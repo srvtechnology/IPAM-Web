@@ -38,6 +38,7 @@ import {
 import { useRegisterForEvent } from "@/hooks/public/useEventActions";
 import { useApp } from "@/lib/public/context";
 import FlotCheckoutModal from "@/components/public/FlotCheckoutModal";
+import ShareModal from "@/components/public/ShareModal";
 
 export interface EventDetail {
   id: string;
@@ -118,6 +119,7 @@ export default function EventDetailView({ event, relatedEvents }: { event: Event
   const [attendeePhone, setAttendeePhone] = useState<string>("");
   const [isFlotModalOpen, setIsFlotModalOpen] = useState(false);
   const [isPreRegistering, setIsPreRegistering] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   const totalAmount = unitPrice * ticketCount;
 
@@ -141,25 +143,8 @@ export default function EventDetailView({ event, relatedEvents }: { event: Event
   const full = event.registeredCount >= event.capacity;
   const percentageFilled = Math.min(100, Math.round((event.registeredCount / event.capacity) * 100));
 
-  async function handleShare() {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: event.title,
-          text: `Join me at "${event.title}" on ${event.displayDate} via the IPAM Alumni Network!`,
-          url: window.location.href,
-        });
-        return;
-      } catch {
-        // user cancelled the native share sheet — fall through to clipboard copy
-      }
-    }
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-    } finally {
-      setCopiedLink(true);
-      setTimeout(() => setCopiedLink(false), 2500);
-    }
+  function handleShare() {
+    setIsShareModalOpen(true);
   }
 
   function handleDownloadIcs() {
@@ -979,6 +964,17 @@ export default function EventDetailView({ event, relatedEvents }: { event: Event
           onSuccess={handlePaidSuccess}
         />
       )}
+
+      <ShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        title={event.title}
+        subtitle={`${event.displayDate} • ${event.location}`}
+        categoryLabel="IPAM Alumni Event"
+        url={`/events/${event.id}`}
+        shareText={`Join me at "${event.title}" on ${event.displayDate} (${event.location}) via the IPAM Alumni Network!`}
+        imageUrl={allBanners[0] || null}
+      />
     </div>
   );
 }

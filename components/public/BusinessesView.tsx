@@ -18,9 +18,11 @@ import {
   ExternalLink,
   Briefcase,
   Sparkles,
+  Share2,
 } from "lucide-react";
 import { useApp } from "@/lib/public/context";
 import SubmitBusinessModal from "@/components/public/SubmitBusinessModal";
+import ShareModal from "@/components/public/ShareModal";
 
 export interface BusinessListItem {
   id: string;
@@ -65,6 +67,7 @@ export default function BusinessesView({
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All");
   const [editingBusiness, setEditingBusiness] = useState<BusinessListItem | null>(null);
+  const [sharingBusiness, setSharingBusiness] = useState<BusinessListItem | null>(null);
 
   // Sync state with incoming props from server component
   useEffect(() => {
@@ -568,6 +571,17 @@ export default function BusinessesView({
                         >
                           <span>View Profile</span>
                         </Link>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setSharingBusiness(b);
+                          }}
+                          className="rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-xs font-bold text-slate-700 hover:border-emerald-500 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
+                          title="Share Business Profile"
+                        >
+                          <Share2 className="h-4 w-4" />
+                        </button>
                         {isOwner && (
                           <button
                             type="button"
@@ -633,6 +647,19 @@ export default function BusinessesView({
           initialData={editingBusiness}
           onClose={() => setEditingBusiness(null)}
           onSuccess={handleBusinessUpdated}
+        />
+      )}
+
+      {sharingBusiness && (
+        <ShareModal
+          isOpen={!!sharingBusiness}
+          onClose={() => setSharingBusiness(null)}
+          title={sharingBusiness.name}
+          subtitle={`${sharingBusiness.industry} • ${sharingBusiness.location}`}
+          categoryLabel="IPAM Alumni Enterprise"
+          url={`/businesses/${sharingBusiness.id}`}
+          shareText={`Discover ${sharingBusiness.name} (${sharingBusiness.industry}), an alumni-led enterprise founded by ${sharingBusiness.founders} on the IPAM Alumni Portal!`}
+          imageUrl={sharingBusiness.logo || sharingBusiness.image || sharingBusiness.bannerImage || null}
         />
       )}
     </div>

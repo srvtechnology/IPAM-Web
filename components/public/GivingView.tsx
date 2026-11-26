@@ -30,6 +30,7 @@ import { useApp } from "@/lib/public/context";
 import { useCreateDonation } from "@/hooks/public/useCreateDonation";
 import type { FundId, FundMeta } from "@/lib/public/giving-funds";
 import FlotCheckoutModal from "./FlotCheckoutModal";
+import ShareModal from "./ShareModal";
 
 const FUND_ICONS: Record<FundId, ElementType> = {
   scholarship: GraduationCap,
@@ -167,6 +168,7 @@ export default function GivingView({ funds, recentDonations }: GivingViewProps) 
   const [isFlotModalOpen, setIsFlotModalOpen] = useState(false);
   const [modalAmount, setModalAmount] = useState<number>(10);
   const [modalCurrency, setModalCurrency] = useState<"SLE" | "USD">("SLE");
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   useEffect(() => {
     if (session) {
@@ -279,16 +281,8 @@ export default function GivingView({ funds, recentDonations }: GivingViewProps) 
     window.URL.revokeObjectURL(url);
   }
 
-  async function handleCopyShare() {
-    const text =
-      "I just supported the IPAM Alumni Endowment Fund to empower deserving scholars in Sierra Leone! Join me in giving back.";
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch {
-      // clipboard API unavailable — still surface the confirmation
-    }
-    setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2500);
+  function handleCopyShare() {
+    setIsShareModalOpen(true);
   }
 
   return (
@@ -341,6 +335,14 @@ export default function GivingView({ funds, recentDonations }: GivingViewProps) 
             >
               Community Honor Roll
             </a>
+            <button
+              type="button"
+              onClick={() => setIsShareModalOpen(true)}
+              className="flex items-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-950/70 px-5 py-3 text-xs font-bold text-emerald-300 transition-colors hover:bg-emerald-900/80 sm:text-sm"
+            >
+              <Share2 className="h-4 w-4 text-emerald-400" />
+              <span>Share Endowment Fund</span>
+            </button>
           </div>
 
           <div className="grid grid-cols-2 gap-4 border-t border-slate-800 pt-6 sm:grid-cols-4">
@@ -1145,6 +1147,21 @@ export default function GivingView({ funds, recentDonations }: GivingViewProps) 
         recipientName={donorName || session?.profile?.name || session?.email || "Alumni Contributor"}
         description={`IPAM Philanthropy Gift: ${currentFund.title}`}
         onSuccess={handleFlotPaymentSuccess}
+      />
+
+      <ShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        title={receiptData ? `I Supported ${receiptData.fund}` : "IPAM Alumni Endowment & Scholarship Fund"}
+        subtitle="100% Direct to Student Scholarships, Innovation Labs & Campus Relief"
+        categoryLabel="IPAM Philanthropy & Giving"
+        url="/giving"
+        shareText={
+          receiptData
+            ? `I just contributed to ${receiptData.fund} through the IPAM Alumni Endowment Portal to empower deserving scholars in Sierra Leone! Join me in giving back.`
+            : "Support the next generation of IPAM leaders & scholars through the IPAM Alumni Endowment Fund!"
+        }
+        imageUrl="/images/ipam_university_campus_1788350001937.jpg"
       />
     </div>
   );

@@ -41,6 +41,8 @@ export default function VirtualPassView({ pass }: { pass: VirtualPassData }) {
   const [recipientName, setRecipientName] = useState("");
   const [recipientEmail, setRecipientEmail] = useState("");
   const [dispatchSent, setDispatchSent] = useState(false);
+  const [dispatchLoading, setDispatchLoading] = useState(false);
+  const [dispatchError, setDispatchError] = useState<string | null>(null);
 
   const qrRef = useRef<HTMLDivElement>(null);
 
@@ -96,13 +98,32 @@ export default function VirtualPassView({ pass }: { pass: VirtualPassData }) {
     img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
   }
 
-  function handleDispatch(e: FormEvent) {
+  async function handleDispatch(e: FormEvent) {
     e.preventDefault();
     if (!recipientEmail) return;
-    // No email provider is wired into this project yet — this records the
-    // intent locally so the flow can be tried end-to-end; wire to a real
-    // mailer before relying on it to actually notify anyone.
-    setDispatchSent(true);
+    setDispatchLoading(true);
+    setDispatchError(null);
+    try {
+      const res = await fetch("/api/alumni/pass/dispatch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipientEmail: recipientEmail.trim(),
+          recipientName: recipientName.trim() || undefined,
+          verifyUrl: cardUrl,
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setDispatchError(json.error || "Unable to dispatch digital pass email.");
+        return;
+      }
+      setDispatchSent(true);
+    } catch {
+      setDispatchError("Network error while dispatching digital pass.");
+    } finally {
+      setDispatchLoading(false);
+    }
   }
 
   useEffect(() => {
@@ -307,15 +328,25 @@ export default function VirtualPassView({ pass }: { pass: VirtualPassData }) {
             </div>
 
             <div className="rounded-3xl border border-slate-800 bg-slate-900/80 p-6 shadow-xl backdrop-blur-md">
-              <h4 className="flex items-center gap-2 text-sm font-extrabold text-white">
-                <Share2 className="h-4 w-4 text-emerald-400" /> Share Pass to Anyone
-              </h4>
+              <div className="flex items-center justify-between">
+                <h4 className="flex items-center gap-2 text-sm font-extrabold text-white">
+                  <Share2 className="h-4 w-4 text-emerald-400" /> Share Pass to Anyone
+                </h4>
+                <button
+                  type="button"
+                  onClick={handleCopyLink}
+                  className="flex items-center gap-1 text-xs font-bold text-emerald-400 hover:text-emerald-300"
+                >
+                  {copiedLink ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                  <span>{copiedLink ? "Link Copied!" : "Copy Link"}</span>
+                </button>
+              </div>
               <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
                 <button
                   onClick={handleNativeShare}
                   className="flex flex-col items-center gap-1 rounded-2xl border border-slate-800 bg-slate-950 p-3 text-xs font-bold text-slate-200 hover:border-emerald-500/40 hover:bg-emerald-950/40"
                 >
-                  <Share2 className="h-4 w-4 text-emerald-400" /> Share
+                  <Share2 className="h-4 w-4 text-emerald-400" /> {copiedLink ? "Copied!" : "Share"}
                 </button>
                 <a
                   href={`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`}
@@ -384,11 +415,15 @@ export default function VirtualPassView({ pass }: { pass: VirtualPassData }) {
                     onChange={(e) => setRecipientEmail(e.target.value)}
                     className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none"
                   />
+                  {dispatchError && (
+                    <p className="text-xs font-semibold text-rose-400">{dispatchError}</p>
+                  )}
                   <button
                     type="submit"
-                    className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-emerald-500 py-2.5 text-xs font-black text-slate-950 hover:bg-emerald-400"
+                    disabled={dispatchLoading}
+                    className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-emerald-500 py-2.5 text-xs font-black text-slate-950 hover:bg-emerald-400 disabled:opacity-60"
                   >
-                    <Send className="h-3.5 w-3.5" /> Dispatch Digital Pass
+                    <Send className="h-3.5 w-3.5" /> {dispatchLoading ? "Sending Email..." : "Dispatch Digital Pass"}
                   </button>
                 </form>
               )}

@@ -40,6 +40,7 @@ import {
 import { useToggleSaveJob } from "@/hooks/public/useJobActions";
 import { useApplyToJob, type JobApplicationRecord } from "@/hooks/public/useApplyToJob";
 import { useApp } from "@/lib/public/context";
+import ShareModal from "@/components/public/ShareModal";
 
 export interface JobDetail {
   id: string;
@@ -120,6 +121,7 @@ export default function JobDetailView({
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedRef, setCopiedRef] = useState(false);
   const [lastSyncedTime, setLastSyncedTime] = useState<string | null>(null);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   const handleCvFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -189,14 +191,8 @@ export default function JobDetailView({
     });
   };
 
-  const handleShare = async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      setCopiedLink(true);
-      setTimeout(() => setCopiedLink(false), 2500);
-    } catch {
-      // ignore clipboard error
-    }
+  const handleShare = () => {
+    setIsShareModalOpen(true);
   };
 
   const isImmediate = job.hiringType === "IMMEDIATE";
@@ -1205,6 +1201,16 @@ export default function JobDetailView({
           </div>
         </div>
       </div>
+
+      <ShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        title={`${job.title} at ${job.company}`}
+        subtitle={`${job.location} • ${job.salary} • ${job.type.replace(/_/g, " ")}`}
+        categoryLabel="IPAM Career Opportunity"
+        url={`/jobs/${job.id}`}
+        shareText={`Check out this opportunity: ${job.title} at ${job.company} (${job.location}, ${job.salary}) on the IPAM Alumni Careers Portal!`}
+      />
     </div>
   );
 }

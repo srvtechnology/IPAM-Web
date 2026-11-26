@@ -28,6 +28,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import SubmitBusinessModal from "@/components/public/SubmitBusinessModal";
+import ShareModal from "@/components/public/ShareModal";
 
 export interface BusinessDetail {
   id: string;
@@ -99,17 +100,12 @@ export default function BusinessDetailView({
 }) {
   const [copiedShare, setCopiedShare] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   const canEdit = isAdmin || (currentUserId && business.userId === currentUserId);
 
-  async function handleShare() {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      setCopiedShare(true);
-      setTimeout(() => setCopiedShare(false), 2500);
-    } catch {
-      // clipboard unavailable — silently ignore, share button just won't confirm
-    }
+  function handleShare() {
+    setIsShareModalOpen(true);
   }
 
   return (
@@ -610,6 +606,17 @@ export default function BusinessDetailView({
           onClose={() => setIsEditing(false)}
         />
       )}
+
+      <ShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        title={business.name}
+        subtitle={`${business.industry} • ${business.location}`}
+        categoryLabel="IPAM Alumni Enterprise"
+        url={`/businesses/${business.id}`}
+        shareText={`Discover ${business.name} (${business.industry}), an alumni-led enterprise founded by ${business.founders} on the IPAM Alumni Portal!`}
+        imageUrl={business.logo || business.image || business.bannerImage || null}
+      />
     </div>
   );
 }
