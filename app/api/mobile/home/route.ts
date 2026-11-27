@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { getAlumniSession } from "@/lib/auth/session";
 import { getHeroSlides } from "@/lib/hero-slides";
 import { getBannersForPage } from "@/lib/commercial-banners";
+import { normalizeActivityPhotos } from "@/lib/validation/activities";
 import { ok } from "@/lib/api-response";
 
 export const dynamic = "force-dynamic";
@@ -17,10 +18,12 @@ export async function GET(req: NextRequest) {
     latestJobs,
     councilLeaders,
     featuredBusinesses,
+    recentActivities,
     totalAlumni,
     totalJobs,
     totalEvents,
     totalBusinesses,
+    totalActivities,
   ] = await Promise.all([
     getHeroSlides(),
     getBannersForPage("/"),
@@ -47,10 +50,15 @@ export async function GET(req: NextRequest) {
       orderBy: [{ featured: "desc" }, { createdAt: "desc" }],
       take: 6,
     }),
+    db.alumniActivity.findMany({
+      orderBy: [{ featured: "desc" }, { sortOrder: "asc" }, { createdAt: "desc" }],
+      take: 6,
+    }),
     db.alumniUser.count({ where: { status: "APPROVED" } }),
     db.jobOpening.count({ where: { status: "ACTIVE" } }),
     db.alumniEvent.count({ where: { status: "PUBLISHED" } }),
     db.alumniBusiness.count({ where: { status: "APPROVED" } }),
+    db.alumniActivity.count(),
   ]);
 
   let userContext = null;
@@ -143,11 +151,31 @@ export async function GET(req: NextRequest) {
       initiatives: lead.initiatives.map((i) => i.title),
     })),
     featuredBusinesses,
+    recentActivities: recentActivities.map((a) => {
+      const photos = normalizeActivityPhotos(a.photos);
+      return {
+        id: a.id,
+        title: a.title,
+        description: a.description,
+        status: a.status,
+        displayDate: a.displayDate,
+        location: a.location,
+        category: a.category,
+        photos,
+        coverPhoto: photos[0] ?? null,
+        photosCount: photos.length,
+        featured: a.featured,
+        sortOrder: a.sortOrder,
+        createdAt: a.createdAt.toISOString(),
+        updatedAt: a.updatedAt.toISOString(),
+      };
+    }),
     stats: {
       totalAlumni,
       totalJobs,
       totalEvents,
       totalBusinesses,
+      totalActivities,
     },
     userContext,
   });

@@ -18,6 +18,7 @@ export async function GET() {
       donations: true,
       jobBoard: true,
       events: true,
+      activitiesGallery: true,
       paidEventTicketing: true,
       mentoring: true,
       commercialMarketplace: true,

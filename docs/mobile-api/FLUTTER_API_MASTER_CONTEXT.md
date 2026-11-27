@@ -393,3 +393,35 @@ class FlotPaymentLink {
 * `POST /api/notifications/unregister-token` — Unregister FCM token on logout.
 * `GET /api/notifications/devices` — View registered devices.
 * `POST /api/notifications/test` — Send a test push notification to current user's devices.
+
+### 4.12 Activities & Multi-Photo Gallery (Current & Previous Events)
+* `GET /api/activities` — Public list of current & previous alumni activity galleries. Supports `?status=CURRENT|PREVIOUS`, `?q=`, `?featured=true`, `?category=`, `?limit=`. Each item includes `id`, `title`, `description`, `status` (`CURRENT` | `PREVIOUS`), `displayDate`, `location`, `category`, `photos` (`List<String>`), `coverPhoto`, `photosCount`, `featured`, `sortOrder`, `createdAt`, `updatedAt`.
+* `GET /api/activities/{id}` — Single activity detail & full multi-photo array (`404` if missing).
+* `GET /api/mobile/home` — Includes `recentActivities` (up to 6 ordered activities) and `stats.totalActivities`.
+* `GET /api/mobile/config` — Includes `features.activitiesGallery: true`.
+* Full guide + Dart models + `ActivitiesService`: see `docs/mobile-api/16-activities-gallery.md`.
+
+---
+
+## 5. AI IDE Prompt — Add Activities Page in Flutter Mobile App
+
+Paste the prompt below directly into your Flutter AI IDE alongside this doc (`docs/mobile-api/16-activities-gallery.md` and `docs/mobile-api/FLUTTER_API_MASTER_CONTEXT.md`):
+
+```text
+Add a new "Activities" (Current & Previous Events Photo Gallery) feature to the IPAM Alumni Flutter app using our existing ApiClient (Dio), theme colors (Emerald & Slate), and state management pattern:
+
+1. Model & API Service:
+   - Create `AlumniActivity` (`id`, `title`, `description`, `status` ['CURRENT' | 'PREVIOUS'], `displayDate`, `location`, `category`, `photos`, `coverPhoto`, `photosCount`, `featured`, `sortOrder`, `createdAt`, `updatedAt`).
+   - Normalize relative image URLs (`/images/...`, `/uploads/...`) by prefixing `ApiClient.baseUrl`.
+   - Create `ActivitiesService`:
+     * `fetchActivities({String? status, String? query, bool? featured, int? limit})` -> `GET /api/activities`
+     * `fetchActivityById(String id)` -> `GET /api/activities/$id`
+   - Update `MobileHome` parsing (if used) to read `recentActivities` and `stats.totalActivities` from `GET /api/mobile/home`.
+
+2. UI Screens (`ActivitiesPage` + `ActivityGalleryViewer`):
+   - Add an entry point from Home / Navigation Drawer / Explore menu to open `ActivitiesPage`.
+   - Top summary header with counts for Total Activities, Current Events, Previous Events, and Total Photos.
+   - Tabs/Filter chips: `All`, `Current Events` (`CURRENT`), `Previous Events` (`PREVIOUS`) + search bar (`q`) + `RefreshIndicator`.
+   - Gallery cards showing `16:9` cover image, `CURRENT` (emerald) / `PREVIOUS` (slate) badge, photo count pill (`4 Photos`), scrollable thumbnail strip, category, `displayDate`, `location`, title, description preview, and a Share button (`https://ipam.billnbite.cloud/activities?activity=${activity.id}`).
+   - Tapping a card or thumbnail opens a full-screen multi-photo gallery & story detail view with `PageView` + `InteractiveViewer` (swipe + pinch-to-zoom), thumbnail selector bar, full description, and share button.
+```
