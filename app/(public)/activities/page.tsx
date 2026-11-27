@@ -5,6 +5,7 @@ import ActivitiesView from "@/components/public/ActivitiesView";
 import PageCommercialBannersSection from "@/components/public/PageCommercialBannersSection";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export const metadata = {
   title: "Activities & Photo Gallery | IPAM Alumni Association",

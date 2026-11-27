@@ -1,13 +1,30 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
-import type { AlumniActivityItem } from "@/lib/validation/activities";
+import { useRouter } from "next/navigation";
+import { normalizeActivityPhotos, type AlumniActivityItem } from "@/lib/validation/activities";
 import CreateEditActivityModal from "./CreateEditActivityModal";
 
-export default function ActivitiesManagementView() {
-  const [activities, setActivities] = useState<AlumniActivityItem[]>([]);
-  const [loading, setLoading] = useState(true);
+function normalizeActivityItem(item: AlumniActivityItem): AlumniActivityItem {
+  return {
+    ...item,
+    photos: normalizeActivityPhotos(item.photos),
+  };
+}
+
+export default function ActivitiesManagementView({
+  initialActivities = [],
+}: {
+  initialActivities?: AlumniActivityItem[];
+}) {
+  const router = useRouter();
+  const [activities, setActivities] = useState<AlumniActivityItem[]>(() =>
+    initialActivities.map(normalizeActivityItem)
+  );
+  const [loading, setLoading] = useState(initialActivities.length === 0);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<"ALL" | "CURRENT" | "PREVIOUS">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -17,6 +34,10 @@ export default function ActivitiesManagementView() {
   const [deleting, setDeleting] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
+  useEffect(() => {
+    setActivities(initialActivities.map(normalizeActivityItem));
+  }, [initialActivities]);
+
   function showToast(message: string, type: "success" | "error" = "success") {
     setToast({ message, type });
     setTimeout(() => {
@@ -24,24 +45,41 @@ export default function ActivitiesManagementView() {
     }, 3500);
   }
 
-  async function fetchActivities() {
-    setLoading(true);
+  const fetchActivities = useCallback(async (options?: { silent?: boolean }) => {
+    const silent = Boolean(options?.silent);
+    if (silent) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+    setLoadError(null);
+
     try {
-      const res = await fetch("/api/admin/activities", { cache: "no-store" });
-      const json = await res.json();
-      if (res.ok && Array.isArray(json.data)) {
-        setActivities(json.data);
+      const res = await fetch("/api/admin/activities", {
+        cache: "no-store",
+        headers: { "Cache-Control": "no-cache" },
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json || !Array.isArray(json.data)) {
+        const msg = json?.error || `Failed to load activities (HTTP ${res.status})`;
+        setLoadError(msg);
+        if (!silent) showToast(msg, "error");
+        return;
       }
+      setActivities((json.data as AlumniActivityItem[]).map(normalizeActivityItem));
     } catch {
-      showToast("Failed to load activities", "error");
+      const msg = "Network error while loading activities";
+      setLoadError(msg);
+      if (!silent) showToast(msg, "error");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
-    fetchActivities();
-  }, []);
+    fetchActivities({ silent: initialActivities.length > 0 });
+  }, [fetchActivities, initialActivities.length]);
 
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -51,7 +89,8 @@ export default function ActivitiesManagementView() {
       return (
         item.title.toLowerCase().includes(q) ||
         item.description.toLowerCase().includes(q) ||
-        (item.location && item.location.toLowerCase().includes(q))
+        (item.location && item.location.toLowerCase().includes(q)) ||
+        (item.category && item.category.toLowerCase().includes(q))
       );
     });
   }, [activities, filterStatus, searchQuery]);
@@ -60,7 +99,8 @@ export default function ActivitiesManagementView() {
   const previousCount = activities.filter((a) => a.status === "PREVIOUS").length;
   const totalPhotos = activities.reduce((sum, a) => sum + a.photos.length, 0);
 
-  function handleSaved(saved: AlumniActivityItem) {
+  function handleSaved(savedRaw: AlumniActivityItem) {
+    const saved = normalizeActivityItem(savedRaw);
     setActivities((prev) => {
       const exists = prev.some((a) => a.id === saved.id);
       if (exists) {
@@ -68,23 +108,39 @@ export default function ActivitiesManagementView() {
       }
       return [saved, ...prev];
     });
+
+    // Clear active search/status filters if they would hide the newly saved activity
+    setSearchQuery("");
+    if (filterStatus !== "ALL" && filterStatus !== saved.status) {
+      setFilterStatus("ALL");
+    }
+
+    setModalOpen(false);
+    setEditingActivity(null);
     showToast(`Activity "${saved.title}" saved successfully.`);
+
+    // Re-sync ordering with DB and invalidate Next.js router cache
+    void fetchActivities({ silent: true });
+    router.refresh();
   }
 
   async function handleConfirmDelete() {
     if (!deleteTarget) return;
+    const target = deleteTarget;
     setDeleting(true);
     try {
-      const res = await fetch(`/api/admin/activities/${deleteTarget.id}`, {
+      const res = await fetch(`/api/admin/activities/${target.id}`, {
         method: "DELETE",
       });
       if (!res.ok) {
         const json = await res.json().catch(() => ({}));
         throw new Error(json.error || "Delete failed");
       }
-      setActivities((prev) => prev.filter((a) => a.id !== deleteTarget.id));
-      showToast(`Deleted activity "${deleteTarget.title}".`);
+      setActivities((prev) => prev.filter((a) => a.id !== target.id));
+      showToast(`Deleted activity "${target.title}".`);
       setDeleteTarget(null);
+      void fetchActivities({ silent: true });
+      router.refresh();
     } catch (err: unknown) {
       showToast(err instanceof Error ? err.message : "Failed to delete activity", "error");
     } finally {
@@ -119,6 +175,15 @@ export default function ActivitiesManagementView() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => fetchActivities({ silent: activities.length > 0 })}
+            disabled={loading || refreshing}
+            className="flex items-center gap-1.5 rounded-xl border border-outline-variant/50 bg-surface-container-lowest px-3 py-2 text-xs font-bold text-on-surface hover:bg-surface-container-high disabled:opacity-50"
+          >
+            <span className="material-symbols-outlined text-[16px]">refresh</span>
+            <span>{refreshing ? "Syncing..." : "Refresh"}</span>
+          </button>
           <Link
             href="/activities"
             target="_blank"
@@ -140,6 +205,19 @@ export default function ActivitiesManagementView() {
           </button>
         </div>
       </div>
+
+      {loadError && (
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-rose-300 bg-rose-50 px-4 py-3 text-xs font-semibold text-rose-700">
+          <span>{loadError}</span>
+          <button
+            type="button"
+            onClick={() => fetchActivities()}
+            className="rounded-lg bg-rose-600 px-3 py-1 text-[11px] font-bold text-white hover:bg-rose-700"
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       {/* Stats Row */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
@@ -181,11 +259,14 @@ export default function ActivitiesManagementView() {
         </div>
 
         <input
-          type="text"
+          type="search"
+          name="activity_filter_query"
+          autoComplete="off"
+          disabled={modalOpen}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search title, description, or location..."
-          className="w-full rounded-xl border border-outline-variant/40 bg-surface-container-low px-3.5 py-2 text-xs text-on-surface focus:border-primary focus:outline-none sm:w-72"
+          className="w-full rounded-xl border border-outline-variant/40 bg-surface-container-low px-3.5 py-2 text-xs text-on-surface focus:border-primary focus:outline-none disabled:opacity-60 sm:w-72"
         />
       </div>
 
@@ -193,6 +274,23 @@ export default function ActivitiesManagementView() {
       {loading ? (
         <div className="rounded-2xl border border-outline-variant/30 bg-surface-container-lowest p-12 text-center text-xs text-on-surface-variant">
           Loading activity galleries...
+        </div>
+      ) : filtered.length === 0 && activities.length > 0 ? (
+        <div className="rounded-2xl border border-outline-variant/30 bg-surface-container-lowest p-12 text-center space-y-3">
+          <p className="text-sm font-bold text-on-surface">No activities match your current search or filter</p>
+          <p className="text-xs text-on-surface-variant">
+            {activities.length} activity gallery item(s) exist in the database.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setFilterStatus("ALL");
+              setSearchQuery("");
+            }}
+            className="rounded-xl bg-primary px-4 py-2 text-xs font-bold text-on-primary hover:opacity-90"
+          >
+            Clear Filters &amp; Show All
+          </button>
         </div>
       ) : filtered.length === 0 ? (
         <div className="rounded-2xl border border-outline-variant/30 bg-surface-container-lowest p-12 text-center">
@@ -286,6 +384,7 @@ export default function ActivitiesManagementView() {
       {/* Create / Edit Modal */}
       {modalOpen && (
         <CreateEditActivityModal
+          key={editingActivity?.id ?? "new"}
           activity={editingActivity}
           onClose={() => {
             setModalOpen(false);

@@ -135,13 +135,19 @@ export default function CreateEditActivityModal({
         }),
       });
 
-      const json = await res.json();
-      if (!res.ok) {
-        throw new Error(json.error || "Failed to save activity");
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json?.data) {
+        let msg = json?.error || `Failed to save activity (HTTP ${res.status})`;
+        if (json?.issues?.fieldErrors) {
+          const fieldMsgs = Object.entries(json.issues.fieldErrors)
+            .map(([field, errs]) => `${field}: ${Array.isArray(errs) ? errs.join(", ") : errs}`)
+            .join("; ");
+          if (fieldMsgs) msg = `${msg} (${fieldMsgs})`;
+        }
+        throw new Error(msg);
       }
 
       onSaved(json.data as AlumniActivityItem);
-      onClose();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Error saving activity");
     } finally {

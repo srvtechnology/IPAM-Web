@@ -4,6 +4,7 @@ import { ok } from "@/lib/api-response";
 import { normalizeActivityPhotos } from "@/lib/validation/activities";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
