@@ -16,6 +16,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/admin/directory", label: "Alumni Directory & 2-Way Auth", icon: "verified_user", module: "DIRECTORY" },
   { href: "/admin/id-cards", label: "ID Card Issuance Desk", icon: "badge", module: "ID_CARDS" },
   { href: "/admin/events", label: "Events & Bookings Desk", icon: "event", module: null },
+  { href: "/admin/activities", label: "Activities Gallery", icon: "photo_library", module: null },
   { href: "/admin/leadership", label: "Global Leadership", icon: "diversity_3", module: null },
   { href: "/admin/hero-carousel", label: "Hero Banner Carousel", icon: "view_carousel", module: null },
   { href: "/admin/broadcast", label: "Omnichannel Broadcast", icon: "campaign", module: "BROADCAST" },

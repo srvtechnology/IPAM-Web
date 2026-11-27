@@ -36,6 +36,7 @@ export default function Footer() {
             <ul className="space-y-2 text-xs text-slate-600 sm:text-sm">
               <li><Link href="/directory" className="transition-colors hover:text-emerald-700">Alumni Directory</Link></li>
               <li><Link href="/events" className="transition-colors hover:text-emerald-700">Upcoming Events</Link></li>
+              <li><Link href="/activities" className="transition-colors hover:text-emerald-700">Activities Gallery</Link></li>
               <li><Link href="/jobs" className="transition-colors hover:text-emerald-700">Career Openings</Link></li>
               <li><Link href="/businesses" className="transition-colors hover:text-emerald-700">Alumni Businesses</Link></li>
             </ul>

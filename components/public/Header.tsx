@@ -26,6 +26,7 @@ import {
   CheckCircle2,
   Bell,
   LayoutDashboard,
+  Images,
 } from "lucide-react";
 import { useApp } from "@/lib/public/context";
 import HeaderNotificationBell from "@/components/public/notifications/HeaderNotificationBell";
@@ -34,6 +35,7 @@ const NAV_LINKS: { href: string; label: string; icon?: typeof HeartHandshake }[]
   { href: "/", label: "Home" },
   { href: "/directory", label: "Directory" },
   { href: "/events", label: "Events" },
+  { href: "/activities", label: "Activities" },
   { href: "/jobs", label: "Careers" },
   { href: "/businesses", label: "Enterprises" },
   { href: "/giving", label: "Giving", icon: HeartHandshake },
@@ -44,6 +46,7 @@ const MOBILE_NAV_LINKS: { href: string; label: string; icon: typeof HeartHandsha
   { href: "/", label: "Home Overview", icon: GraduationCap },
   { href: "/directory", label: "Alumni Directory", icon: Search },
   { href: "/events", label: "Events", icon: Calendar },
+  { href: "/activities", label: "Activities Gallery", icon: Images },
   { href: "/jobs", label: "Careers", icon: Briefcase },
   { href: "/businesses", label: "Alumni Enterprises", icon: Building2 },
   { href: "/giving", label: "Endowment & Giving", icon: HeartHandshake },

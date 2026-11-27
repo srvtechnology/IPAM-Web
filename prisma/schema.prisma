@@ -1130,3 +1130,27 @@ model AlumniNotification {
   @@index([createdAt])
   @@map("alumni_notifications")
 }
+
+enum ActivityStatus {
+  CURRENT
+  PREVIOUS
+}
+
+model AlumniActivity {
+  id          String         @id @default(cuid())
+  title       String
+  description String         @db.Text
+  status      ActivityStatus @default(CURRENT)
+  displayDate String?
+  location    String?
+  category    String?
+  photos      Json
+  featured    Boolean        @default(false)
+  sortOrder   Int            @default(0)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([status])
+  @@index([sortOrder])
+  @@map("alumni_activities")
+}
